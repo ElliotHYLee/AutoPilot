@@ -5,7 +5,6 @@ CON
 OBJ
   usb            : "Parallax Serial Terminal"
   fNum           : "FloatMath.spin"
-  fString        : "FloatString"
   mpu6050        : "sensor.spin"
 VAR
   'system variable
@@ -21,41 +20,102 @@ VAR
   byte motorIteration 
 
  'attitude variables
-  long eAngle[3], attitudeStack[64] , attitudeCogId , sensorCodId
+  long eAngle10E5[3], attitudeStack[64] , attitudeCogId , sensorCodId
   
   'usb variables
   long newValue, type, usbStack[64],usbCogId, pstCodId
   long varChar, motorNumber 
 
   'pid variables
-  long currentDirCos_10E6[3], error[3], pidStack[128], pidCogId
-  long targetDirCos_10E6X,  targetDirCos_10E6Y,   targetDirCos_10E6Z
-  long kp, ki, kd, pidUpdateIndex
+  long pidStack[128], pidCogId
+  long targetEAnlge10E5[3]
+  long kp, ki, kd, pidUpdateIndex, xPrevTime, yPrevTime
   byte pidOnOff
-
-PRI setTargteDirCos 
-  targetDirCos_10E6X := 1        ' directionCosX = 0.0000001
-  targetDirCos_10E6Y := 1        ' directionCosY = 0.0000001 
-  targetDirCos_10E6Z := 1000000  ' directionCosZ = 1 
 
 PUB startAutoPilot
 
   'usb start
   newUSB
   
-  setTargteDirCos
-  
  'attitude start
   newAttitude
 
   'motor start
-  newMotor(0,16,2,15)
+  newMotor(4,1,4,3)
 
-  'waitcnt(cnt + clkfreq*5)
+  waitcnt(cnt + clkfreq*3)
   'pid start
   startPID
 
   cogstop(0)
+
+'===================================================================================================
+'===================== PID PART ==================================================================
+'===================================================================================================
+PRI pidOn
+  pidOnOff := 1
+  
+PRI pidOff
+  pidOnOff := 0
+
+PRI stopPID
+  if pidCogId
+    cogstop(pidCogId ~ - 1)
+
+PRI startPID
+  stopPID
+  pidOn
+  pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
+
+PRI runPID 
+  kp := 25
+  ki := 0
+  kd := 0 
+  repeat
+    if pidOnOff == 1
+
+      pidAxis(1,3) ' x axis pid set ( red arms of the drone)
+      pidAxis(0,2) ' y axis pid set ( white arms of the drone)  
+    else
+        
+
+PRI pidAxis(oneMoter, anotherMoter) | fError, fError10E5, fTenE5, fkp, fki, fkd, fdt, fProportional, fIntegral, fDerivative, fOutPut, outPut, dt
+  if oneMoter == 1         'for x axis calc
+    dt := cnt - xPrevTime
+  else                     'for y axis calc
+    dt := cnt - yPrevTime
+
+  fTenE5 := fNum.FFloat(100000_000) 'with three more 000, kp can vary 1 ~ 100
+  fdt := fNum.FFloat(dt)    'dt is not in second => figure out!
+  fkp := fNum.FFloat(kp)
+  fki := fNum.FFloat(ki) 
+  fkd := fNum.FFloat(kd)
+  'fProportional := fNum.FFloat(0)
+  'fIntegral := fNum.FFloat(0)
+  'fDerivative := fNum.FFloat(0)
+  
+  fError10E5 := fNum.FFloat(targetEAnlge10E5[0]- eAngle10E5[0])  
+  fError :=  fNum.FDiv(fError10E5, fTenE5) ' now fError is from 0.xxx to xxx.xxxx
+
+  fProportional := fNum.FMul(fkp, fError)
+  fIntegral := fNum.FMul(ki, fNum.FMul(fdt,fError))
+  fDerivative := fNum.FMul(kd, fNum.FDiv(fError,fdt))
+
+  fOutPut := fNum.FAdd(fProportional, fNum.FAdd(fIntegral, fDerivative))
+  outPut := fNum.FRound(fOutPut)
+    
+  if fError > 0  ' when tilted to positive x axis - increase motor 4
+    if pulse[anotherMoter] + outPut  =< 1300
+      pulse[anotherMoter] := pulse[anotherMoter] + outPut
+    if (pulse[oneMoter] - outPut) => 1200
+      pulse[oneMoter] := pulse[oneMoter] - outPut
+  elseif fError < 0  ' when tilted to negative x axis - increase motor 2
+    if pulse[oneMoter] + (-outPut) =< 1300
+      pulse[oneMoter] := pulse[oneMoter] + (-outPut) 
+      if (pulse[anotherMoter] - (-outPut)) => 1200
+       pulse[anotherMoter] := pulse[anotherMoter] - (-outPut)   
+
+
 '===================================================================================================
 '===================== MOTOR PART ==================================================================
 '===================================================================================================
@@ -187,12 +247,12 @@ PRI sendOrdinaryMsg | i
       usb.str(String("[c"))
       case i
         0: usb.str(String("x"))
-           eAngle[i] := mpu6050.GetCx  
+           eAngle10E5[i] := mpu6050.GetCx  
         1: usb.str(String("y"))
-           eAngle[i] := mpu6050.GetCy  
+           eAngle10E5[i] := mpu6050.GetCy  
         2: usb.str(String("z"))
-           eAngle[i] := mpu6050.GetCz 
-      usb.dec(eAngle[i])
+           eAngle10E5[i] := mpu6050.GetCz 
+      usb.dec(eAngle10E5[i])
       usb.str(String("]"))        
     i++
       
@@ -283,53 +343,7 @@ PRI systemModeUpdate(mode)
      4: 'navigation
        pidOn
 
-'===================================================================================================
-'===================== PID PART ==================================================================
-'===================================================================================================
-PRI pidOn
-  pidOnOff := 1
-  
-PRI pidOff
-  pidOnOff := 0
-
-PRI stopPID
-  if pidCogId
-    cogstop(pidCogId ~ - 1)
-
-PRI startPID
-  stopPID
-  pidOn
-  pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
-
-PRI runPID | difference[3], targetAttitude[3]
-
-  repeat
-    if pidOnOff == 1    
-      targetAttitude[0] := getTargetAttitude(0)
-      difference[0] := targetAttitude[0] - currentDirCos_10E6[0] 
-      if difference > 0
-        if pulse[1] + 1  =< 1300
-          pulse[1] := pulse[1] + 1
-          if (pulse[3] - 1) =>1200
-            pulse[3] := pulse[3] - 1
-      elseif difference < 0
-        if pulse[1] - 1 => 1200
-          pulse[1] := pulse[1] - 1 
-          if (pulse[3] - 1) =< 1300
-            pulse[3] := pulse[3] + 1
-        
-PRI getTargetAttitude(axisNumber) | toReturn
-  if (axisNumber == 0)
-    if (2>1)
-      toReturn := targetDirCos_10E6X
-  elseif (axisNumber == 1)
-    if (2>1)
-      toReturn := targetDirCos_10E6Y
-  elseif (axisNumber == 2)
-    if(2>1)
-      toReturn := targetDirCos_10E6X
-
-  return toReturn    
+   
 '===================================================================================================
 '===================== ATTITUDE PART ==================================================================
 '===================================================================================================
@@ -337,4 +351,4 @@ PRI newAttitude
   startAttitude
   
 PRI startAttitude 
-  sensorCodId:=mpu6050.Start(15,14, 90) ' scl, sda, cFilter portion in %   
+  sensorCodId:=mpu6050.Start(15,14, 98) ' scl, sda, cFilter portion in %   
