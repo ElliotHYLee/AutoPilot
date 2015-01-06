@@ -73,35 +73,41 @@ PRI runPID
   kd := 0 
   repeat
     if pidOnOff == 1
-
       pidAxis(1,3) ' x axis pid set ( red arms of the drone)
       pidAxis(0,2) ' y axis pid set ( white arms of the drone)  
     else
-        
+      'Do nothing  
 
-PRI pidAxis(oneMoter, anotherMoter) | fError, fError10E5, fTenE5, fkp, fki, fkd, fdt, fProportional, fIntegral, fDerivative, fOutPut, outPut, dt
+PRI pidAxis(oneMoter, anotherMoter) | fError, fError10E5, fTenE5_000, fkp, fki, fkd, fdt, fProportional, fIntegral, fDerivative, fOutPut, outPut, dt
+  '============================
+  '=== float calculation region
+  '============================
+  'just a constant; last three 000 is for pid constant so that, for ex,  kp can vary 1 ~ 100
+  fTenE5_000 := fNum.FFloat(100000_000) 
+
+  fkp := fNum.FFloat(kp)
+  fki := fNum.FFloat(ki) 
+  fkd := fNum.FFloat(kd)
+  
+  fError10E5 := fNum.FFloat(targetEAnlge10E5[0]- eAngle10E5[0])  
+  fError :=  fNum.FDiv(fError10E5, fTenE5_000) ' now fError is from 0.xxx to xxx.xxxx
+
   if oneMoter == 1         'for x axis calc
     dt := cnt - xPrevTime
   else                     'for y axis calc
     dt := cnt - yPrevTime
-
-  fTenE5 := fNum.FFloat(100000_000) 'with three more 000, kp can vary 1 ~ 100
-  fdt := fNum.FFloat(dt)    'dt is not in second => figure out!
-  fkp := fNum.FFloat(kp)
-  fki := fNum.FFloat(ki) 
-  fkd := fNum.FFloat(kd)
-  'fProportional := fNum.FFloat(0)
-  'fIntegral := fNum.FFloat(0)
-  'fDerivative := fNum.FFloat(0)
+    
+  fdt := fNum.FDiv(fNum.FFloat(dt), fNum.FFloat(clkfreq))    'dt is in second 
   
-  fError10E5 := fNum.FFloat(targetEAnlge10E5[0]- eAngle10E5[0])  
-  fError :=  fNum.FDiv(fError10E5, fTenE5) ' now fError is from 0.xxx to xxx.xxxx
-
   fProportional := fNum.FMul(fkp, fError)
   fIntegral := fNum.FMul(ki, fNum.FMul(fdt,fError))
   fDerivative := fNum.FMul(kd, fNum.FDiv(fError,fdt))
 
   fOutPut := fNum.FAdd(fProportional, fNum.FAdd(fIntegral, fDerivative))
+
+  '===================
+  '=== back to integer
+  '===================
   outPut := fNum.FRound(fOutPut)
     
   if fError > 0  ' when tilted to positive x axis - increase motor 4
@@ -115,6 +121,11 @@ PRI pidAxis(oneMoter, anotherMoter) | fError, fError10E5, fTenE5, fkp, fki, fkd,
       if (pulse[anotherMoter] - (-outPut)) => 1200
        pulse[anotherMoter] := pulse[anotherMoter] - (-outPut)   
 
+
+  if oneMoter == 1         'for x axis calc
+    xPrevTime := cnt
+  else                     'for y axis calc
+    yPrevTime := cnt
 
 '===================================================================================================
 '===================== MOTOR PART ==================================================================
