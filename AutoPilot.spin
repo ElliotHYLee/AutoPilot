@@ -29,7 +29,7 @@ VAR
   'pid variables
   long pidStack[128], pidCogId
   long targetEAnlge10E5[3]
-  long kp, ki, kd, pidUpdateIndex, xPrevTime, yPrevTime
+  long kp, ki, kd, pidUpdateIndex, xPrevTime, yPrevTime , fErrorPrev
   byte pidOnOff
 
 PUB startAutoPilot
@@ -41,7 +41,7 @@ PUB startAutoPilot
   newAttitude
 
   'motor start
-  newMotor(4,1,4,3)
+  newMotor(0,1,2,3)
 
   waitcnt(cnt + clkfreq*3)
   'pid start
@@ -68,9 +68,9 @@ PRI startPID
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
 PRI runPID 
-  kp := 25
-  ki := 0
-  kd := 0 
+  kp := 15
+  ki := 5000
+  kd := 8000
   repeat
     if pidOnOff == 1
       pidAxis(1,3) ' x axis pid set ( red arms of the drone)
@@ -78,7 +78,7 @@ PRI runPID
     else
       'Do nothing  
 
-PRI pidAxis(oneMoter, anotherMoter) | fError, fError10E5, fTenE5_000, fkp, fki, fkd, fdt, fProportional, fIntegral, fDerivative, fOutPut, outPut, dt
+PRI pidAxis(oneMoter, anotherMoter) | fError, fDeltaError, fError10E5, fTenE5_000, fkp, fki, fkd, fdt, fProportional, fIntegral, fDerivative, fOutPut, outPut, dt
   '============================
   '=== float calculation region
   '============================
@@ -86,7 +86,7 @@ PRI pidAxis(oneMoter, anotherMoter) | fError, fError10E5, fTenE5_000, fkp, fki, 
   fTenE5_000 := fNum.FFloat(100000_000) 
 
   fkp := fNum.FFloat(kp)
-  fki := fNum.FFloat(ki) 
+  fki := fNum.FFloat(ki*1000) 
   fkd := fNum.FFloat(kd)
   
   fError10E5 := fNum.FFloat(targetEAnlge10E5[0]- eAngle10E5[0])  
@@ -96,36 +96,45 @@ PRI pidAxis(oneMoter, anotherMoter) | fError, fError10E5, fTenE5_000, fkp, fki, 
     dt := cnt - xPrevTime
   else                     'for y axis calc
     dt := cnt - yPrevTime
+
     
-  fdt := fNum.FDiv(fNum.FFloat(dt), fNum.FFloat(clkfreq))    'dt is in second 
+  fdt := fNum.FDiv(fNum.FFloat(dt), fNum.FFloat(clkfreq))    'dt is in second
+  fdt := fNum.FMul(dt, fNum.FFloat(1000000000)) ' dt in micr second
+
+  fDeltaError :=fNum.FSub(fError, fErrorPrev)
   
   fProportional := fNum.FMul(fkp, fError)
-  fIntegral := fNum.FMul(ki, fNum.FMul(fdt,fError))
-  fDerivative := fNum.FMul(kd, fNum.FDiv(fError,fdt))
+  fIntegral := fNum.FMul(fNum.FMul(ki, fNum.FMul(fdt,fError)),fNum.Ffloat(1000000))
+  fDerivative := fNum.FMul(fNum.FMul(kd, fNum.FDiv(fDeltaError,fdt)), fNum.Ffloat(10000000))
 
-  fOutPut := fNum.FAdd(fProportional, fNum.FAdd(fIntegral, fDerivative))
+  fOutPut := fNum.FAdd(fProportional, fNum.FSub(fIntegral, fDerivative))
 
-  '===================
-  '=== back to integer
-  '===================
-  outPut := fNum.FRound(fOutPut)
-    
-  if fError > 0  ' when tilted to positive x axis - increase motor 4
-    if pulse[anotherMoter] + outPut  =< 1300
-      pulse[anotherMoter] := pulse[anotherMoter] + outPut
-    if (pulse[oneMoter] - outPut) => 1200
-      pulse[oneMoter] := pulse[oneMoter] - outPut
-  elseif fError < 0  ' when tilted to negative x axis - increase motor 2
-    if pulse[oneMoter] + (-outPut) =< 1300
-      pulse[oneMoter] := pulse[oneMoter] + (-outPut) 
-      if (pulse[anotherMoter] - (-outPut)) => 1200
-       pulse[anotherMoter] := pulse[anotherMoter] - (-outPut)   
-
+  ' set variables for next iteration
+  fErrorPrev := fError
 
   if oneMoter == 1         'for x axis calc
     xPrevTime := cnt
   else                     'for y axis calc
     yPrevTime := cnt
+
+  '===================
+  '=== back to motor output
+  '===================
+  outPut := fNum.FRound(fOutPut)
+    
+  if fError > 0  ' when tilted to positive x axis - increase motor 4
+    if pulse[anotherMoter] + outPut  =< 1350
+      pulse[anotherMoter] := pulse[anotherMoter] + outPut
+    if (pulse[oneMoter] - outPut) => 1200
+      pulse[oneMoter] := pulse[oneMoter] - outPut
+  elseif fError < 0  ' when tilted to negative x axis - increase motor 2
+    if pulse[oneMoter] + (-outPut) =< 1350
+      pulse[oneMoter] := pulse[oneMoter] + (-outPut) 
+      if (pulse[anotherMoter] - (-outPut)) => 1200
+       pulse[anotherMoter] := pulse[anotherMoter] - (-outPut)   
+
+
+
 
 '===================================================================================================
 '===================== MOTOR PART ==================================================================
@@ -163,7 +172,7 @@ PRI initMotor                                             {{initializing the mot
       motorIteration++
     waitcnt(cnt + clkfreq / 1000*20)
 
-PRI runMotor | baseTime, totalElapse                 {{generating pwm for the motor connected to this pin}}              
+PRI runMotor | check, baseTime, totalElapse                 {{generating pwm for the motor connected to this pin}}              
   
   initMotor  'physical initialization for this motor 
   motorIteration := 0
@@ -173,28 +182,61 @@ PRI runMotor | baseTime, totalElapse                 {{generating pwm for the mo
     motorIteration++
   
   repeat
-    'usb.str(String("running well"))
-    totalElapse:=0
-    baseTime := cnt    
+    check := inspectPulse
+    if check==0 'abnormaly
+      'usb.str(String("running well"))
+       totalElapse:=0
+       baseTime := cnt    
+       
+       outa[motorPin[0]]:= 1
+       waitcnt(baseTime + clkfreq/1000000*1150)
+       outa[motorPin[0]]:= 0
+         
+       outa[motorPin[1]]:= 1 
+       waitcnt(cnt + clkfreq/1000000*1150)
+       outa[motorPin[1]]:= 0
+       
+       outa[motorPin[2]]:= 1
+       waitcnt(cnt + clkfreq/1000000*1150)
+       outa[motorPin[2]]:= 0
+        
+       outa[motorPin[3]]:= 1
+       waitcnt(cnt + clkfreq/1000000*1150)
+       outa[motorPin[3]]:= 0
+       totalElapse := pulse[0] + pulse[1] + pulse[2] + pulse[3]
+       waitcnt(baseTime + (clkfreq/1000*20 - clkfreq/1000000*totalElapse))      
 
-    outa[motorPin[0]]:= 1
-    waitcnt(baseTime + clkfreq/1000000*pulse[0])
-    outa[motorPin[0]]:= 0
-      
-    outa[motorPin[1]]:= 1 
-    waitcnt(cnt + clkfreq/1000000*pulse[1])
-    outa[motorPin[1]]:= 0
+    else   ' good to go
+    
+      'usb.str(String("running well"))
+       totalElapse:=0
+       baseTime := cnt    
+       
+       outa[motorPin[0]]:= 1
+       waitcnt(baseTime + clkfreq/1000000*pulse[0])
+       outa[motorPin[0]]:= 0
+         
+       outa[motorPin[1]]:= 1 
+       waitcnt(cnt + clkfreq/1000000*pulse[1])
+       outa[motorPin[1]]:= 0
+       
+       outa[motorPin[2]]:= 1
+       waitcnt(cnt + clkfreq/1000000*pulse[2])
+       outa[motorPin[2]]:= 0
+        
+       outa[motorPin[3]]:= 1
+       waitcnt(cnt + clkfreq/1000000*pulse[3])
+       outa[motorPin[3]]:= 0
+       totalElapse := pulse[0] + pulse[1] + pulse[2] + pulse[3]
+       waitcnt(baseTime + (clkfreq/1000*20 - clkfreq/1000000*totalElapse))
 
-    outa[motorPin[2]]:= 1
-    waitcnt(cnt + clkfreq/1000000*pulse[2])
-    outa[motorPin[2]]:= 0
-     
-    outa[motorPin[3]]:= 1
-    waitcnt(cnt + clkfreq/1000000*pulse[3])
-    outa[motorPin[3]]:= 0
-    totalElapse := pulse[0] + pulse[1] + pulse[2] + pulse[3]
-    waitcnt(baseTime + (clkfreq/1000*20 - clkfreq/1000000*totalElapse))
-
+PRI inspectPulse | i
+  i:=0
+  repeat while i < 4
+    if (pulse[i] < 1100) OR (2000 < pulse[i])
+      return 0   ' abnormal pwm
+    i++
+  return 1
 
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
