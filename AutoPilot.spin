@@ -6,6 +6,7 @@ OBJ
   usb            : "Parallax Serial Terminal"
   fNum           : "FloatMath.spin"
   mpu6050        : "sensor.spin"
+  fStr           : "FloatString.spin"
 VAR
   'system variable
 
@@ -29,7 +30,7 @@ VAR
   'pid variables
   long pidStack[128], pidCogId
   long targetEAnlge10E5[3]
-  long kp, ki, kd, pidUpdateIndex, xPrevTime, yPrevTime , fErrorPrev
+  long kp, ki, kd, pidUpdateIndex, prevTime[2] , fErrorPrev[2]
   byte pidOnOff
 
 PUB startAutoPilot
@@ -69,8 +70,8 @@ PRI startPID
 
 PRI runPID 
   kp := 15
-  ki := 5000
-  kd := 8000
+  ki := 0
+  kd := 150
   repeat
     if pidOnOff == 1
       pidAxis(1,3) ' x axis pid set ( red arms of the drone)
@@ -78,62 +79,73 @@ PRI runPID
     else
       'Do nothing  
 
-PRI pidAxis(oneMoter, anotherMoter) | fError, fDeltaError, fError10E5, fTenE5_000, fkp, fki, fkd, fdt, fProportional, fIntegral, fDerivative, fOutPut, outPut, dt
+PRI pidAxis(oneMoter, anotherMoter) | currentTime, fError, fDeltaError, fError10E5, fTenE8, fkp, fki, fkd, fdt, fProportional, fIntegral, fDerivative, fOutPut, outPut, dt, axis
+
+  if oneMoter == 1         'for x axis 
+    axis := 0
+  else                     'for y axis 
+    axis := 1
+
   '============================
   '=== float calculation region
   '============================
-  'just a constant; last three 000 is for pid constant so that, for ex,  kp can vary 1 ~ 100
-  fTenE5_000 := fNum.FFloat(100000_000) 
+  'just a constant; last three 000 is for PID constant so that, for ex,  kp can vary 1 ~ 9000
+  fTenE8 := fNum.FFloat(100_000_000) 
 
+  ' prepare constants; kp, ki, kd are global variables in integer
   fkp := fNum.FFloat(kp)
-  fki := fNum.FFloat(ki*1000) 
+  fki := fNum.FFloat(ki) 
   fkd := fNum.FFloat(kd)
   
-  fError10E5 := fNum.FFloat(targetEAnlge10E5[0]- eAngle10E5[0])  
-  fError :=  fNum.FDiv(fError10E5, fTenE5_000) ' now fError is from 0.xxx to xxx.xxxx
+  fError10E5 := fNum.FFloat(targetEAnlge10E5[axis]- eAngle10E5[axis]) 'eAngle10E5/(10^5) = eAngle_Raw itself varies from 0 to 8190
+  ' here, if drone tilted to x-axis's left, RawCx <0 then, error  > 0
+  
+  fError :=  fNum.FDiv(fError10E5, fTenE8) ' now fError is from(-8.1,  8.1)  <- this makes sense because could increase by 1 for pulse
 
-  if oneMoter == 1         'for x axis calc
-    dt := cnt - xPrevTime
-  else                     'for y axis calc
-    dt := cnt - yPrevTime
+  '---------------------------------------------------------------
+  '------------------- consider this part again.., might not need it.
+  ' get time difference
+  currentTime := cnt                                                     
+  dt := currentTime - prevTime[axis]
+  fdt := fNum.FDiv(fNum.FFloat(dt), fNum.FFloat(clkfreq))    'dt is in second; dt is about 0.008  or 0.002 second
+  fdt := fNum.FMul(fdt, fNum.FFloat(1000)) 'now dt in milli second: about 8 (ms) for both axii, but about 2 (ms) if one axis
 
-    
-  fdt := fNum.FDiv(fNum.FFloat(dt), fNum.FFloat(clkfreq))    'dt is in second
-  fdt := fNum.FMul(dt, fNum.FFloat(1000000000)) ' dt in micr second
-
-  fDeltaError :=fNum.FSub(fError, fErrorPrev)
+  fDeltaError := fNum.FSub(fError, fErrorPrev[axis]) ' <- this will naturally include the division; (detalError / dt) -> a certain "dt" because of the loop
+  'fDeltaError := fNum.FDiv(fDeltaError, fdt) ' is this part necessary??
+  '-------------------------------------------------------------------
+  '-------------------------------------------------------------------
+  if (axis == 0)
+    'usb.dec(111)
+    'usb.newline
+    usb.str(fStr.FloatToString(fdt))
+    usb.newline
   
   fProportional := fNum.FMul(fkp, fError)
-  fIntegral := fNum.FMul(fNum.FMul(ki, fNum.FMul(fdt,fError)),fNum.Ffloat(1000000))
-  fDerivative := fNum.FMul(fNum.FMul(kd, fNum.FDiv(fDeltaError,fdt)), fNum.Ffloat(10000000))
+  fIntegral := fNum.FMul(ki, fNum.FAdd(fErrorPrev,fError))
+  'fDerivative := fNum.FMul(kd, fNum.FDiv(fDeltaError,fdt))
+  fDerivative := fNum.FMul(kd, fDeltaError) ' I guess dError may be (0,1)
 
-  fOutPut := fNum.FAdd(fProportional, fNum.FSub(fIntegral, fDerivative))
+  fOutPut := fNum.FAdd(fProportional, fNum.FAdd(fIntegral, fDerivative))
 
-  ' set variables for next iteration
-  fErrorPrev := fError
+  ' set variables (global var) for next iteration
+  fErrorPrev[axis] := fError
+  prevTime[axis] := currentTime
 
-  if oneMoter == 1         'for x axis calc
-    xPrevTime := cnt
-  else                     'for y axis calc
-    yPrevTime := cnt
-
-  '===================
+  '========================
   '=== back to motor output
-  '===================
+  '========================
   outPut := fNum.FRound(fOutPut)
     
-  if fError > 0  ' when tilted to positive x axis - increase motor 4
+  if fError > 0  ' when tilted to positive x axis - increase motor 4 , or 3 for positive y axis
     if pulse[anotherMoter] + outPut  =< 1350
       pulse[anotherMoter] := pulse[anotherMoter] + outPut
     if (pulse[oneMoter] - outPut) => 1200
       pulse[oneMoter] := pulse[oneMoter] - outPut
-  elseif fError < 0  ' when tilted to negative x axis - increase motor 2
+  elseif fError < 0  ' when tilted to negative x axis - increase motor 2, or 1 negative y axis
     if pulse[oneMoter] + (-outPut) =< 1350
       pulse[oneMoter] := pulse[oneMoter] + (-outPut) 
       if (pulse[anotherMoter] - (-outPut)) => 1200
        pulse[anotherMoter] := pulse[anotherMoter] - (-outPut)   
-
-
 
 
 '===================================================================================================
@@ -243,7 +255,7 @@ PRI inspectPulse | i
 '===================================================================================================
 PRI newUSB
   pstCodId:=usb.start(115200)
-  startUSB
+  'startUSB
   
 PRI stopUSB
   if usbCogId

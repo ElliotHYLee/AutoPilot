@@ -101,8 +101,7 @@ PUB Start( SCL, SDA, cFilter) : Status
   
   Status := Cog := cognew(@Start_Sensors, @rx) + 1
 
-  Calibrate
-
+  Calibrate  
 
 PUB Stop
 
@@ -139,8 +138,7 @@ PUB GetARX
 
 PUB GetARY
   return ary
-
-
+              
 PRI computeTimes                                       '' Set up timing constants in assembly
                                                        '  (Done this way to avoid overflow)
   i2cDataSet := ((clkfreq / 10000) *  350) / 100000    ' Data setup time -  350ns (400KHz)
