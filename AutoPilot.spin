@@ -29,7 +29,7 @@ VAR
 
   'pid variables
   long pidStack[128], pidCogId
-  long targetEAnlge10E5[3]
+  long targetEAnlge10E5[3] , fProportional, fIntegral, fDerivative
   long kp, ki, kd, pidUpdateIndex, prevTime[2] , fErrorPrev[2]
   byte pidOnOff
 
@@ -68,39 +68,51 @@ PRI startPID
   pidOn
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
-PRI runPID 
-  kp := 15
+PRI runPID  |i
+  kp := 5
   ki := 0
-  kd := 150
+  kd := 50
+  pidOn
+
   repeat
+    i := 0  
+   ' if i < 3 
+   '   case i
+   '     0: 
+   '        eAngle10E5[i] := mpu6050.GetCx  
+   '     1: 
+   '        eAngle10E5[i] := mpu6050.GetCy  
+   '     2: 
+   '        eAngle10E5[i] := mpu6050.GetCz   
+   '   i++
     if pidOnOff == 1
-      pidAxis(1,3) ' x axis pid set ( red arms of the drone)
-      pidAxis(0,2) ' y axis pid set ( white arms of the drone)  
+      pidAxis(0,2) ' x axis pid set ( whire arms of the drone)
+      'pidAxis(1,3) ' y axis pid s0et ( red arms of the drone)  
     else
       'Do nothing  
 
-PRI pidAxis(oneMoter, anotherMoter) | currentTime, fError, fDeltaError, fError10E5, fTenE8, fkp, fki, fkd, fdt, fProportional, fIntegral, fDerivative, fOutPut, outPut, dt, axis
+PRI pidAxis(nMoter, pMoter) | currentTime, f10000, fError, fDeltaError, fError10E5, fTenE8, fkp, fki, fkd, fdt, fOutPut, outPut, dt, axis
 
-  if oneMoter == 1         'for x axis 
+  if nMoter == 0         'for x axis 
     axis := 0
-  else                     'for y axis 
+  else                   'for y axis 
     axis := 1
 
   '============================
   '=== float calculation region
   '============================
   'just a constant; last three 000 is for PID constant so that, for ex,  kp can vary 1 ~ 9000
-  fTenE8 := fNum.FFloat(100_000_000) 
+  f10000 := fNum.FFloat(10000) 
 
   ' prepare constants; kp, ki, kd are global variables in integer
   fkp := fNum.FFloat(kp)
   fki := fNum.FFloat(ki) 
   fkd := fNum.FFloat(kd)
-  
+
   fError10E5 := fNum.FFloat(targetEAnlge10E5[axis]- eAngle10E5[axis]) 'eAngle10E5/(10^5) = eAngle_Raw itself varies from 0 to 8190
-  ' here, if drone tilted to x-axis's left, RawCx <0 then, error  > 0
+  ' here, if drone tilted to x-axis's left, RawCx >0 then, error  < 0      _-
   
-  fError :=  fNum.FDiv(fError10E5, fTenE8) ' now fError is from(-8.1,  8.1)  <- this makes sense because could increase by 1 for pulse
+  fError :=  fNum.FDiv(fError10E5, f10000) ' now fError is from(0.001,  8.1)  <- this makes sense because could increase by 1 for pulse
 
   '---------------------------------------------------------------
   '------------------- consider this part again.., might not need it.
@@ -114,18 +126,21 @@ PRI pidAxis(oneMoter, anotherMoter) | currentTime, fError, fDeltaError, fError10
   'fDeltaError := fNum.FDiv(fDeltaError, fdt) ' is this part necessary??
   '-------------------------------------------------------------------
   '-------------------------------------------------------------------
-  if (axis == 0)
-    'usb.dec(111)
-    'usb.newline
-    usb.str(fStr.FloatToString(fdt))
-    usb.newline
   
   fProportional := fNum.FMul(fkp, fError)
-  fIntegral := fNum.FMul(ki, fNum.FAdd(fErrorPrev,fError))
+  'fIntegral := fNum.FMul(fki, fNum.FAdd(fErrorPrev[axis],fError))
   'fDerivative := fNum.FMul(kd, fNum.FDiv(fDeltaError,fdt))
-  fDerivative := fNum.FMul(kd, fDeltaError) ' I guess dError may be (0,1)
+  fDerivative :=  fNum.FMul(fkd, fDeltaError) ' I guess dError may be (0,1)
+  fDerivative :=  fNum.FDiv(fDerivative, fdt )
+  
+  fOutPut := fNum.FAdd(fProportional,  fDerivative)
 
-  fOutPut := fNum.FAdd(fProportional, fNum.FAdd(fIntegral, fDerivative))
+  'usb.dec(eAngle10E5[axis])
+  'usb.newline
+  'usb.str(fStr.FloatToString(fError))
+  'usb.str(string(", "))
+  'usb.str(fStr.FloatToString(fDerivative))
+  'usb.str(string(", "))     
 
   ' set variables (global var) for next iteration
   fErrorPrev[axis] := fError
@@ -136,16 +151,16 @@ PRI pidAxis(oneMoter, anotherMoter) | currentTime, fError, fDeltaError, fError10
   '========================
   outPut := fNum.FRound(fOutPut)
     
-  if fError > 0  ' when tilted to positive x axis - increase motor 4 , or 3 for positive y axis
-    if pulse[anotherMoter] + outPut  =< 1350
-      pulse[anotherMoter] := pulse[anotherMoter] + outPut
-    if (pulse[oneMoter] - outPut) => 1200
-      pulse[oneMoter] := pulse[oneMoter] - outPut
-  elseif fError < 0  ' when tilted to negative x axis - increase motor 2, or 1 negative y axis
-    if pulse[oneMoter] + (-outPut) =< 1350
-      pulse[oneMoter] := pulse[oneMoter] + (-outPut) 
-      if (pulse[anotherMoter] - (-outPut)) => 1200
-       pulse[anotherMoter] := pulse[anotherMoter] - (-outPut)   
+  if (targetEAnlge10E5[axis]- eAngle10E5[axis]) < 1000  ' when tilted to positive x axis - increase motor 3 , or 4 for positive y axis
+    if pulse[pMoter] + (-outPut)  =< 1400
+      pulse[pMoter] := pulse[pMoter] + (-outPut)   
+    if (pulse[nMoter] - (-outPut)) => 1200
+      pulse[nMoter] := pulse[nMoter] - (-outPut)
+  elseif (targetEAnlge10E5[axis]- eAngle10E5[axis]) > 1000  ' when tilted to negative x axis - increase motor 1, or 2 negative y axis
+    if pulse[nMoter] + (outPut) =< 1400
+      pulse[nMoter] := pulse[nMoter] + (outPut) 
+      if (pulse[pMoter] - (outPut)) => 1200     
+       pulse[pMoter] := pulse[pMoter] - (outPut) -1  
 
 
 '===================================================================================================
@@ -255,7 +270,7 @@ PRI inspectPulse | i
 '===================================================================================================
 PRI newUSB
   pstCodId:=usb.start(115200)
-  'startUSB
+  startUSB
   
 PRI stopUSB
   if usbCogId
@@ -312,13 +327,14 @@ PRI sendOrdinaryMsg | i
       usb.str(String("[c"))
       case i
         0: usb.str(String("x"))
-           eAngle10E5[i] := mpu6050.GetCx  
+           eAngle10E5[i] := mpu6050.GetAx  
         1: usb.str(String("y"))
-           eAngle10E5[i] := mpu6050.GetCy  
+           eAngle10E5[i] := mpu6050.GetAy  
         2: usb.str(String("z"))
-           eAngle10E5[i] := mpu6050.GetCz 
+           eAngle10E5[i] := mpu6050.GetAz 
       usb.dec(eAngle10E5[i])
-      usb.str(String("]"))        
+      usb.str(String("]"))
+           
     i++
       
 PRI char2ASCII(charVar)  ' currently not used
