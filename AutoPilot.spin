@@ -74,6 +74,11 @@ PRI runPID  |i
   kd := 50
   pidOn
 
+  respondContent := 2
+  respondType := 1
+  respondContent := 1
+  respondType := 1              
+
   repeat
     i := 0  
    ' if i < 3 
@@ -294,7 +299,7 @@ PRI communicate
 PRI respondBack(x)
   case x
     1:
-      if respondContent == 1
+      if respondContent == 1     ' respondContent type 1 = pid gains
         usb.str(String("[pp"))
         usb.dec(kp)
         usb.str(String("]"))
@@ -304,7 +309,7 @@ PRI respondBack(x)
         usb.str(String("[pd"))
         usb.dec(kd)
         usb.str(String("]"))               
-      elseif respondContent ==2
+      elseif respondContent ==2    ' respondContent type 1 = pid on/off status 
         usb.str(String("[po"))
         usb.dec(pidOnOff)
         usb.str(String("]"))  
@@ -380,9 +385,12 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
          4: kd := newPidProperty
        type := 0
        newValue := 0
-       respondContent := 1 ' respond content 1 = pid constants
-       respondBack(1) 'repond type 1 = all pid types
+       respondContent := 1   ' respond content 1 = pid constants
+       respondBack(1)         'repond type 1 = all pid types
+       respondContent := 2   ' respond content 2 = pid on/off
+       respondBack(1)         'repond type 1 = all pid types
 
+       
    elseif (type == 3)  ' Request system information
      if 10 < newValue
        respondType := newValue/10
