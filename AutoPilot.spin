@@ -29,8 +29,8 @@ VAR
 
   'pid variables
   long pidStack[128], pidCogId
-  long targetEAnlge10E5[3] , outPut , proportional, derivative
-  long kp, ki, kd, pidUpdateIndex, prevTime[2] , prevError[2]
+  long targetEAnlge10E5[3] , fProportional, fIntegral, fDerivative
+  long kp, ki, kd, pidUpdateIndex, prevTime[2] , fErrorPrev[2]
   byte pidOnOff
 
 PUB startAutoPilot
@@ -69,7 +69,7 @@ PRI startPID
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
 PRI runPID  |i
-  kp := 100
+  kp := 5
   ki := 0
   kd := 50
   pidOn
@@ -81,22 +81,22 @@ PRI runPID  |i
 
   repeat
     i := 0  
-    if i < 3 
-      case i
-        0: 
-           eAngle10E5[i] := mpu6050.GetCx  
-        1: 
-           eAngle10E5[i] := mpu6050.GetCy  
-        2: 
-           eAngle10E5[i] := mpu6050.GetCz   
-      i++
+   ' if i < 3 
+   '   case i
+   '     0: 
+   '        eAngle10E5[i] := mpu6050.GetCx  
+   '     1: 
+   '        eAngle10E5[i] := mpu6050.GetCy  
+   '     2: 
+   '        eAngle10E5[i] := mpu6050.GetCz   
+   '   i++
     if pidOnOff == 1
       pidAxis(0,2) ' x axis pid set ( whire arms of the drone)
       'pidAxis(1,3) ' y axis pid s0et ( red arms of the drone)  
     else
       'Do nothing  
 
-PRI pidAxis(nMoter, pMoter) | temp, error,axis, currentTime,dt  ', f1000, fError, fDeltaError, fError10E5, fTenE8, fkp, fki, fkd, fdt, fOutPut 
+PRI pidAxis(nMoter, pMoter) | currentTime, f10000, fError, fDeltaError, fError10E5, fTenE8, fkp, fki, fkd, fdt, fOutPut, outPut, dt, axis
 
   if nMoter == 0         'for x axis 
     axis := 0
@@ -107,38 +107,38 @@ PRI pidAxis(nMoter, pMoter) | temp, error,axis, currentTime,dt  ', f1000, fError
   '=== float calculation region
   '============================
   'just a constant; last three 000 is for PID constant so that, for ex,  kp can vary 1 ~ 9000
-  'f1000 := fNum.FFloat(100000) 
+  f10000 := fNum.FFloat(10000) 
 
   ' prepare constants; kp, ki, kd are global variables in integer
-  'fkp := fNum.FFloat(kp)
-  'fki := fNum.FFloat(ki) 
-  'fkd := fNum.FFloat(kd)
-  '
-  'fError10E5 := fNum.FFloat(targetEAnlge10E5[axis]- eAngle10E5[axis]) 'eAngle10E5/(10^5) = eAngle_Raw itself varies from 0 to 8190
-  '' here, if drone tilted to x-axis's left, RawCx >0 then, error  < 0      _-
-  '
-  'fError :=  fNum.FDiv(fError10E5, f1000) ' now fError is from(0.001,  8.1)  <- this makes sense because could increase by 1 for pulse
-  '''
+  fkp := fNum.FFloat(kp)
+  fki := fNum.FFloat(ki) 
+  fkd := fNum.FFloat(kd)
+
+  fError10E5 := fNum.FFloat(targetEAnlge10E5[axis]- eAngle10E5[axis]) 'eAngle10E5/(10^5) = eAngle_Raw itself varies from 0 to 8190
+  ' here, if drone tilted to x-axis's left, RawCx >0 then, error  < 0      _-
+  
+  fError :=  fNum.FDiv(fError10E5, f10000) ' now fError is from(0.001,  8.1)  <- this makes sense because could increase by 1 for pulse
+
   '---------------------------------------------------------------
   '------------------- consider this part again.., might not need it.
   ' get time difference
-  'currentTime := cnt                                                     
-  'dt := currentTime - prevTime[axis]
-  'fdt := fNum.FDiv(fNum.FFloat(dt), fNum.FFloat(clkfreq))    'dt is in second; dt is about 0.008  or 0.002 second
-  'fdt := fNum.FMul(fdt, fNum.FFloat(1000)) 'now dt in milli second: about 8 (ms) for both axii, but about 2 (ms) if one axis
-  '
-  'fDeltaError := fNum.FSub(fError, fErrorPrev[axis]) ' <- this will naturally include the division; (detalError / dt) -> a certain "dt" because of the loop
-  ''fDeltaError := fNum.FDiv(fDeltaError, fdt) ' is this part necessary??
-  ''-------------------------------------------------------------------
-  ''-------------------------------------------------------------------
-  '
-  'fProportional := fNum.FMul(fkp, fError)
-  ''fIntegral := fNum.FMul(fki, fNum.FAdd(fErrorPrev[axis],fError))
-  ''fDerivative := fNum.FMul(kd, fNum.FDiv(fDeltaError,fdt))
-  'fDerivative :=  fNum.FMul(fkd, fDeltaError) ' I guess dError may be (0,1)
-  'fDerivative :=  fNum.FDiv(fDerivative, fdt)
-  '
-  'fOutPut := fNum.FSub(fProportional,  fDerivative)
+  currentTime := cnt                                                     
+  dt := currentTime - prevTime[axis]
+  fdt := fNum.FDiv(fNum.FFloat(dt), fNum.FFloat(clkfreq))    'dt is in second; dt is about 0.008  or 0.002 second
+  fdt := fNum.FMul(fdt, fNum.FFloat(1000)) 'now dt in milli second: about 8 (ms) for both axii, but about 2 (ms) if one axis
+
+  fDeltaError := fNum.FSub(fError, fErrorPrev[axis]) ' <- this will naturally include the division; (detalError / dt) -> a certain "dt" because of the loop
+  'fDeltaError := fNum.FDiv(fDeltaError, fdt) ' is this part necessary??
+  '-------------------------------------------------------------------
+  '-------------------------------------------------------------------
+  
+  fProportional := fNum.FMul(fkp, fError)
+  'fIntegral := fNum.FMul(fki, fNum.FAdd(fErrorPrev[axis],fError))
+  'fDerivative := fNum.FMul(kd, fNum.FDiv(fDeltaError,fdt))
+  fDerivative :=  fNum.FMul(fkd, fDeltaError) ' I guess dError may be (0,1)
+  fDerivative :=  fNum.FDiv(fDerivative, fdt )
+  
+  fOutPut := fNum.FAdd(fProportional,  fDerivative)
 
   'usb.dec(eAngle10E5[axis])
   'usb.newline
@@ -147,66 +147,25 @@ PRI pidAxis(nMoter, pMoter) | temp, error,axis, currentTime,dt  ', f1000, fError
   'usb.str(fStr.FloatToString(fDerivative))
   'usb.str(string(", "))     
 
-  'set variables (global var) for next iteration
- ' fErrorPrev[axis] := fError
-  temp := (targetEAnlge10E5[axis]- eAngle10E5[axis])
-  if temp < 0
-    temp := -temp
-  error := temp/1000_000_00
-  currentTime := cnt
-  'dt := (cnt-prevTime[axis])*1000/clkfreq  'millisecond
-
-  
-  proportional :=  kp * (temp)/1000_000_000
-  derivative := kd*(temp - prevError[axis])/10_000_000
-
-
-  outPut :=  proportional - derivative   
-  
+  ' set variables (global var) for next iteration
+  fErrorPrev[axis] := fError
   prevTime[axis] := currentTime
-  prevError[axis] := temp
-  
 
-  'usb.str(string("axis: "))
-  'usb.dec(axis)
-  'usb.newline
-
-  'usb.str(string("error: "))
- ' usb.dec(error)
- ' usb.newline
- '
- ' usb.str(string("dt:"))
- ' usb.dec(dt)
- ' usb.newline
- '
- ' usb.str(string("proportional:"))
- ' usb.dec(proportional)
- ' usb.newline
- '
- ' usb.str(string("derivative:"))
- ' usb.dec(derivative)
- ' usb.newline
-
- ' usb.str(string("output:"))
- ' usb.dec(output)
- ' usb.newline
-
- ' usb.newline  
   '========================
   '=== back to motor output
   '========================
-  
+  outPut := fNum.FRound(fOutPut)
     
-  if (eAngle10E5[axis] > 0 ) ' when tilted to positive x axis - increase motor 3 , or 4 for positive y axis
-    'if pulse[pMoter] + (-outPut)  =< 1400
-    '  pulse[pMoter] := pulse[pMoter] + (-outPut)   
-    if (pulse[nMoter] - (outPut)) => 1200
-      pulse[nMoter] := pulse[nMoter]  - outPut
-  elseif (eAngle10E5[axis]) < 0  ' when tilted to negative x axis - increase motor 1, or 2 negative y axis
-    if pulse[nMoter] + (outPut) =< 1450
+  if (targetEAnlge10E5[axis]- eAngle10E5[axis]) < 1000  ' when tilted to positive x axis - increase motor 3 , or 4 for positive y axis
+    if pulse[pMoter] + (-outPut)  =< 1400
+      pulse[pMoter] := pulse[pMoter] + (-outPut)   
+    if (pulse[nMoter] - (-outPut)) => 1200
+      pulse[nMoter] := pulse[nMoter] - (-outPut)
+  elseif (targetEAnlge10E5[axis]- eAngle10E5[axis]) > 1000  ' when tilted to negative x axis - increase motor 1, or 2 negative y axis
+    if pulse[nMoter] + (outPut) =< 1400
       pulse[nMoter] := pulse[nMoter] + (outPut) 
-      'if (pulse[pMoter] - (outPut)) => 1250     
-      ' pulse[pMoter] := pulse[pMoter] - (outPut)  
+      if (pulse[pMoter] - (outPut)) => 1200     
+       pulse[pMoter] := pulse[pMoter] - (outPut) -1  
 
 
 '===================================================================================================
@@ -360,15 +319,6 @@ PRI respondBack(x)
  
 PRI sendOrdinaryMsg | i  
  'write motor info
-  usb.str(String("[k0"))
-  usb.dec(output)
-  usb.str(String("]"))
-  usb.str(String("[k1"))
-  usb.dec(proportional)
-  usb.str(String("]"))
-  usb.str(String("[k3"))
-  usb.dec(derivative)
-  usb.str(String("]"))
   i:=0                   
   repeat while i < 4
     'motor write
@@ -382,13 +332,14 @@ PRI sendOrdinaryMsg | i
       usb.str(String("[c"))
       case i
         0: usb.str(String("x"))
-           eAngle10E5[i] := mpu6050.GetCx  
+           eAngle10E5[i] := mpu6050.GetAx  
         1: usb.str(String("y"))
-           eAngle10E5[i] := mpu6050.GetCy  
+           eAngle10E5[i] := mpu6050.GetAy  
         2: usb.str(String("z"))
-           eAngle10E5[i] := mpu6050.GetCz 
+           eAngle10E5[i] := mpu6050.GetAz 
       usb.dec(eAngle10E5[i])
-      usb.str(String("]"))       
+      usb.str(String("]"))
+           
     i++
       
 PRI char2ASCII(charVar)  ' currently not used
@@ -423,9 +374,9 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
        type := 0
        newValue := 0
    elseif (type == 2)   ' PID constant update
-     if 9_999_999 < newValue
-       pidUpdateIndex := newValue/10_000_000
-       newPidProperty := newValue//10_000_000
+     if 9999 < newValue
+       pidUpdateIndex := newValue/10000
+       newPidProperty := newValue//10000
        'waitcnt(cnt + clkfreq*5)
        case pidUpdateIndex
          1: pidOnOff := newPidProperty
