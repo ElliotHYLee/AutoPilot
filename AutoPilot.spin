@@ -133,6 +133,7 @@ PRI pidAxis(nMoter, pMoter) | currentTime, f10000, fError, fDeltaError, fError10
   '-------------------------------------------------------------------
   
   fProportional := fNum.FMul(fkp, fError)
+  fProportional := fNum.FDIv(fNum.FMul(fkp, fError), fNum.FFloat(100))
   'fIntegral := fNum.FMul(fki, fNum.FAdd(fErrorPrev[axis],fError))
   'fDerivative := fNum.FMul(kd, fNum.FDiv(fDeltaError,fdt))
   fDerivative :=  fNum.FMul(fkd, fDeltaError) ' I guess dError may be (0,1)
@@ -153,19 +154,19 @@ PRI pidAxis(nMoter, pMoter) | currentTime, f10000, fError, fDeltaError, fError10
 
   '========================
   '=== back to motor output
-  '========================
+  '========================  
   outPut := fNum.FRound(fOutPut)
     
   if (targetEAnlge10E5[axis]- eAngle10E5[axis]) < 1000  ' when tilted to positive x axis - increase motor 3 , or 4 for positive y axis
-    if pulse[pMoter] + (-outPut)  =< 1400
-      pulse[pMoter] := pulse[pMoter] + (-outPut)   
+   ' if pulse[pMoter] + (-outPut)  =< 1400
+   '   pulse[pMoter] := pulse[pMoter] + (-outPut)   
     if (pulse[nMoter] - (-outPut)) => 1200
       pulse[nMoter] := pulse[nMoter] - (-outPut)
   elseif (targetEAnlge10E5[axis]- eAngle10E5[axis]) > 1000  ' when tilted to negative x axis - increase motor 1, or 2 negative y axis
-    if pulse[nMoter] + (outPut) =< 1400
+    if pulse[nMoter] + (outPut) =< 1500
       pulse[nMoter] := pulse[nMoter] + (outPut) 
-      if (pulse[pMoter] - (outPut)) => 1200     
-       pulse[pMoter] := pulse[pMoter] - (outPut) -1  
+    '  if (pulse[pMoter] - (outPut)) => 1200     
+    '   pulse[pMoter] := pulse[pMoter] - (outPut) -1  
 
 
 '===================================================================================================
@@ -374,9 +375,9 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
        type := 0
        newValue := 0
    elseif (type == 2)   ' PID constant update
-     if 9999 < newValue
-       pidUpdateIndex := newValue/10000
-       newPidProperty := newValue//10000
+     if 9_999_999 < newValue
+       pidUpdateIndex := newValue/10_000_000
+       newPidProperty := newValue//10_000_000
        'waitcnt(cnt + clkfreq*5)
        case pidUpdateIndex
          1: pidOnOff := newPidProperty
