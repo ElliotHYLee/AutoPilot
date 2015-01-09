@@ -80,16 +80,9 @@ PRI runPID  |i
   respondType := 1              
 
   repeat
-    i := 0  
-   ' if i < 3 
-   '   case i
-   '     0: 
-   '        eAngle10E5[i] := mpu6050.GetCx  
-   '     1: 
-   '        eAngle10E5[i] := mpu6050.GetCy  
-   '     2: 
-   '        eAngle10E5[i] := mpu6050.GetCz   
-   '   i++
+    eAngle10E5[0] := mpu6050.GetCx
+    eAngle10E5[1] := mpu6050.GetCy
+    eAngle10E5[2] := mpu6050.GetCz   
     if pidOnOff == 1
       pidAxis(0,2) ' x axis pid set ( whire arms of the drone)
       'pidAxis(1,3) ' y axis pid s0et ( red arms of the drone)  
@@ -333,14 +326,11 @@ PRI sendOrdinaryMsg | i
       usb.str(String("[c"))
       case i
         0: usb.str(String("x"))
-           eAngle10E5[i] := mpu6050.GetAx  
         1: usb.str(String("y"))
-           eAngle10E5[i] := mpu6050.GetAy  
         2: usb.str(String("z"))
-           eAngle10E5[i] := mpu6050.GetAz 
       usb.dec(eAngle10E5[i])
       usb.str(String("]"))
-           
+  
     i++
       
 PRI char2ASCII(charVar)  ' currently not used
