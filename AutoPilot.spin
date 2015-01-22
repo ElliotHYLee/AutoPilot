@@ -69,11 +69,14 @@ PRI startPID
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
 PRI runPID  |i
+
+  'Constants initializing
   kp := 5
   ki := 0
   kd := 50
   pidOn
 
+  'Reporting PID constants and PID loop On/Off status
   respondContent := 2
   respondType := 1
   respondContent := 1
