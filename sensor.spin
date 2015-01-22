@@ -34,7 +34,7 @@ CON                        ' CONs for TestMPU test routine
 VAR
   long x0, y0, z0, tx
   long Cog
-  long rx, ry, rz, temp, ax, ay, az, arx, ary   'PASM code assumes these to be contiguous
+  long rx, ry, rz, temp, ax, ay, az, arx, ary, prevGx, prevGy, prevGz   'PASM code assumes these to be contiguous
   long cFilterX,cFilterY,cFilterZ
   long p
 
@@ -59,16 +59,16 @@ PUB TestMPU  | MPUcog
    ' debug.str(string("]"))
     'debug.tx(13)
     ' acc info
-    'debug.str(string("[ax")) 
-    'debug.dec(GetAX)
-    'debug.str(string("]"))
-    'debug.str(string("[ay")) 
-    'debug.dec(GetAY)
-    'debug.str(string("]")) 
-   ' debug.str(string("[az")) 
-   ' debug.dec(GetAZ)
-   ' debug.str(string("]"))
-    'debug.tx(13)
+    debug.str(string("[ax")) 
+    debug.dec(GetAX)
+    debug.str(string("]"))
+    debug.str(string("[ay")) 
+    debug.dec(GetAY)
+    debug.str(string("]")) 
+    debug.str(string("[az")) 
+    debug.dec(GetAZ)
+    debug.str(string("]"))  
+    debug.tx(13)
     debug.str(string("[cx")) 
     debug.dec(GetCX)
     debug.str(string("]"))
@@ -79,16 +79,22 @@ PUB TestMPU  | MPUcog
     debug.dec(GetCZ)
     debug.str(string("]"))
     
-PUB GetCX  
-  cFilterX := p*(cx*1000+GetRX*2) + (100-p)*1000*GetAX
+PUB GetCX| currentGx
+  currentGx := GetRx
+  cFilterX := p*(cFilterX*1000+currentGx*2) + (100-p)*1000*GetAX
+  prevGx := currentGx
   return cFilterX
 
-PUB GetCY 
-  cFilterY := p*(cy*1000+GetRY*2) + (100-p)*1000*GetAY
+PUB GetCY| currentGy
+  currentGy := GetRY 
+  cFilterY := p*(cFilterY*1000+GetRY*2) + (100-p)*1000*GetAY
+  prevGy := currentGy
   return cFilterY
   
-PUB GetCZ 
-  cFilterZ := p*(cx*1000+GetRX*2) + (100-p)*1000*GetAZ
+PUB GetCZ| currentGz
+  currentGz := GetRz
+  cFilterZ := p*(cFilterZ*1000+GetRX*2) + (100-p)*1000*GetAZ
+  currentGz := currentGz
   return cFilterZ
 
 PUB Start( SCL, SDA, cFilter) : Status
