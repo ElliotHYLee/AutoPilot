@@ -69,7 +69,7 @@ PRI startPID
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
 PRI runPID  |i
-  kp := 1
+  kp := 1000
   ki := 0
   kd := 0
   pidOn

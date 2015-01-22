@@ -35,7 +35,7 @@ VAR
   long x0, y0, z0, tx
   long Cog
   long rx, ry, rz, temp, ax, ay, az, arx, ary, prevGx, prevGy, prevGz   'PASM code assumes these to be contiguous
-  long cFilterX,cFilterY,cFilterZ
+  long cFilterX,cFilterY,cFilterZ, prevCx, prevCy, prevCz
   long p
 
 OBJ
@@ -79,22 +79,19 @@ PUB TestMPU  | MPUcog
     debug.dec(GetCZ)
     debug.str(string("]"))
     
-PUB GetCX| currentGx
-  currentGx := GetRx
-  cFilterX := p*(cFilterX*1000+currentGx*2) + (100-p)*1000*GetAX
-  prevGx := currentGx
+PUB GetCX
+  cFilterX := p*(cx*1000+GetRx*2) + (100-p)*1000*GetAX
+  prevCx := cFilterX
   return cFilterX
 
-PUB GetCY| currentGy
-  currentGy := GetRY 
-  cFilterY := p*(cFilterY*1000+GetRY*2) + (100-p)*1000*GetAY
-  prevGy := currentGy
+PUB GetCY
+  cFilterY := p*(cy*1000+GetRY*2) + (100-p)*1000*GetAY
+  prevCy := cFilterY
   return cFilterY
   
-PUB GetCZ| currentGz
-  currentGz := GetRz
-  cFilterZ := p*(cFilterZ*1000+GetRX*2) + (100-p)*1000*GetAZ
-  currentGz := currentGz
+PUB GetCZ
+  cFilterZ := p*(cx*1000+GetRX*2) + (100-p)*1000*GetAZ
+  prevCz := cFilterZ
   return cFilterZ
 
 PUB Start( SCL, SDA, cFilter) : Status

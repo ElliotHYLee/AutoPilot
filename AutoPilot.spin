@@ -69,15 +69,10 @@ PRI startPID
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
 PRI runPID  |i
-<<<<<<< HEAD
-  kp := 40
-=======
-
   'Constants initializing
-  kp := 5
->>>>>>> origin/master
+  kp := 100
   ki := 0
-  kd := 0
+  kd := 250
   pidOn
 
   'Reporting PID constants and PID loop On/Off status
@@ -100,7 +95,6 @@ PRI pidAxis(nMoter, pMoter) | currentTime, f10000, fError, fDeltaError, fError10
   eAngle10E5[2] := mpu6050.GetCz   
   if nMoter == 0         'for x axis 
     axis := 0
-    
   else                   'for y axis 
     axis := 1
 
@@ -159,12 +153,12 @@ PRI pidAxis(nMoter, pMoter) | currentTime, f10000, fError, fDeltaError, fError10
   'outPut2 := fNum.FRound(fOutPut2)
   
   if (targetEAnlge10E5[axis]- eAngle10E5[axis]) < 0  ' when tilted to positive x axis - increase motor 3 , or 4 for positive y axis
-    if pulse[pMoter] + (-outPut)  =< 2000
+    if pulse[pMoter] + (-outPut)  =< 1500
       pulse[pMoter] := pulse[pMoter] + (-outPut)   
     if (pulse[nMoter] - (-outPut)) => 1250
       pulse[nMoter] := pulse[nMoter] - (-outPut)
   elseif (targetEAnlge10E5[axis]- eAngle10E5[axis]) > 0  ' when tilted to negative x axis - increase motor 1, or 2 negative y axis
-    if pulse[nMoter] + (outPut) =< 2000
+    if pulse[nMoter] + (outPut) =< 1500
       pulse[nMoter] := pulse[nMoter] + (outPut) 
     if (pulse[pMoter] - (outPut)) => 1250     
       pulse[pMoter] := pulse[pMoter] - (outPut)  
