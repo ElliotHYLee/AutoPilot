@@ -48,15 +48,15 @@ PUB TestMPU  | MPUcog
 
   repeat
     ' gyro info
-    'debug.str(string("[gx")) 
-    'debug.dec(GetRX)
-    'debug.str(string("]"))
-    'debug.str(string("[gy")) 
-    'debug.dec(GetRY)
-    'debug.str(string("]")) 
-    'debug.str(string("[gz")) 
-   ' debug.dec(GetRZ)
-   ' debug.str(string("]"))
+    debug.str(string("[gx")) 
+    debug.dec(GetRX)
+    debug.str(string("]"))
+    debug.str(string("[gy")) 
+    debug.dec(GetRY)
+    debug.str(string("]")) 
+    debug.str(string("[gz")) 
+    debug.dec(GetRZ)
+    debug.str(string("]"))
     'debug.tx(13)
     ' acc info
     debug.str(string("[ax")) 
@@ -68,16 +68,17 @@ PUB TestMPU  | MPUcog
     debug.str(string("[az")) 
     debug.dec(GetAZ)
     debug.str(string("]"))  
-    debug.tx(13)
-    debug.str(string("[cx")) 
-    debug.dec(GetCX)
-    debug.str(string("]"))
-    debug.str(string("[cy")) 
-    debug.dec(GetCY)
-    debug.str(string("]")) 
-    debug.str(string("[cz")) 
-    debug.dec(GetCZ)
-    debug.str(string("]"))
+    'debug.tx(13)
+    'debug.str(string("[cx")) 
+    'debug.dec(GetCX)
+    'debug.str(string("]"))
+    'debug.str(string("[cy")) 
+    'debug.dec(GetCY)
+    'debug.str(string("]")) 
+    'debug.str(string("[cz")) 
+    'debug.dec(GetCZ)
+    'debug.str(string("]"))
+    debug.tx(13) 
     
 PUB GetCX
   cFilterX := p*(cx*1000+GetRx*2) + (100-p)*1000*GetAX
@@ -453,7 +454,7 @@ SetConfig
                         call    #i2cWriteRegisterByte
 
                         mov     i2cAddr, #28              'Set ACCEL_CONFIG register AFS_SEL bits to 1, 
-                        mov     i2cValue, #%00001000      ' sets +-4g full scale range  
+                        mov     i2cValue, #%00000001      ' sets +-2g full scale range  
                         call    #i2cWriteRegisterByte     'ACCEL_HPF is zero which turns off high-pass filtering
 
 SetConfig_Ret           
