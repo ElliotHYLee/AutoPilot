@@ -5,7 +5,7 @@ CON
 OBJ
   usb            : "Parallax Serial Terminal"
   fNum           : "FloatMath.spin"
-  mpu6050        : "sensor.spin"
+  mpu6050        : "sensor1.spin"
   fStr           : "FloatString.spin"
 VAR
   'system variable
@@ -22,7 +22,7 @@ VAR
 
  'attitude variables
   long eAngle10E5[3], attitudeStack[64] , attitudeCogId , sensorCodId, targetEAngle10E5[3]
-  
+  long gyro[3], acc[3]
   'usb variables
   long newValue, type, usbStack[64],usbCogId, pstCodId
   long varChar, motorNumber 
@@ -69,7 +69,7 @@ PRI startPID
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
 PRI runPID  |i
-  kp := 1000
+  kp := 10
   ki := 0
   kd := 0
   pidOn
@@ -80,6 +80,19 @@ PRI runPID  |i
   respondType := 1              
 
   repeat
+    
+    eAngle10E5[0] := mpu6050.GetCx
+    eAngle10E5[1] := mpu6050.GetCy
+    eAngle10E5[2] := mpu6050.GetCz
+
+    acc[0] := mpu6050.GetAx
+    acc[1] := mpu6050.GetAy
+    acc[2] := mpu6050.GetAz
+
+    gyro[0] := mpu6050.GetRx
+    gyro[1] := mpu6050.GetRy
+    gyro[2] := mpu6050.GetRz    
+    
     if pidOnOff == 1
       pidAxis(0,2) ' x axis pid set ( white arms of the drone)
       'pidAxis(1,3) ' y axis pid s0et ( red arms of the drone)  
@@ -90,17 +103,14 @@ PRI pidAxis(nMoter, pMoter)| axis, roundAdj, roundBy
 
   roundAdj := 500_00 
   roundBy := 1_00
-  
-  eAngle10E5[0] := mpu6050.GetCx
-  eAngle10E5[1] := mpu6050.GetCy
-  eAngle10E5[2] := mpu6050.GetCz
+
    
   if nMoter == 0         'for x axis 
     axis := 0
   else                   'for y axis 
     axis := 1
 
-  error := (targetEAngle10E5[axis] - eAngle10E5[axis])/10_000
+  error := (targetEAngle10E5[axis] - eAngle10E5[axis])/100
   
   if error > 0
     'proportional := (kp*error + 50)/100
@@ -109,10 +119,11 @@ PRI pidAxis(nMoter, pMoter)| axis, roundAdj, roundBy
     'proportional := (kp*error - 50)/100 
     error := (error - 5) / 10   
 
-
+  proportional := error*kp/10
   
   outPut := proportional          
-  
+  'usb.dec(outPut)
+  'usb.newline
   if eAngle10E5[axis] > 0  ' when tilted to positive x axis - increase motor 3 , or 4 for positive y axis
     if pulse[pMoter] + (-outPut)  =< 1500
       pulse[pMoter] := pulse[pMoter] + (-outPut)   
@@ -305,7 +316,22 @@ PRI sendOrdinaryMsg | i
         2: usb.str(String("z"))
       usb.dec(eAngle10E5[i])
       usb.str(String("]"))
-  
+      
+      usb.str(String("[a"))
+      case i
+        0: usb.str(String("x"))
+        1: usb.str(String("y"))
+        2: usb.str(String("z"))
+      usb.dec(acc[i])
+      usb.str(String("]"))
+
+      usb.str(String("[g"))
+      case i
+        0: usb.str(String("x"))
+        1: usb.str(String("y"))
+        2: usb.str(String("z"))
+      usb.dec(gyro[i])
+      usb.str(String("]"))  
     i++
       
 PRI char2ASCII(charVar)  ' currently not used
@@ -406,4 +432,4 @@ PRI newAttitude
   startAttitude
   
 PRI startAttitude 
-  sensorCodId:=mpu6050.Start(15,14, 98) ' scl, sda, cFilter portion in %   
+  sensorCodId:=mpu6050.Start(15,14, 99) ' scl, sda, cFilter portion in %   

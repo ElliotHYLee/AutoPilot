@@ -82,6 +82,9 @@ PRI runPID  |i
   respondType := 1              
 
   repeat
+    eAngle10E5[0] := mpu6050.GetCx
+    eAngle10E5[1] := mpu6050.GetCy
+    eAngle10E5[2] := mpu6050.GetCz 
     if pidOnOff == 1
       pidAxis(0,2) ' x axis pid set ( white arms of the drone)
       'pidAxis(1,3) ' y axis pid s0et ( red arms of the drone)  
@@ -90,9 +93,7 @@ PRI runPID  |i
 
 PRI pidAxis(nMoter, pMoter) | currentTime, f10000, fError, fDeltaError, fError10E5, fTenE8, fkp, fki, fkd, fdt, fOutPut, fOutPut2, outPut2, dt, axis
 
-  eAngle10E5[0] := mpu6050.GetCx
-  eAngle10E5[1] := mpu6050.GetCy
-  eAngle10E5[2] := mpu6050.GetCz   
+    
   if nMoter == 0         'for x axis 
     axis := 0
   else                   'for y axis 

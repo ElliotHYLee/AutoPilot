@@ -56,7 +56,8 @@ PUB TestMPU  | MPUcog
     debug.str(string("]")) 
     debug.str(string("[gz")) 
     debug.dec(GetRZ)
-    debug.str(string("]"))
+    debug.str(string("]"))                          
+    'debug.tx(13)   
     ' acc info
     debug.str(string("[ax")) 
     debug.dec(GetAX)
@@ -67,7 +68,7 @@ PUB TestMPU  | MPUcog
     debug.str(string("[az")) 
     debug.dec(GetAZ)
     debug.str(string("]"))  
-    debug.tx(13)
+    'debug.tx(13)
     debug.str(string("[cx")) 
     debug.dec(GetCX)
     debug.str(string("]"))
@@ -78,20 +79,20 @@ PUB TestMPU  | MPUcog
     debug.dec(GetCZ)
     debug.str(string("]"))
     
-PUB GetCX
-  cFilterX := (999*(cFilterX-GetRy*15/20) + 30/20*GetAx)/1000'(p*(prevCx*1000+GetRx*2) )' + (100-p)*1000*GetAX)
-  'prevCx := cFilterX/1000
+PUB GetCX | a
+  a := 900
+  cFilterX := (a*(cFilterX-GetRy*2*100/10000)/1000 + (1000-a)*GetAx*100/100/1000)
   return cFilterX
 
-PUB GetCY
-  cFilterY := (999*(cFilterY-GetRx*30/20) + 1*GetAy)/1000'cFilterY := (p*(prevCy*1000+GetRY*2)) '+ (100-p)*1000*GetAY)
-  'prevCy := cFilterY/1000000 
+PUB GetCY | a
+  a := 900
+  cFilterY := (a*(cFilterY-GetRx*2*100/10000)/1000 + (1000-a)*GetAy*100/100/1000) 
   return cFilterY
   
-PUB GetCZ
-  cFilterZ := (p*(prevCz*1000+GetRX*2)) '+ (100-p)*1000*GetAZ)
-  prevCz := cFilterZ/1000000 
-  return cFilterZ
+PUB GetCZ | a
+  a := 900
+  cFilterZ := (a*(cFilterZ-GetRx*300/10000) + (1000-a)*GetAz)/1000 
+  return GetAz
 
 PUB Start( SCL, SDA, cFilter) : Status
 
