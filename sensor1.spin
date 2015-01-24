@@ -80,18 +80,19 @@ PUB TestMPU  | MPUcog
     debug.str(string("]"))
     
 PUB GetCX | a
-  a := 900
-  cFilterX := (a*(cFilterX-GetRy*2*100/10000)/1000 + (1000-a)*GetAx*100/100/1000)
+  a := 970
+  cFilterX := (a*(cFilterX-GetRy*200/10000)/1000 + (1000-a)*GetAx*100/100/1000)
   return cFilterX
 
+
 PUB GetCY | a
-  a := 900
-  cFilterY := (a*(cFilterY-GetRx*2*100/10000)/1000 + (1000-a)*GetAy*100/100/1000) 
+  a := 970
+  cFilterY := (a*(cFilterY-GetRx*200/10000)/1000 + (1000-a)*GetAy*100/100/1000) 
   return cFilterY
   
 PUB GetCZ | a
-  a := 900
-  cFilterZ := (a*(cFilterZ-GetRx*300/10000) + (1000-a)*GetAz)/1000 
+  a := 970
+  cFilterZ := (a*(cFilterZ-GetRx*200/10000) + (1000-a)*GetAz)/1000 
   return GetAz
 
 PUB Start( SCL, SDA, cFilter) : Status
