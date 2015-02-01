@@ -446,4 +446,4 @@ PRI newAttitude
   startAttitude
   
 PRI startAttitude 
-  sensorCodId:=mpu6050.Start(15,14, 98) ' scl, sda, cFilter portion in %   
+  sensorCodId := mpu6050.Start(15,14, 98) ' scl, sda, cFilter portion in %   
