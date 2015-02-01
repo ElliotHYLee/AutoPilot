@@ -5,7 +5,7 @@ CON
 OBJ
   usb            : "Parallax Serial Terminal"
   fNum           : "FloatMath.spin"
-  mpu6050        : "sensor1.spin"
+  mpu6050        : "sensor.spin"
   fStr           : "FloatString.spin"
 VAR
   'system variable
@@ -21,8 +21,9 @@ VAR
   byte motorIteration 
 
  'attitude variables
-  long eAngle10E5[3], attitudeStack[64] , attitudeCogId , sensorCodId, targetEAngle10E5[3]
-  long gyro[3], acc[3]
+  long sensorCodId 
+  long gyro[3], acc[3], eAngle[3], targetEAngle10E5[3] 
+
   'usb variables
   long newValue, type, usbStack[64],usbCogId, pstCodId
   long varChar, motorNumber 
@@ -50,6 +51,28 @@ PUB startAutoPilot
 
   cogstop(0)
 
+
+'===================================================================================================
+'===================== ATTITUDE SENSOR PART ==================================================================
+'===================================================================================================
+{{
+------------------------------------------------------------
+ATTITUDE SENSOR REGION                                      |
+  Number of cog used : 2                                    |
+  Sensors            : MPU6050                              |
+  Cog usage          : Reading Sensor Values                |
+                       Calculating Complementary Filter     |
+  Functions:         : newAttitude (call startAttitude)     |
+                       startAttitude (start MPU sensor)     |
+------------------------------------------------------------
+}}
+
+PRI newAttitude 
+  startAttitude
+  
+PRI startAttitude 
+  sensorCodId:=mpu6050.Start(15,14) ' scl, sda, cFilter portion in %
+
 '===================================================================================================
 '===================== PID PART ==================================================================
 '===================================================================================================
@@ -65,33 +88,32 @@ PRI stopPID
 
 PRI startPID
   stopPID
-  pidOn
+
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
 PRI runPID  |i
   kp := 10
   ki := 0
   kd := 0
-  pidOn
 
+  pidOff  
   respondContent := 2
   respondType := 1
   respondContent := 1
   respondType := 1              
 
   repeat
-    
-    eAngle10E5[0] := mpu6050.GetCx
-    eAngle10E5[1] := mpu6050.GetCy
-    eAngle10E5[2] := mpu6050.GetCz
+    acc[0] := mpu6050.getAX
+    acc[1] := mpu6050.getAY
+    acc[2] := mpu6050.getAZ
 
-    acc[0] := mpu6050.GetAx
-    acc[1] := mpu6050.GetAy
-    acc[2] := mpu6050.GetAz
-
-    gyro[0] := mpu6050.GetRx
-    gyro[1] := mpu6050.GetRy
-    gyro[2] := mpu6050.GetRz    
+    gyro[0] := mpu6050.getRX
+    gyro[0] := mpu6050.getRX
+    gyro[0] := mpu6050.getRX
+        
+    eAngle[0] := mpu6050.getCX
+    eAngle[1] := mpu6050.getCY
+    eAngle[2] := mpu6050.getCZ
     
     if pidOnOff == 1
       pidAxis(0,2) ' x axis pid set ( white arms of the drone)
@@ -104,13 +126,12 @@ PRI pidAxis(nMoter, pMoter)| axis, roundAdj, roundBy
   roundAdj := 500_00 
   roundBy := 1_00
 
-   
   if nMoter == 0         'for x axis 
     axis := 0
   else                   'for y axis 
     axis := 1
 
-  error := (targetEAngle10E5[axis] - eAngle10E5[axis])/100
+  error := (targetEAngle10E5[axis] - eAngle[axis])/100
   
   if error > 0
     'proportional := (kp*error + 50)/100
@@ -124,127 +145,25 @@ PRI pidAxis(nMoter, pMoter)| axis, roundAdj, roundBy
   outPut := proportional          
   'usb.dec(outPut)
   'usb.newline
-  if eAngle10E5[axis] > 0  ' when tilted to positive x axis - increase motor 3 , or 4 for positive y axis
+  if eAngle[axis] > 0  ' when tilted to positive x axis - increase motor 3 , or 4 for positive y axis
     if pulse[pMoter] + (-outPut)  =< 1500
       pulse[pMoter] := pulse[pMoter] + (-outPut)   
     if (pulse[nMoter] - (-outPut)) => 1300
       pulse[nMoter] := pulse[nMoter] - (-outPut)
-  elseif eAngle10E5[axis] < 0  ' when tilted to negative x axis - increase motor 1, or 2 negative y axis
+  elseif eAngle[axis] < 0  ' when tilted to negative x axis - increase motor 1, or 2 negative y axis
     if pulse[nMoter] + (outPut) =< 1550
       pulse[nMoter] := pulse[nMoter] + (outPut) 
     if (pulse[pMoter] - (outPut)) => 1300     
       pulse[pMoter] := pulse[pMoter] - (outPut)  
-
-
-'===================================================================================================
-'===================== MOTOR PART ==================================================================
-'===================================================================================================
-PRI newMotor(pin0, pin1, pin2, pin3)  {{ constructor }}
-  motorPin[0] := pin0  'set pin number for this motor
-  motorPin[1] := pin1
-  motorPin[2] := pin2
-  motorPin[3] := pin3
-  'waitcnt(cnt + clkfreq)
-  startMotor
-  
-PRI startMotor
-  stopMotor
-  motorCogId := cognew(runMotor, @motorStack) + 1  'start running motor
-
-PRI stopMotor {{kind of destructor}}
-  if motorCogId
-    cogstop(motorCogId ~ - 1)
-
-PRI initMotor                                             {{initializing the motor connected to this pin}}
-  motorIteration:=0                       'set pin directions               
-  repeat while motorIteration<4
-    dira[motorPin[motorIteration]] := 1
-    pulse[motorIteration] :=45
-    motorIteration++  
-  
-  repeat while pulse[0] < 150
-    motorIteration:=0  
-    repeat while motorIteration<4
-      outa[motorPin[motorIteration]]:=1
-      waitcnt(cnt + (clkfreq / 1000 ) )
-      outa[motorPin[motorIteration]]:=0
-      pulse[motorIteration] ++
-      motorIteration++
-    waitcnt(cnt + clkfreq / 1000*20)
-
-PRI runMotor | check, baseTime, totalElapse                 {{generating pwm for the motor connected to this pin}}              
-  
-  initMotor  'physical initialization for this motor 
-  motorIteration := 0
-  repeat while motorIteration<4
-    dira[motorPin[motorIteration]] := 1   'set pin direction for this motor 
-    pulse[motorIteration] := 1200         'set default pwm
-    motorIteration++
-  
-  repeat
-    check := inspectPulse
-    if check==0 'abnormaly
-      'usb.str(String("running well"))
-       totalElapse:=0
-       baseTime := cnt    
-       
-       outa[motorPin[0]]:= 1
-       waitcnt(baseTime + clkfreq/1000000*1150)
-       outa[motorPin[0]]:= 0
-         
-       outa[motorPin[1]]:= 1 
-       waitcnt(cnt + clkfreq/1000000*1150)
-       outa[motorPin[1]]:= 0
-       
-       outa[motorPin[2]]:= 1
-       waitcnt(cnt + clkfreq/1000000*1150)
-       outa[motorPin[2]]:= 0
-        
-       outa[motorPin[3]]:= 1
-       waitcnt(cnt + clkfreq/1000000*1150)
-       outa[motorPin[3]]:= 0
-       totalElapse := pulse[0] + pulse[1] + pulse[2] + pulse[3]
-       waitcnt(baseTime + (clkfreq/1000*20 - clkfreq/1000000*totalElapse))      
-
-    else   ' good to go
-    
-      'usb.str(String("running well"))
-       totalElapse:=0
-       baseTime := cnt    
-       
-       outa[motorPin[0]]:= 1
-       waitcnt(baseTime + clkfreq/1000000*pulse[0])
-       outa[motorPin[0]]:= 0
-         
-       outa[motorPin[1]]:= 1 
-       waitcnt(cnt + clkfreq/1000000*pulse[1])
-       outa[motorPin[1]]:= 0
-       
-       outa[motorPin[2]]:= 1
-       waitcnt(cnt + clkfreq/1000000*pulse[2])
-       outa[motorPin[2]]:= 0
-        
-       outa[motorPin[3]]:= 1
-       waitcnt(cnt + clkfreq/1000000*pulse[3])
-       outa[motorPin[3]]:= 0
-       totalElapse := pulse[0] + pulse[1] + pulse[2] + pulse[3]
-       waitcnt(baseTime + (clkfreq/1000*20 - clkfreq/1000000*totalElapse))
-
-PRI inspectPulse | i
-  i:=0
-  repeat while i < 4
-    if (pulse[i] < 1100) OR (2000 < pulse[i])
-      return 0   ' abnormal pwm
-    i++
-  return 1
 
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
 '===================================================================================================
 PRI newUSB
   pstCodId:=usb.start(115200)
+  '------------------
   startUSB
-  
+  '------------------  
 PRI stopUSB
   if usbCogId
     cogstop(usbCogId ~ - 1)
@@ -314,7 +233,7 @@ PRI sendOrdinaryMsg | i
         0: usb.str(String("x"))
         1: usb.str(String("y"))
         2: usb.str(String("z"))
-      usb.dec(eAngle10E5[i])
+      usb.dec(eAngle[i])
       usb.str(String("]"))
       
       usb.str(String("[a"))
@@ -424,12 +343,107 @@ PRI systemModeUpdate(mode)
      4: 'navigation
        pidOn
 
-   
+
+
+
 '===================================================================================================
-'===================== ATTITUDE PART ==================================================================
+'===================== MOTOR PART ==================================================================
 '===================================================================================================
-PRI newAttitude
-  startAttitude
+PRI newMotor(pin0, pin1, pin2, pin3)  {{ constructor }}
+  motorPin[0] := pin0  'set pin number for this motor
+  motorPin[1] := pin1
+  motorPin[2] := pin2
+  motorPin[3] := pin3
+  'waitcnt(cnt + clkfreq)
+  startMotor
   
-PRI startAttitude 
-  sensorCodId:=mpu6050.Start(15,14, 99) ' scl, sda, cFilter portion in %   
+PRI startMotor
+  stopMotor
+  motorCogId := cognew(runMotor, @motorStack) + 1  'start running motor
+
+PRI stopMotor {{kind of destructor}}
+  if motorCogId
+    cogstop(motorCogId ~ - 1)
+
+PRI initMotor                                             {{initializing the motor connected to this pin}}
+  motorIteration:=0                       'set pin directions               
+  repeat while motorIteration<4
+    dira[motorPin[motorIteration]] := 1
+    pulse[motorIteration] :=45
+    motorIteration++  
+  
+  repeat while pulse[0] < 150
+    motorIteration:=0  
+    repeat while motorIteration<4
+      outa[motorPin[motorIteration]]:=1
+      waitcnt(cnt + (clkfreq / 1000 ) )
+      outa[motorPin[motorIteration]]:=0
+      pulse[motorIteration] ++
+      motorIteration++
+    waitcnt(cnt + clkfreq / 1000*20)
+
+PRI runMotor | check, baseTime, totalElapse                 {{generating pwm for the motor connected to this pin}}              
+  
+  initMotor  'physical initialization for this motor 
+  motorIteration := 0
+  repeat while motorIteration<4
+    dira[motorPin[motorIteration]] := 1   'set pin direction for this motor 
+    pulse[motorIteration] := 1200         'set default pwm
+    motorIteration++
+  
+  repeat
+    check := inspectPulse
+    if check==0 'abnormaly
+      'usb.str(String("running well"))
+       totalElapse:=0
+       baseTime := cnt    
+       
+       outa[motorPin[0]]:= 1
+       waitcnt(baseTime + clkfreq/1000000*1150)
+       outa[motorPin[0]]:= 0
+         
+       outa[motorPin[1]]:= 1 
+       waitcnt(cnt + clkfreq/1000000*1150)
+       outa[motorPin[1]]:= 0
+       
+       outa[motorPin[2]]:= 1
+       waitcnt(cnt + clkfreq/1000000*1150)
+       outa[motorPin[2]]:= 0
+        
+       outa[motorPin[3]]:= 1
+       waitcnt(cnt + clkfreq/1000000*1150)
+       outa[motorPin[3]]:= 0
+       totalElapse := pulse[0] + pulse[1] + pulse[2] + pulse[3]
+       waitcnt(baseTime + (clkfreq/1000*20 - clkfreq/1000000*totalElapse))      
+
+    else   ' good to go
+    
+      'usb.str(String("running well"))
+       totalElapse:=0
+       baseTime := cnt    
+       
+       outa[motorPin[0]]:= 1
+       waitcnt(baseTime + clkfreq/1000000*pulse[0])
+       outa[motorPin[0]]:= 0
+         
+       outa[motorPin[1]]:= 1 
+       waitcnt(cnt + clkfreq/1000000*pulse[1])
+       outa[motorPin[1]]:= 0
+       
+       outa[motorPin[2]]:= 1
+       waitcnt(cnt + clkfreq/1000000*pulse[2])
+       outa[motorPin[2]]:= 0
+        
+       outa[motorPin[3]]:= 1
+       waitcnt(cnt + clkfreq/1000000*pulse[3])
+       outa[motorPin[3]]:= 0
+       totalElapse := pulse[0] + pulse[1] + pulse[2] + pulse[3]
+       waitcnt(baseTime + (clkfreq/1000*20 - clkfreq/1000000*totalElapse))
+
+PRI inspectPulse | i
+  i:=0
+  repeat while i < 4
+    if (pulse[i] < 1100) OR (2000 < pulse[i])
+      return 0   ' abnormal pwm
+    i++
+  return 1

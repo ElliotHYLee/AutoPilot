@@ -33,9 +33,9 @@ CON                        ' CONs for TestMPU test routine
 
 VAR
   long x0, y0, z0, tx
-  long Cog
-  long rx, ry, rz, temp, ax, ay, az, arx, ary, prevGx, prevGy, prevGz   'PASM code assumes these to be contiguous
-  long cFilterX,cFilterY,cFilterZ, prevCx, prevCy, prevCz
+  long Cog, compFilterCogId, compFilterStack[128]
+  long rx, ry, rz, temp, ax, ay, az, arx, ary  'PASM code assumes these to be contiguous
+  long acc[3], gyro[3], compFilter[3]
   long p
 
 OBJ
@@ -44,58 +44,44 @@ OBJ
 PUB TestMPU  | MPUcog
 
   debug.start(SERIAL_RX_PIN, SERIAL_TX_PIN, 0, 115200) 'Start cog to allow IO with serial terminal
-  MPUcog := Start( SCL_PIN, SDA_PIN, 98)
+  MPUcog := Start( SCL_PIN, SDA_PIN)
 
   repeat
     ' gyro info
-    debug.str(string("[gx")) 
-    debug.dec(GetRX)
-    debug.str(string("]"))
-    debug.str(string("[gy")) 
-    debug.dec(GetRY)
-    debug.str(string("]")) 
-    debug.str(string("[gz")) 
-    debug.dec(GetRZ)
-    debug.str(string("]"))
+'    debug.str(string("[gx")) 
+'    debug.dec(GetRX)
+'    debug.str(string("]"))
+'    debug.str(string("[gy")) 
+'    debug.dec(GetRY)
+'    debug.str(string("]")) 
+'    debug.str(string("[gz")) 
+'    debug.dec(GetRZ)
+'    debug.str(string("]"))
     ' acc info
-    debug.str(string("[ax")) 
-    debug.dec(GetAX)
-    debug.str(string("]"))
+    debug.tx(13)
+'    debug.str(string("[ax")) 
+'    debug.dec(GetAX)
+'    debug.str(string("]"))
     debug.str(string("[ay")) 
     debug.dec(GetAY)
     debug.str(string("]")) 
-    debug.str(string("[az")) 
-    debug.dec(GetAZ)
-    debug.str(string("]"))  
-    debug.tx(13)
-    debug.str(string("[cx")) 
-    debug.dec(GetCX)
-    debug.str(string("]"))
+'    debug.str(string("[az")) 
+'    debug.dec(GetAZ)
+'    debug.str(string("]"))  
+'    debug.tx(13)
+'    debug.str(string("[cx")) 
+'    debug.dec(GetCX)
+'    debug.str(string("]"))
     debug.str(string("[cy")) 
     debug.dec(GetCY)
     debug.str(string("]")) 
-    debug.str(string("[cz")) 
-    debug.dec(GetCZ)
-    debug.str(string("]"))
+'    debug.str(string("[cz")) 
+'    debug.dec(GetCZ)
+'    debug.str(string("]"))
     
-PUB GetCX
-  cFilterX := (999*(cFilterX-GetRy*15/20) + 30/20*GetAx)/1000'(p*(prevCx*1000+GetRx*2) )' + (100-p)*1000*GetAX)
-  'prevCx := cFilterX/1000
-  return cFilterX
 
-PUB GetCY
-  cFilterY := (999*(cFilterY-GetRx*30/20) + 1*GetAy)/1000'cFilterY := (p*(prevCy*1000+GetRY*2)) '+ (100-p)*1000*GetAY)
-  'prevCy := cFilterY/1000000 
-  return cFilterY
-  
-PUB GetCZ
-  cFilterZ := (p*(prevCz*1000+GetRX*2)) '+ (100-p)*1000*GetAZ)
-  prevCz := cFilterZ/1000000 
-  return cFilterZ
+PUB Start( SCL, SDA) : Status
 
-PUB Start( SCL, SDA, cFilter) : Status
-
-  p:=cFilter
   ComputeTimes
 
   gyroSCL  := 1 << SCL     'save I2C pins
@@ -103,7 +89,32 @@ PUB Start( SCL, SDA, cFilter) : Status
   
   Status := Cog := cognew(@Start_Sensors, @rx) + 1
 
-  Calibrate  
+  startCompFilter
+  
+  Calibrate
+        
+
+PRI startCompFilter
+  compFilterCogId := cognew(calCompFilter ,@compFilterStack)
+
+PRI calCompFilter | PERCENT_CONST
+ 
+  PERCENT_CONST := 1000
+  repeat
+    compFilter[0] := 995*(compFilter[0] - GetRY*12/10000)/PERCENT_CONST + 5*getAX/PERCENT_CONST
+    compFilter[1] := 995*(compFilter[1] + GetRX*16/10000)/PERCENT_CONST + 5*getAY/PERCENT_CONST
+    compFilter[2] := GetAZ
+    
+
+PUB getCX
+  return compFilter[0]
+
+PUB getCY
+  return compFilter[1]
+
+PUB getCZ
+  return compFilter[2]
+  
 
 PUB Stop
 
