@@ -22,7 +22,7 @@ VAR
 
  'attitude variables
   long sensorCodId 
-  long gyro[3], acc[3], eAngle[3], targetEAngle10E5[3] 
+  long gyro[3], acc[3], eAngle[3], targetEAngle[3] 
 
   'usb variables
   long newValue, type, usbStack[64],usbCogId, pstCodId
@@ -92,7 +92,7 @@ PRI startPID
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
 PRI runPID  |i
-  kp := 10
+  kp := 1000
   ki := 0
   kd := 0
 
@@ -123,15 +123,12 @@ PRI runPID  |i
 
 PRI pidAxis(nMoter, pMoter)| axis, roundAdj, roundBy
 
-  roundAdj := 500_00 
-  roundBy := 1_00
-
   if nMoter == 0         'for x axis 
     axis := 0
   else                   'for y axis 
     axis := 1
 
-  error := (targetEAngle10E5[axis] - eAngle[axis])/100
+  error := (targetEAngle[axis] - eAngle[axis])/100
   
   if error > 0
     'proportional := (kp*error + 50)/100
@@ -140,7 +137,7 @@ PRI pidAxis(nMoter, pMoter)| axis, roundAdj, roundBy
     'proportional := (kp*error - 50)/100 
     error := (error - 5) / 10   
 
-  proportional := error*kp/10
+  proportional := error*kp/1000
   
   outPut := proportional          
   'usb.dec(outPut)

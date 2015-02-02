@@ -59,22 +59,22 @@ PUB TestMPU  | MPUcog
 '    debug.str(string("]"))
     ' acc info
     debug.tx(13)
-'    debug.str(string("[ax")) 
-'    debug.dec(GetAX)
-'    debug.str(string("]"))
-    debug.str(string("[ay")) 
-    debug.dec(GetAY)
-    debug.str(string("]")) 
+    debug.str(string("[ax")) 
+    debug.dec(GetAX)
+    debug.str(string("]"))
+'    debug.str(string("[ay")) 
+'    debug.dec(GetAY)
+'    debug.str(string("]")) 
 '    debug.str(string("[az")) 
 '    debug.dec(GetAZ)
 '    debug.str(string("]"))  
 '    debug.tx(13)
-'    debug.str(string("[cx")) 
-'    debug.dec(GetCX)
-'    debug.str(string("]"))
-    debug.str(string("[cy")) 
-    debug.dec(GetCY)
-    debug.str(string("]")) 
+    debug.str(string("[cx")) 
+    debug.dec(GetCX)
+    debug.str(string("]"))
+'    debug.str(string("[cy")) 
+'    debug.dec(GetCY)
+'    debug.str(string("]")) 
 '    debug.str(string("[cz")) 
 '    debug.dec(GetCZ)
 '    debug.str(string("]"))
@@ -101,8 +101,11 @@ PRI calCompFilter | PERCENT_CONST
  
   PERCENT_CONST := 1000
   repeat
-    compFilter[0] := 995*(compFilter[0] - GetRY*12/10000)/PERCENT_CONST + 5*getAX/PERCENT_CONST
-    compFilter[1] := 995*(compFilter[1] + GetRX*16/10000)/PERCENT_CONST + 5*getAY/PERCENT_CONST
+    if compFilter < 0
+      compFilter[0] := 999*(compFilter[0] - GetRY*15/10000)/PERCENT_CONST + 1*getAX/PERCENT_CONST 
+    else
+      compFilter[0] := 997*(compFilter[0] - GetRY*12/10000)/PERCENT_CONST + 3*getAX/PERCENT_CONST
+    compFilter[1] := 997*(compFilter[1] + GetRX*16/10000)/PERCENT_CONST + 3*getAY/PERCENT_CONST
     compFilter[2] := GetAZ
     
 
