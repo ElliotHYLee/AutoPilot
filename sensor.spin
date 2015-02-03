@@ -97,14 +97,18 @@ PUB Start( SCL, SDA) : Status
 PRI startCompFilter
   compFilterCogId := cognew(calCompFilter ,@compFilterStack)
 
-PRI calCompFilter | PERCENT_CONST
- 
+PRI calCompFilter | ratio, PERCENT_CONST, sign[2]
+  ratio := 996
   PERCENT_CONST := 1000
   repeat
-    if compFilter < 0
-      compFilter[0] := 999*(compFilter[0] - GetRY*15/10000)/PERCENT_CONST + 1*getAX/PERCENT_CONST 
+    if compFilter[0] < 0
+      sign[0] := -1
     else
-      compFilter[0] := 997*(compFilter[0] - GetRY*12/10000)/PERCENT_CONST + 3*getAX/PERCENT_CONST
+      sign[0] := 1
+
+    compFilter[0] := (ratio*(compFilter[0] - GetRY*170/100000)+ sign*975 )/PERCENT_CONST + (1000-ratio)*getAX/PERCENT_CONST
+     '     compFilter[0] := (compFilter[0] - GetRY*180/100000) ' + (1000-ratio)*getAX/PERCENT_CONST
+
     compFilter[1] := 997*(compFilter[1] + GetRX*16/10000)/PERCENT_CONST + 3*getAY/PERCENT_CONST
     compFilter[2] := GetAZ
     
