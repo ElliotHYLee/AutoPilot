@@ -108,8 +108,8 @@ PRI runPID  |i
     acc[2] := mpu6050.getAZ
 
     gyro[0] := mpu6050.getRX
-    gyro[0] := mpu6050.getRX
-    gyro[0] := mpu6050.getRX
+    gyro[1] := mpu6050.getRY
+    gyro[2] := mpu6050.getRZ
         
     eAngle[0] := mpu6050.getCX
     eAngle[1] := mpu6050.getCY
@@ -347,10 +347,10 @@ PRI systemModeUpdate(mode)
 '===================== MOTOR PART ==================================================================
 '===================================================================================================
 PRI newMotor(pin0, pin1, pin2, pin3)  {{ constructor }}
-  motorPin[0] := pin0  'set pin number for this motor
+  motorPin[0] := pin3  'set pin number for this motor
   motorPin[1] := pin1
   motorPin[2] := pin2
-  motorPin[3] := pin3
+  motorPin[3] := pin0
   'waitcnt(cnt + clkfreq)
   startMotor
   

@@ -35,7 +35,7 @@ VAR
   long x0, y0, z0, tx
   long Cog, compFilterCogId, compFilterStack[128]
   long rx, ry, rz, temp, ax, ay, az, arx, ary  'PASM code assumes these to be contiguous
-  long acc[3], gyro[3], compFilter[3]
+  long acc[3], gyro[3], compFilter[3], avgAcc
   long p
 
 OBJ
@@ -48,18 +48,20 @@ PUB TestMPU  | MPUcog
 
   repeat
     ' gyro info
-'    debug.str(string("[gx")) 
-'    debug.dec(GetRX)
-'    debug.str(string("]"))
+    
+    debug.str(string("[gx")) 
+    debug.dec(GetGX)
+    debug.str(string("]"))
 '    debug.str(string("[gy")) 
-'    debug.dec(GetRY)
+'    debug.dec(GetGY)
 '    debug.str(string("]")) 
 '    debug.str(string("[gz")) 
-'    debug.dec(GetRZ)
+'    debug.dec(GetGZ)
 '    debug.str(string("]"))
     ' acc info
     debug.tx(13)
-    debug.str(string("[ax")) 
+    debug.dec(avgAcc)
+    debug.str(string(" [ax")) 
     debug.dec(GetAX)
     debug.str(string("]"))
 '    debug.str(string("[ay")) 
@@ -97,19 +99,27 @@ PUB Start( SCL, SDA) : Status
 PRI startCompFilter
   compFilterCogId := cognew(calCompFilter ,@compFilterStack)
 
-PRI calCompFilter | ratio, PERCENT_CONST, sign[2]
-  ratio := 996
+PRI calCompFilter | PERCENT_CONST, i, prevAcc[3], currentAcc
   PERCENT_CONST := 1000
+  i := 0
   repeat
-    if compFilter[0] < 0
-      sign[0] := -1
-    else
-      sign[0] := 1
+    currentAcc := getAx
+    avgAcc := (prevAcc[0] + prevAcc[1] + prevAcc[2] + currentAcc )/4
+    prevAcc[0] := prevAcc[1]
+    prevAcc[1] := prevAcc[2]
+    prevAcc[2] := currentAcc
+    
+'    if i => 8000
+'      gyro[0] := avgAcc
+'      i := 0
+'    else
+'      gyro[0] := gyro[0] - GetRY*180/100000
+'    i++
+'    gyro[1] := gyro[1] + GetRX*16/10000
+    compFilter[0] := (998*(compFilter[0] - GetRY*180/100000))/PERCENT_CONST + (2*avgAcc)/PERCENT_CONST
 
-    compFilter[0] := (ratio*(compFilter[0] - GetRY*170/100000)+ sign*975 )/PERCENT_CONST + (1000-ratio)*getAX/PERCENT_CONST
-     '     compFilter[0] := (compFilter[0] - GetRY*180/100000) ' + (1000-ratio)*getAX/PERCENT_CONST
 
-    compFilter[1] := 997*(compFilter[1] + GetRX*16/10000)/PERCENT_CONST + 3*getAY/PERCENT_CONST
+    compFilter[1] := 989*(gyro[1])/PERCENT_CONST + 5*getAY/PERCENT_CONST
     compFilter[2] := GetAZ
     
 
@@ -121,7 +131,16 @@ PUB getCY
 
 PUB getCZ
   return compFilter[2]
-  
+
+PUB getGX
+  return gyro[0]
+
+PUB getGY
+  return gyro[1]
+
+PUB getGZ
+  return gyro[2]
+    
 
 PUB Stop
 
