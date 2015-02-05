@@ -193,7 +193,7 @@ PRI Calibrate | tc, xc, yc, zc, dr
   z0 := 0
   
   'wait 1/2 second for the body to stop moving
-  waitcnt( constant(5_000_000 / 2) + cnt )
+  waitcnt( constant(80_000_000 / 2) + cnt )
 
   'Find the zero points of the 3 axis by reading for ~1 sec and averaging the results
   xc := 0
@@ -205,7 +205,7 @@ PRI Calibrate | tc, xc, yc, zc, dr
     yc += ry
     zc += rz
 
-    waitcnt( constant(5_000_000/192) + cnt )
+    waitcnt( constant(80_000_000/192) + cnt )
 
   'Perform rounding
   if( xc > 0 )
@@ -792,7 +792,7 @@ iaRY                    long    0                       ' Interim aY value
                                                                   
 i2cWordReadMask         long    %10000000_00000000
 i2cWordMask             long    $ffff0000
-loopDelay               long    5_000_000 / 200
+loopDelay               long    80_000_000 / 200
 loopCount               long    0
 
 '' Variables for dealing with drift / division
