@@ -372,7 +372,7 @@ MPUReadValues
                         test    i2cData, i2cWordReadMask     wc
                         muxc    i2cData, i2cWordMask
                         mov     irX, i2cData
-
+                                                    
                         mov     i2cMask, i2cWordReadMask
                         test    i2cTestCarry, #0 wc     ' Clear the carry flag to make reads auto-increment        
                         call    #i2cRead                                          
@@ -380,7 +380,7 @@ MPUReadValues
 
                         'Sign extend the 15th bit
                         test    i2cData, i2cWordReadMask     wc
-                        muxc    i2cData, i2cWordMask
+                        muxc    i2cData, i2cWordMask 
                         mov     irY, i2cData
 
                         mov     i2cMask, i2cWordReadMask
