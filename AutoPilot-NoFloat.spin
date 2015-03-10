@@ -6,6 +6,7 @@ OBJ
   usb            : "Parallax Serial Terminal"
   fNum           : "FloatMath.spin"
   mpu6050        : "sensor.spin"
+  sensor         : "tier2MPUMPL.spin"
   fStr           : "FloatString.spin"
 VAR
   'system variable
@@ -21,7 +22,7 @@ VAR
   byte motorIteration 
 
  'attitude variables
-  long sensorCodId 
+  long sensorCodId, sensorStack[128] 
   long gyro[3], acc[3], eAngle[3], targetEAngle[3] 
 
   'usb variables
@@ -40,7 +41,7 @@ PUB startAutoPilot
   newUSB
   
  'attitude start
-  newAttitude
+  startSensor
 
   'motor start
   newMotor(0,1,2,3)
@@ -56,22 +57,30 @@ PUB startAutoPilot
 '===================== ATTITUDE SENSOR PART ==================================================================
 '===================================================================================================
 {{
-------------------------------------------------------------
-ATTITUDE SENSOR REGION                                      |
-  Number of cog used : 2                                    |
-  Sensors            : MPU6050                              |
-  Cog usage          : Reading Sensor Values                |
-                       Calculating Complementary Filter     |
-  Functions:         : newAttitude (call startAttitude)     |
-                       startAttitude (start MPU sensor)     |
-------------------------------------------------------------
+-----------------------------------------------------------------
+ATTITUDE SENSOR REGION                                          |
+  Number of cog used : 1                                        |
+  Sensors            : MPU9150, AK8, MPL                        |
+  Cog usage          : Reading Sensor Values                    |
+                       Calculating Complementary Filter         |
+  Functions:         : newSensor (call startSensor)             |
+                       startSensor (start MPU, AK8, MPl sensor) |
+-----------------------------------------------------------------
 }}
 
-PRI newAttitude 
-  startAttitude
+PRI stopSensor
+  if sensorCodId
+    cogstop(sensorCodId ~ - 1)
   
-PRI startAttitude 
-  sensorCodId:=mpu6050.Start(15,14) ' scl, sda, cFilter portion in %
+PRI startSensor 
+  sensor.initSensor(15,14) ' scl, sda, cFilter portion in %
+  sensor.setMpu(%000_11_000, %000_00_000) '2000deg/s, 2g
+  stopSensor
+  sensorCodId:= cognew(runSensor, @sensorStack) + 1
+
+PRI runSensor
+  repeat
+    sensor.run
 
 '===================================================================================================
 '===================== PID PART ==================================================================
@@ -96,25 +105,16 @@ PRI runPID  |i
   ki := 0
   kd := 0
 
-  pidOff  
+  'pidOff  
   respondContent := 2
   respondType := 1
   respondContent := 1
   respondType := 1              
 
   repeat
-    acc[0] := mpu6050.getAX
-    acc[1] := mpu6050.getAY
-    acc[2] := mpu6050.getAZ
-
-    gyro[0] := mpu6050.getRX
-    gyro[1] := mpu6050.getRY
-    gyro[2] := mpu6050.getRZ
-        
-    eAngle[0] := mpu6050.getCX
-    eAngle[1] := mpu6050.getCY
-    eAngle[2] := mpu6050.getCZ
-    
+    sensor.getEulerAngle(@eAngle)
+'    sensor.getAcc(@acc)
+'    sensor.getGyro(@gyro)
     if pidOnOff == 1
       pidAxis(0,2) ' x axis pid set ( white arms of the drone)
       'pidAxis(1,3) ' y axis pid s0et ( red arms of the drone)  

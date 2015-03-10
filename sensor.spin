@@ -35,7 +35,7 @@ VAR
   long x0, y0, z0, tx
   long Cog, compFilterCogId, compFilterStack[128]
   long rx, ry, rz, temp, ax, ay, az, arx, ary  'PASM code assumes these to be contiguous
-  long acc[3], gyro[3], compFilter[3], avgAcc
+  long acc[3], gyro[3], compFilter[3], avgAcc,gyroIntegral[3]
   long p
 
 OBJ
@@ -47,10 +47,13 @@ PUB TestMPU  | MPUcog
   MPUcog := Start( SCL_PIN, SDA_PIN)
 
   repeat
-    ' gyro info
+    debug.clear
+    printXAxis
+    waitcnt(cnt + clkfreq/10)
+{    ' gyro info
     
-    debug.str(string("[gx")) 
-    debug.dec(GetGX)
+    debug.str(string("[gy")) 
+    debug.dec(GetGY)
     debug.str(string("]"))
 '    debug.str(string("[gy")) 
 '    debug.dec(GetGY)
@@ -80,7 +83,30 @@ PUB TestMPU  | MPUcog
 '    debug.str(string("[cz")) 
 '    debug.dec(GetCZ)
 '    debug.str(string("]"))
-    
+}
+PRI printXAxis | check
+  debug.str(String("Acc   ["))
+  debug.dec(acc[0])
+  debug.strLn(String("]"))
+
+  debug.str(String("Gyr   ["))
+  check := gyro[1]
+  debug.dec(check)
+  debug.str(String("]"))
+  if check > 0
+    debug.str(STring("++++"))
+  debug.newline
+  debug.str(String("GyrInt["))
+  debug.dec(gyroIntegral[0])
+  debug.strLn(String("]"))
+
+  debug.str(String("AvgAcc["))
+  debug.dec(avgAcc[0])
+  debug.strLn(String("]"))  
+  debug.str(String("ComFil["))  
+  debug.dec(compFilter[0])
+  debug.strLn(String("]"))
+   
 
 PUB Start( SCL, SDA) : Status
 
@@ -103,11 +129,12 @@ PRI calCompFilter | PERCENT_CONST, i, prevAcc[3], currentAcc
   PERCENT_CONST := 1000
   i := 0
   repeat
-    currentAcc := getAx
+    acc[0] := getAx
+    gyro[1] := getRy
     avgAcc := (prevAcc[0] + prevAcc[1] + prevAcc[2] + currentAcc )/4
     prevAcc[0] := prevAcc[1]
     prevAcc[1] := prevAcc[2]
-    prevAcc[2] := currentAcc
+    prevAcc[2] := acc[0]
     
 '    if i => 8000
 '      gyro[0] := avgAcc
@@ -116,8 +143,8 @@ PRI calCompFilter | PERCENT_CONST, i, prevAcc[3], currentAcc
 '      gyro[0] := gyro[0] - GetRY*180/100000
 '    i++
 '    gyro[1] := gyro[1] + GetRX*16/10000
-    compFilter[0] := (998*(compFilter[0] - GetRY*180/100000))/PERCENT_CONST + (2*avgAcc)/PERCENT_CONST
-
+    compFilter[0] := (998*(compFilter[0] - gyro[1]*180/100000))/PERCENT_CONST + (2*avgAcc)/PERCENT_CONST
+    gyroIntegral[0] := gyroIntegral[0] - gyro[1]*180/100000
 
     compFilter[1] := 989*(gyro[1])/PERCENT_CONST + 5*getAY/PERCENT_CONST
     compFilter[2] := GetAZ
