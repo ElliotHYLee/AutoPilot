@@ -18,6 +18,8 @@ Var
   '1st-level data
   Long acc[3], gyro[3], temperature, mag[3]
 
+  'program variable
+  byte compFilterType 
 PUB main
 
   FDS.quickStart  
@@ -28,19 +30,7 @@ PUB main
 
   repeat
     run
-
-PUB initSensor(scl, sda)
-  sensor.initSensor(scl, sda)
-
-PUB setMpu(gyroSet, accSet)
-  sensor.setMpu(gyroSet, accSet) 
-
-  
-PUB run
-
-    sensor.reportData(@acc, @gyro,@mag, @temperature)
-    calcCompFilter_41
-{
+    
     FDS.clear
     printSomeX
     fds.newline
@@ -49,34 +39,69 @@ PUB run
     fds.newline
     fds.newline
     printAll
+
+    fds.newline
+    fds.newline
+    fds.dec(compFilterType)
+    fds.newline
+    
     waitcnt(cnt+clkfreq/10)
-}
-PUB calcCompFilter_41 | a
 
-  a := 970
+    
+PUB initSensor(scl, sda)
+  sensor.initSensor(scl, sda)
 
- getAvgAcc
+PUB setMpu(gyroSet, accSet)
 
-  gyroIntegral[0] := gyroIntegral[0] - (gyro[1]*50/100)
-  compFilter[0] := (a*(compFilter[0] - (gyro[1]*50/100))+500)/PERCENT_CONST + ((PERCENT_CONST-a)*Acc[0]+500)/PERCENT_CONST
- 
-  
-  gyroIntegral[1] := gyroIntegral[1] + (gyro[0]*70/100)  
-  compFilter[1] := (a*(compFilter[1] + (gyro[0]*70/100))+500)/PERCENT_CONST + ((PERCENT_CONST-a)*Acc[1]+500)/PERCENT_CONST
+  sensor.setMpu(gyroSet, accSet) 
+  if (gyroSet==%000_11_000) AND (accSet==%000_00_000)
+    compFilterType := 12
+  elseif (gyroSet==%000_11_000) AND (accSet==%000_01_000)
+    compFilterType := 13     
+  elseif (gyroSet==%000_11_000) AND (accSet==%000_10_000)
+    compFilterType := 14     
+  elseif (gyroSet==%000_11_000) AND (accSet==%000_11_000)
+    compFilterType := 15     
 
-  compFilter[2] := acc[2]
 
-PUB calcCompFilter_40 | a         ' gyro set 4 and acc set 0
+    
+PUB run
+
+  sensor.reportData(@acc, @gyro,@mag, @temperature)
+
+  if compFilterType == 12
+    calcCompFilter_30
+  elseif compFilterType == 13
+    calcCompFilter_31
+  else
+    calcCompFilter_30  'default
+      
+PUB calcCompFilter_31 | a
 
   a := 970
 
   getAvgAcc
 
-  gyroIntegral[0] := gyroIntegral[0] - (gyro[1]*130/100)
-  compFilter[0] := a*(compFilter[0] - (gyro[1]*130/100))/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[0])/PERCENT_CONST
+  gyroIntegral[0] := gyroIntegral[0] - (gyro[1]*25/100)
+  compFilter[0] := (a*(compFilter[0] - (gyro[1]*25/100))+500)/PERCENT_CONST + ((PERCENT_CONST-a)*Acc[0]+500)/PERCENT_CONST
+ 
+  
+  gyroIntegral[1] := gyroIntegral[1] + (gyro[0]*25/100)  
+  compFilter[1] := (a*(compFilter[1] + (gyro[0]*25/100))+500)/PERCENT_CONST + ((PERCENT_CONST-a)*Acc[1]+500)/PERCENT_CONST
 
-  gyroIntegral[1] := gyroIntegral[1] + (gyro[0]*220/100)  
-  compFilter[1] := a*(compFilter[1] + (gyro[0]*220/100))/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[1])/PERCENT_CONST
+  compFilter[2] := acc[2]
+
+PUB calcCompFilter_30 | a         ' gyro set 4 and acc set 0
+
+  a := 970
+
+  getAvgAcc
+
+  gyroIntegral[0] := gyroIntegral[0] - (gyro[1]*55/100)
+  compFilter[0] := a*(compFilter[0] - (gyro[1]*55/100))/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[0])/PERCENT_CONST
+
+  gyroIntegral[1] := gyroIntegral[1] + (gyro[0]*55/100)  
+  compFilter[1] := a*(compFilter[1] + (gyro[0]*55/100))/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[1])/PERCENT_CONST
 
   compFilter[2] := acc[2]
 
@@ -105,15 +130,17 @@ PUB getAvgAcc | i, avgCoef
 PUB getHeading(headingPtr)| i
   repeat i from 0 to 2
     Long[headingPtr][i] := heading[i]
+    
 PUB getTemperautre(dataPtr)
   Long[dataPtr] := temperature
+        
+PUB getEulerAngle(eAnglePtr)
 
-
-PUB getEulerAngle(eAnglePtr) | i
-  repeat i from 0 to 1
-    Long[eAnglePtr][i] := compFilter[i]
-    Long[eAnglePtr][2] := avgAcc[2]
+  Long[eAnglePtr][0] := compFilter[0]
+  Long[eAnglePtr][1] := compFilter[1]
+  Long[eAnglePtr][2] := avgAcc[2]
   return
+  
 PUB getAltitude
 
 PUB getAcc(accPtr) | i

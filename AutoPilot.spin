@@ -5,7 +5,7 @@ CON
 OBJ
   usb            : "Parallax Serial Terminal"
   fNum           : "FloatMath.spin"
-  sensor         : "tier2MPUMPLdd.spin"
+  sensor         : "tier2MPUMPL.spin"
   fStr           : "FloatString.spin"
 VAR
   'system variable
@@ -36,12 +36,13 @@ VAR
 
 PUB startAutoPilot
 
+
   'usb start
   newUSB
-  
+
  'attitude start
   startSensor
-
+  
   'motor start
   newMotor(0,1,2,3)
 
@@ -62,8 +63,9 @@ ATTITUDE SENSOR REGION                                          |
   Sensors            : MPU9150, AK8, MPL                        |
   Cog usage          : Reading Sensor Values                    |
                        Calculating Complementary Filter         |
-  Functions:         : newSensor (call startSensor)             |
-                       startSensor (start MPU, AK8, MPl sensor) |
+  Functions:         : stopSensor                               |
+                       startSensor (call startSensor)           |
+                       runSensor (start MPU, AK8, MPl sensor)   |
 -----------------------------------------------------------------
 }}
 
@@ -73,7 +75,7 @@ PRI stopSensor
   
 PRI startSensor 
   sensor.initSensor(15,14) ' scl, sda, cFilter portion in %
-  sensor.setMpu(%000_11_000, %000_00_000) '2000deg/s, 2g
+  sensor.setMpu(%000_11_000, %000_01_000) '2000deg/s, 4g
   stopSensor
   sensorCodId:= cognew(runSensor, @sensorStack) + 1
 
@@ -84,6 +86,20 @@ PRI runSensor
 '===================================================================================================
 '===================== PID PART ==================================================================
 '===================================================================================================
+{{
+-----------------------------------------------------------------
+PID REGION                                                      |
+  Number of cog used : 1                                        |
+  Cog usage          : calculating PID                          |
+  Functions:         : pidOn                                    |
+                       pidOff                                   |
+                       stopPID                                  |
+                       startPID                                 |
+                       runPID                                   |
+                       pidAxis                                  |
+-----------------------------------------------------------------
+}}
+
 PRI pidOn
   pidOnOff := 1
   
@@ -95,11 +111,13 @@ PRI stopPID
     cogstop(pidCogId ~ - 1)
 
 PRI startPID
+
   stopPID
 
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
 PRI runPID  |i
+
   kp := 1000
   ki := 0
   kd := 0
@@ -113,7 +131,7 @@ PRI runPID  |i
   repeat
     sensor.getEulerAngle(@eAngle)
 '    sensor.getAcc(@acc)
-'    sensor.getGyro(@gyro)
+    sensor.getGyro(@gyro)
     if pidOnOff == 1
       pidAxis(0,2) ' x axis pid set ( white arms of the drone)
       'pidAxis(1,3) ' y axis pid s0et ( red arms of the drone)  
@@ -155,6 +173,15 @@ PRI pidAxis(nMoter, pMoter)| axis, roundAdj, roundBy
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
 '===================================================================================================
+{{
+-----------------------------------------------------------------
+PID REGION                                                      |
+  Number of cog used : 1                                        |
+  Cog usage          : sending/reading data via usb             |
+  Functions:         :                                          |
+-----------------------------------------------------------------
+}}
+
 PRI newUSB
   pstCodId:=usb.start(115200)
   '------------------
@@ -201,7 +228,6 @@ PRI respondBack(x)
   respondContent := 0
  
 PRI sendOrdinaryMsg | i  
-
 
   usb.str(String("[k0"))
   usb.dec(error)
@@ -345,6 +371,20 @@ PRI systemModeUpdate(mode)
 '===================================================================================================
 '===================== MOTOR PART ==================================================================
 '===================================================================================================
+{{
+-----------------------------------------------------------------
+MOTOR CONTROL REGION                                            |
+  Number of cog used : 1                                        |
+  Motors             : Brushless DC motor x 4                   |
+  Cog usage          : Generating PWM for motor                 |
+  Functions:         : newMotor                                 |
+                       startMotor                               |
+                       stopMotor                                |
+                       initMotor                                |
+                       runMotor                                 |
+                       insepctPulse                             |
+-----------------------------------------------------------------
+}}
 PRI newMotor(pin0, pin1, pin2, pin3)  {{ constructor }}
   motorPin[0] := pin3  'set pin number for this motor
   motorPin[1] := pin1
@@ -443,3 +483,6 @@ PRI inspectPulse | i
       return 0   ' abnormal pwm
     i++
   return 1
+
+
+  
