@@ -5,7 +5,7 @@ CON
 OBJ
   usb            : "Parallax Serial Terminal"
   fNum           : "FloatMath.spin"
-  sensor         : "tier2MPUMPL.spin"
+  sensor         : "tier2MPUMPLdd.spin"
   fStr           : "FloatString.spin"
 VAR
   'system variable
