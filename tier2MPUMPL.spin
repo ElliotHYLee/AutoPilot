@@ -25,8 +25,9 @@ PUB main
   initSensor(15,14)
 
   setMpu(%000_11_000, %000_01_000) '2000 deg/s, 2g
-  
-  run
+
+  repeat
+    run
 
 PUB initSensor(scl, sda)
   sensor.initSensor(scl, sda)
