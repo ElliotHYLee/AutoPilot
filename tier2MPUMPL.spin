@@ -25,8 +25,9 @@ PUB main
   initSensor(15,14)
 
   setMpu(%000_11_000, %000_01_000) '2000 deg/s, 2g
-  
-  run
+
+  repeat
+    run
 
 PUB initSensor(scl, sda)
   sensor.initSensor(scl, sda)
@@ -39,7 +40,7 @@ PUB run
 
     sensor.reportData(@acc, @gyro,@mag, @temperature)
     calcCompFilter_41
-{
+
     FDS.clear
     printSomeX
     fds.newline
@@ -48,9 +49,9 @@ PUB run
     fds.newline
     fds.newline
     printAll
-    waitcnt(cnt+clkfreq/10)
-}
-PUB calcCompFilter_41 | a
+    'waitcnt(cnt+clkfreq/10)
+
+PUB calcCompFilter_41 | a        ' gyro set 4 and acc set 1   2000 deg/s and 4g  
 
   a := 970
 
@@ -65,7 +66,7 @@ PUB calcCompFilter_41 | a
 
   compFilter[2] := acc[2]
 
-PUB calcCompFilter_40 | a         ' gyro set 4 and acc set 0
+PUB calcCompFilter_40 | a         ' gyro set 4 and acc set 0   2000 deg/s and 2g
 
   a := 970
 
@@ -111,7 +112,7 @@ PUB getTemperautre(dataPtr)
 PUB getEulerAngle(eAnglePtr) | i
   repeat i from 0 to 1
     Long[eAnglePtr][i] := compFilter[i]
-    Long[eAnglePtr][2] := avgAcc[2]
+  Long[eAnglePtr][2] := avgAcc[2]
   return
 PUB getAltitude
 
