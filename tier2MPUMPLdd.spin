@@ -40,7 +40,7 @@ PUB run
 
     sensor.reportData(@acc, @gyro,@mag, @temperature)
     calcCompFilter_41
-
+{
     FDS.clear
     printSomeX
     fds.newline
@@ -50,7 +50,7 @@ PUB run
     fds.newline
     printAll
     waitcnt(cnt+clkfreq/10)
-
+}
 PUB calcCompFilter_41 | a
 
   a := 970
