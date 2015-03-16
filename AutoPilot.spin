@@ -4,9 +4,8 @@ CON
                       
 OBJ
   usb            : "Parallax Serial Terminal"
-  fNum           : "FloatMath.spin"
   sensor         : "tier2MPUMPL.spin"
-  fStr           : "FloatString.spin"
+
 VAR
   'system variable
 
@@ -130,8 +129,8 @@ PRI runPID  |i
 
   repeat
     sensor.getEulerAngle(@eAngle)
-'    sensor.getAcc(@acc)
-    sensor.getGyro(@gyro)
+    sensor.getAcc(@acc)
+'    sensor.getGyro(@gyro)
     if pidOnOff == 1
       pidAxis(0,2) ' x axis pid set ( white arms of the drone)
       'pidAxis(1,3) ' y axis pid s0et ( red arms of the drone)  
@@ -204,8 +203,10 @@ PRI communicate
       if respondType > 0 ' need to respond to the request from C#
         respondBack(respondType)
       else
-        sendOrdinaryMsg
+        'sendOrdinaryMsg
+        sendTestMsg
 
+        
 PRI respondBack(x)
   case x
     1:
@@ -226,6 +227,35 @@ PRI respondBack(x)
 
   respondType := 0
   respondContent := 0
+
+PRI sendTestMsg
+  usb.clear   
+
+  usb.str(String("[ax"))
+  usb.dec(acc[0])
+  usb.str(String("]  "))
+
+  usb.str(String("[cx"))
+  usb.dec(eAngle[0])
+  usb.strLn(String("]"))
+  
+  usb.str(String("[ay"))
+  usb.dec(acc[1])
+  usb.str(String("]"))
+
+  usb.str(String("  [cy"))
+  usb.dec(eAngle[1])
+  usb.strLn(String("]"))  
+
+  usb.str(String("[az"))
+  usb.dec(acc[2])
+  usb.str(String("]"))  
+
+  usb.str(String("  [cz"))
+  usb.dec(eAngle[2])
+  usb.strLn(String("]"))  
+
+  waitcnt(cnt + clkfreq/10)        
  
 PRI sendOrdinaryMsg | i  
 

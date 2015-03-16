@@ -7,7 +7,7 @@ PERCENT_CONST = 1000
 OBJ
   sensor    : "Tier1MPUMPL.spin"
   FDS    : "FullDuplexSerial"
-  
+  math   : "FloatMath"  'no cog
 Var
   '2nd-level analized data
   Long compFilter[3], gForce, heading[3]
@@ -19,35 +19,54 @@ Var
   Long acc[3], gyro[3], temperature, mag[3]
 
   'program variable
-  byte compFilterType 
+  byte compFilterType
+  long runStack[128], playID, displayStack[128] 
 PUB main
 
   FDS.quickStart  
   
   initSensor(15,14)
 
-  setMpu(%000_11_000, %000_01_000) '2000 deg/s, 2g
+  setMpu(%000_11_000, %000_01_000) '2000 deg/s, 4g
+
+  startPlay
 
   repeat
-    run
-    
+    'run
     FDS.clear
-    printSomeX
+'    printSomeX
     fds.newline
     fds.newline
-    printSomeY
+'    printSomeY
     fds.newline
     fds.newline
     printAll
 
     fds.newline
     fds.newline
+    fds.str(String("compFilter Type: "))
     fds.dec(compFilterType)
     fds.newline
+'    fds.newline
+'    fds.decln(acc[0]*acc[0]+acc[1]*acc[1]+acc[2]*acc[2])
     
     waitcnt(cnt+clkfreq/10)
 
+
+
+
+PUB stopPlay
+  if playID
+    cogstop(playID ~ -1)
     
+PUB startPlay
+ stopPlay
+ playID := cognew(playSensor, @runStack) + 1
+ 
+PUB playSensor
+  repeat
+    run
+                     
 PUB initSensor(scl, sda)
   sensor.initSensor(scl, sda)
 
@@ -56,15 +75,16 @@ PUB setMpu(gyroSet, accSet)
   sensor.setMpu(gyroSet, accSet) 
   if (gyroSet==%000_11_000) AND (accSet==%000_00_000)
     compFilterType := 12
-  elseif (gyroSet==%000_11_000) AND (accSet==%000_01_000)
+  elseif ((gyroSet==%000_11_000) AND (accSet==%000_01_000))
     compFilterType := 13     
   elseif (gyroSet==%000_11_000) AND (accSet==%000_10_000)
     compFilterType := 14     
   elseif (gyroSet==%000_11_000) AND (accSet==%000_11_000)
     compFilterType := 15     
+  else
+    compFilterType := 12
 
 
-    
 PUB run
 
   sensor.reportData(@acc, @gyro,@mag, @temperature)
@@ -76,7 +96,7 @@ PUB run
   else
     calcCompFilter_30  'default
       
-PUB calcCompFilter_31 | a
+PUB calcCompFilter_31 | a,tempX,tempY,tempZ, tempTot
 
   a := 970
 
@@ -89,7 +109,12 @@ PUB calcCompFilter_31 | a
   gyroIntegral[1] := gyroIntegral[1] + (gyro[0]*25/100)  
   compFilter[1] := (a*(compFilter[1] + (gyro[0]*25/100))+500)/PERCENT_CONST + ((PERCENT_CONST-a)*Acc[1]+500)/PERCENT_CONST
 
-  compFilter[2] := acc[2]
+  tempX := math.FMul(math.FFloat(compFilter[0]), math.FFloat(compFilter[0]))
+  tempY := math.FMul(math.FFloat(compFilter[1]), math.FFloat(compFilter[1]))
+  tempTot := math.FFloat(81000000)
+  compFilter[2] :=  math.FRound(math.FSqr(math.FSub(tempTot,math.FAdd(tempX, tempY))))
+
+'  compFilter[2] := acc[2]
 
 PUB calcCompFilter_30 | a         ' gyro set 4 and acc set 0
 
@@ -144,7 +169,7 @@ PUB getEulerAngle(eAnglePtr)
 PUB getAltitude
 
 PUB getAcc(accPtr) | i
-  repeat i from 0 to 1
+  repeat i from 0 to 2
     Long[accPtr][i] := acc[i]
   return
 PUB getGyro(gyroPtr) | i
@@ -226,6 +251,7 @@ PRI printAll | i, j
         FDS.dec(j)
         FDS.str(String("]= "))      
         FDS.decLn(mag[j])
+    'fds.decLn(mag[0]*mag[0] + mag[1]*mag[1] + mag[2]*mag[2])
   FDS.Str(String("Tempearture = "))
   FDS.decLn(temperature)
   FDS.Str(String("gForce = "))
