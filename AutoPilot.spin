@@ -21,7 +21,7 @@ VAR
 
  'attitude variables
   long sensorCodId, sensorStack[128] 
-  long gyro[3], acc[3], eAngle[3], targetEAngle[3] 
+  long gyro[3], acc[3], eAngle[3]
 
   'usb variables
   long newValue, type, usbStack[64],usbCogId, pstCodId
@@ -29,11 +29,14 @@ VAR
 
   'pid variables
   long pidStack[128], pidCogId
-  long targetEAnlge10E5[3] , fProportional, fIntegral, fDerivative
-  long kp, ki, kd, pidUpdateIndex, prevTime[2] , fErrorPrev[2], error, dError, dt, proportional, output
+  long targetEAngle[3] , fProportional, fIntegral, fDerivative
+  long kp, ki, kd, pidUpdateIndex, prevTime[2] , fErrorPrev[2], error, dError, dt, proportional, derivative, integral, output
   byte pidOnOff
 
-PUB startAutoPilot
+PUB startAutoPilot|i
+
+  repeat i from 0 to 2
+    targetEAngle[i] := 0
 
 
   'usb start
@@ -117,11 +120,11 @@ PRI startPID
 
 PRI runPID  |i
 
-  kp := 1000
+  kp := 50
   ki := 0
-  kd := 0
+  kd := 230
 
-  'pidOff  
+  pidOff 
   respondContent := 2
   respondType := 1
   respondContent := 1
@@ -129,45 +132,45 @@ PRI runPID  |i
 
   repeat
     sensor.getEulerAngle(@eAngle)
-    sensor.getAcc(@acc)
-'    sensor.getGyro(@gyro)
+'    sensor.getAcc(@acc)
+    sensor.getGyro(@gyro)
     if pidOnOff == 1
-      pidAxis(0,2) ' x axis pid set ( white arms of the drone)
+      'pidAxis(0,2) ' x axis pid set ( white arms of the drone)
+       pidXAxis
       'pidAxis(1,3) ' y axis pid s0et ( red arms of the drone)  
     else
       'Do nothing  
 
-PRI pidAxis(nMoter, pMoter)| axis, roundAdj, roundBy
+PRI pidXAxis| pMotor, nMotor
 
-  if nMoter == 0         'for x axis 
-    axis := 0
-  else                   'for y axis 
-    axis := 1
+  pMotor := 2   ' motor 4  - positive tilt
+  nMotor := 0   ' motot 2  - negative tilt
+ 
+  error := ((targetEAngle[0] - eAngle[0])+50)/100
 
-  error := (targetEAngle[axis] - eAngle[axis])/100
-  
-  if error > 0
-    'proportional := (kp*error + 50)/100
-    error := (error + 5) / 10
+  if eAngle[0] > 0  ' positive tilt
+     proportional := (error*kp+500)/1000
   else
-    'proportional := (kp*error - 50)/100 
-    error := (error - 5) / 10   
+     proportional := (error*kp+500)/1000
 
-  proportional := error*kp/1000
-  
-  outPut := proportional          
-  'usb.dec(outPut)
-  'usb.newline
-  if eAngle[axis] > 0  ' when tilted to positive x axis - increase motor 3 , or 4 for positive y axis
-    if pulse[pMoter] + (-outPut)  =< 1500
-      pulse[pMoter] := pulse[pMoter] + (-outPut)   
-    if (pulse[nMoter] - (-outPut)) => 1300
-      pulse[nMoter] := pulse[nMoter] - (-outPut)
-  elseif eAngle[axis] < 0  ' when tilted to negative x axis - increase motor 1, or 2 negative y axis
-    if pulse[nMoter] + (outPut) =< 1550
-      pulse[nMoter] := pulse[nMoter] + (outPut) 
-    if (pulse[pMoter] - (outPut)) => 1300     
-      pulse[pMoter] := pulse[pMoter] - (outPut)  
+  if gyro[1] > 0  ' turning to the positive side
+    derivative := (gyro[1] * kd+500000)/1000_000
+  else
+    derivative := (gyro[1] * 2 * kd+500000)/1000_000  
+
+  outPut := proportional + derivative + integral         
+
+
+  if eAngle[0] > 0  ' when tilted to positive x axis  and error is negative - output is negative
+    if pulse[pMotor] + (-outPut)  =< 1500
+      pulse[pMotor] := pulse[pMotor] + (-outPut)   'increase motor 4th motor
+    if (pulse[nMotor] - (-outPut)) => 1300
+      pulse[nMotor] := pulse[nMotor] - (-outPut)   'decrease motor 1st motor
+  elseif eAngle[0] < 0  ' when tilted to negative x axis
+    if pulse[nMotor] + (outPut) =< 1550
+      pulse[nMotor] := pulse[nMotor] + (outPut) 
+    if (pulse[pMotor] - (outPut)) => 1300     
+      pulse[pMotor] := pulse[pMotor] - (outPut)  
 
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
@@ -203,10 +206,29 @@ PRI communicate
       if respondType > 0 ' need to respond to the request from C#
         respondBack(respondType)
       else
-        'sendOrdinaryMsg
-        sendTestMsg
+        sendOrdinaryMsg
+        'sendTestMsg
+        'sendPidTestMsg
 
-        
+
+PRI sendPidTestMsg
+
+  usb.clear
+  usb.str(String("on/off: "))
+  usb.decLn(pidOnOff)  
+  usb.str(String("error: "))
+  usb.decLn(error)
+  usb.str(String("proportional: "))
+  usb.decLn(proportional)
+  usb.str(String("derivative: "))
+  usb.decLn(derivative)
+  usb.str(String("integral: "))
+  usb.decLn(integral)
+  usb.str(String("output: "))
+  usb.decLn(output)
+  waitcnt(cnt + clkfreq/10)
+  
+                  
 PRI respondBack(x)
   case x
     1:
@@ -509,7 +531,7 @@ PRI runMotor | check, baseTime, totalElapse                 {{generating pwm for
 PRI inspectPulse | i
   i:=0
   repeat while i < 4
-    if (pulse[i] < 1100) OR (2000 < pulse[i])
+    if ((pulse[i] < 1100) OR (2000 < pulse[i]))
       return 0   ' abnormal pwm
     i++
   return 1
