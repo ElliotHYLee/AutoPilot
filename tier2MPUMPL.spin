@@ -14,7 +14,8 @@ Var
 
   'intermediate data
   Long prevAccX[20], prevAccY[20], prevAccZ[20], avgAcc[3], gyroIntegral[3]
-
+  Long prevMagX[20], prevMagY[20], prevMagZ[20], avgMag[3]
+  
   '1st-level data
   Long acc[3], gyro[3], temperature, mag[3]
 
@@ -32,10 +33,11 @@ PUB main
   startPlay
 
   repeat
-    'run
+
     FDS.clear
-'    printSomeX
-    fds.newline
+
+    printSomeX
+{    fds.newline
     fds.newline
 '    printSomeY
     fds.newline
@@ -47,9 +49,10 @@ PUB main
     fds.str(String("compFilter Type: "))
     fds.dec(compFilterType)
     fds.newline
-'    fds.newline
-'    fds.decln(acc[0]*acc[0]+acc[1]*acc[1]+acc[2]*acc[2])
-    
+    fds.newline
+    fds.decln(acc[0]*acc[0]+acc[1]*acc[1]+acc[2]*acc[2])
+}
+'    printMagInfo    
     waitcnt(cnt+clkfreq/10)
 
 
@@ -95,40 +98,49 @@ PUB run
     calcCompFilter_31
   else
     calcCompFilter_30  'default
+
+  getAvgMag
+  
       
 PUB calcCompFilter_31 | a,tempX,tempY,tempZ, tempTot
-
+{{
+calcCompFilter_31
+Complementary Filter for 2000 deg/s and 4g
+}}
   a := 970
 
   getAvgAcc
 
-  gyroIntegral[0] := gyroIntegral[0] - (gyro[1]*25/100)
-  compFilter[0] := (a*(compFilter[0] - (gyro[1]*25/100))+500)/PERCENT_CONST + ((PERCENT_CONST-a)*Acc[0]+500)/PERCENT_CONST
+  gyroIntegral[0] := gyroIntegral[0] - (gyro[1]*27/100)
+  compFilter[0] := (a*(compFilter[0] - (gyro[1]*27/100))+500)/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[0]+500)/PERCENT_CONST
  
   
-  gyroIntegral[1] := gyroIntegral[1] + (gyro[0]*25/100)  
-  compFilter[1] := (a*(compFilter[1] + (gyro[0]*25/100))+500)/PERCENT_CONST + ((PERCENT_CONST-a)*Acc[1]+500)/PERCENT_CONST
+  gyroIntegral[1] := gyroIntegral[1] + (gyro[0]*26/100)  
+  compFilter[1] := (a*(compFilter[1] + (gyro[0]*26/100))+500)/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[1]+500)/PERCENT_CONST
 
   tempX := math.FMul(math.FFloat(compFilter[0]), math.FFloat(compFilter[0]))
   tempY := math.FMul(math.FFloat(compFilter[1]), math.FFloat(compFilter[1]))
-  tempTot := math.FFloat(81000000)
+  tempTot := math.FFloat(68000000)
   compFilter[2] :=  math.FRound(math.FSqr(math.FSub(tempTot,math.FAdd(tempX, tempY))))
 
 '  compFilter[2] := acc[2]
 
-PUB calcCompFilter_30 | a         ' gyro set 4 and acc set 0
-
+PUB calcCompFilter_30 | a,tempX,tempY,tempZ, tempTot           ' gyro set 4 and acc set 0
+{{
+calcCompFilter_30
+Complementary Filter for 2000 deg/s and 2g
+}}
   a := 970
 
   getAvgAcc
 
-  gyroIntegral[0] := gyroIntegral[0] - (gyro[1]*55/100)
-  compFilter[0] := a*(compFilter[0] - (gyro[1]*55/100))/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[0])/PERCENT_CONST
+  gyroIntegral[0] := gyroIntegral[0] - (gyro[1]*37/100)
+  compFilter[0] := a*(compFilter[0] - (gyro[1]*37/100))/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[0])/PERCENT_CONST
 
-  gyroIntegral[1] := gyroIntegral[1] + (gyro[0]*55/100)  
-  compFilter[1] := a*(compFilter[1] + (gyro[0]*55/100))/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[1])/PERCENT_CONST
-
-  compFilter[2] := acc[2]
+  gyroIntegral[1] := gyroIntegral[1] + (gyro[0]*50/100)  
+  compFilter[1] := a*(compFilter[1] + (gyro[0]*50/100))/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[1])/PERCENT_CONST
+  tempTot := math.FFloat(68000000)    
+  compFilter[2] :=  math.FRound(math.FSqr(math.FSub(tempTot,math.FAdd(tempX, tempY))))    
 
   
 PUB getAvgAcc | i, avgCoef
@@ -151,6 +163,27 @@ PUB getAvgAcc | i, avgCoef
     avgAcc[0] += prevAccX[i]/avgCoef 
     avgAcc[1] += prevAccY[i]/avgCoef
     avgAcc[2] += prevAccZ[i]/avgCoef
+
+PUB getAvgMag | i, avgCoef
+
+  avgCoef:= 5
+
+  repeat i from 0 to (avgCoef-2)
+    prevMagX[i] := prevMagX[i+1]
+    prevMagY[i] := prevMagY[i+1]
+    prevMagZ[i] := prevMagZ[i+1] 
+  prevMagX[avgCoef-1] := Mag[0]
+  prevMagY[avgCoef-1] := Mag[1]
+  prevMagZ[avgCoef-1] := Mag[2]
+    
+  avgMag[0] := 0
+  avgMag[1] := 0
+  avgMag[2] := 0
+    
+  repeat i from 0 to (avgCoef-1)
+    avgMag[0] += prevMagX[i]/avgCoef 
+    avgMag[1] += prevMagY[i]/avgCoef
+    avgMag[2] += prevMagZ[i]/avgCoef    
 
 PUB getHeading(headingPtr)| i
   repeat i from 0 to 2
@@ -183,6 +216,37 @@ PUB magY
 PUB magZ
   return mag[2]  
 
+
+PRI printMagInfo| i, j
+
+  fds.strLn(String("Euler Angle"))
+  fds.str(String("X: "))
+  fds.dec(compFilter[0])
+  fds.str(String(" Y: "))
+  fds.dec(compFilter[1])
+  fds.str(String(" Z: "))
+  fds.decLn(compFilter[2])
+  fds.newline
+  fds.strLn(String("Avg Magnetometer"))  
+  fds.str(String("X: "))
+  fds.dec(avgMag[0])
+  fds.str(String(" Y: "))
+  fds.dec(avgMag[1])
+  fds.str(String(" Z: "))
+  fds.decLn(avgMag[2])
+  fds.newline
+  fds.str(string("magnitude of magnetometer"))
+  fds.decLn(avgMag[0]*avgMag[0] + avgMag[1]*avgMag[1] + avgMag[2]*avgMag[2])
+
+  fds.newline  
+  fds.str(String("x/y (aTan)"))
+  fds.decLn(avgMag[0]/avgMag[1])
+  
+  
+
+
+    
+  
 PRI printSomeX| i, j 
 
   fds.dec(acc[0])
@@ -250,7 +314,7 @@ PRI printAll | i, j
         FDS.str(String("Mag["))
         FDS.dec(j)
         FDS.str(String("]= "))      
-        FDS.decLn(mag[j])
+        FDS.decLn(avgMag[j])
     'fds.decLn(mag[0]*mag[0] + mag[1]*mag[1] + mag[2]*mag[2])
   FDS.Str(String("Tempearture = "))
   FDS.decLn(temperature)
