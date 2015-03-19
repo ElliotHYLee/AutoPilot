@@ -34,13 +34,13 @@ PUB main
   repeat
     'run
     FDS.clear
-    printSomeX
+'    printSomeX
     fds.newline
     fds.newline
-    printSomeY
+'    printSomeY
     fds.newline
     fds.newline
-'    printAll
+    printAll
 
     fds.newline
     fds.newline
@@ -168,10 +168,6 @@ PUB getEulerAngle(eAnglePtr)
   
 PUB getAltitude
 
-PUB getGyroIntegral(xPtr) | i     
-  repeat i from 0 to 2
-    Long[xPtr][i] := gyroIntegral[i]
-    
 PUB getAcc(accPtr) | i
   repeat i from 0 to 2
     Long[accPtr][i] := acc[i]

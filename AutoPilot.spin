@@ -133,7 +133,7 @@ PRI runPID  |i
   repeat
     sensor.getEulerAngle(@eAngle)
 '    sensor.getAcc(@acc)
-    sensor.getGyroIntegral(@gyro)
+    sensor.getGyro(@gyro)
     if pidOnOff == 1
       'pidAxis(0,2) ' x axis pid set ( white arms of the drone)
        pidXAxis
