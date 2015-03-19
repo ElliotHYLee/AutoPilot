@@ -201,6 +201,14 @@ PUB getEulerAngle(eAnglePtr)
   
 PUB getAltitude
 
+
+PUB getGyroIntegral(xPtr)| i
+  repeat i from 0 to 2
+    Long[xPtr][i] := gyroIntegral[i]
+  return
+
+
+
 PUB getAcc(accPtr) | i
   repeat i from 0 to 2
     Long[accPtr][i] := acc[i]
