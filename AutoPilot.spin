@@ -83,7 +83,9 @@ PRI startSensor
 
 PRI runSensor
   repeat
+    dummy := cnt
     sensor.run
+    dummy := clkfreq/(cnt-dummy)
 
 '===================================================================================================
 '===================== PID PART ==================================================================
@@ -120,9 +122,9 @@ PRI startPID
 
 PRI runPID  |i
 
-  kp := 50
+  kp := 1
   ki := 0
-  kd := 230
+  kd := 0
 
   pidOff 
   respondContent := 2
@@ -146,32 +148,34 @@ PRI pidXAxis| pMotor, nMotor
   pMotor := 2   ' motor 4  - positive tilt
   nMotor := 0   ' motot 2  - negative tilt
  
-  error := ((targetEAngle[0] - eAngle[0])+50)/100
+  error := (targetEAngle[0] - eAngle[0])
 
   if eAngle[0] > 0  ' positive tilt
-     proportional := (error*kp+500)/1000
+     proportional := (error*kp+50)/100
   else
-     proportional := (error*kp+500)/1000
+     proportional := (error*kp+50)/100
 
   if gyro[1] > 0  ' turning to the positive side
     derivative := (gyro[1] * kd+500000)/1000_000
   else
     derivative := (gyro[1] * 2 * kd+500000)/1000_000  
 
-  outPut := proportional + derivative + integral         
+  outPut := proportional' + derivative + integral         
 
 
-  if eAngle[0] > 0  ' when tilted to positive x axis  and error is negative - output is negative
-    if pulse[pMotor] + (-outPut)  =< 1500
-      pulse[pMotor] := pulse[pMotor] + (-outPut)   'increase motor 4th motor
+ ' if eAngle[0] > 0  ' when tilted to positive x axis  and error is negative - output is negative
+    pulse[pMotor] := 1300 #> 1400 + (-outPut)  <# 1500
+    pulse[nMotor] := 1300 #> 1400 - (-outPut)  <# 1500
+   { if pulse[pMotor] + (-outPut)  =< 1500
+      pulse[pMotor] := 1400+(-outPut)   'increase motor 4th motor
     if (pulse[nMotor] - (-outPut)) => 1300
-      pulse[nMotor] := pulse[nMotor] - (-outPut)   'decrease motor 1st motor
+      pulse[nMotor] :=  1400+(-outPut)   'decrease motor 1st motor
   elseif eAngle[0] < 0  ' when tilted to negative x axis
     if pulse[nMotor] + (outPut) =< 1550
-      pulse[nMotor] := pulse[nMotor] + (outPut) 
+      pulse[nMotor] :=  1400+(outPut) 
     if (pulse[pMotor] - (outPut)) => 1300     
-      pulse[pMotor] := pulse[pMotor] - (outPut)  
-
+      pulse[pMotor] :=  1400+(outPut)  
+                                            }
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
 '===================================================================================================
@@ -438,10 +442,10 @@ MOTOR CONTROL REGION                                            |
 -----------------------------------------------------------------
 }}
 PRI newMotor(pin0, pin1, pin2, pin3)  {{ constructor }}
-  motorPin[0] := pin3  'set pin number for this motor
+  motorPin[0] := pin0  'set pin number for this motor
   motorPin[1] := pin1
   motorPin[2] := pin2
-  motorPin[3] := pin0
+  motorPin[3] := pin3
   'waitcnt(cnt + clkfreq)
   startMotor
   
