@@ -111,7 +111,7 @@ PRI pidOff
   pidOnOff := 0
 
 PRI stopPID
-  if pidCogId
+  if pidCogId             
     cogstop(pidCogId ~ - 1)
 
 PRI startPID
@@ -125,7 +125,7 @@ PRI runPID  |i
   kp := 1
   ki := 0
   kd := 0
-
+ 
   pidOff 
   respondContent := 2
   respondType := 1
