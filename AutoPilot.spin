@@ -30,7 +30,7 @@ VAR
   'pid variables
   long pidStack[128], pidCogId
   long targetEAngle[3] , fProportional, fIntegral, fDerivative
-  long kp, ki, kd, pidUpdateIndex, prevTime[2] , fErrorPrev[2], error, dError, dt, proportional, derivative, integral, output
+  long kp, ki, kd, pidUpdateIndex, prevTime[2] , fErrorPrev[2], error, dError, dt, proportional, derivative, integral, output[2]
   byte pidOnOff
 
 PUB startAutoPilot|i
@@ -83,9 +83,9 @@ PRI startSensor
 
 PRI runSensor
   repeat
-    dummy := cnt
+    'dummy := cnt
     sensor.run
-    dummy := clkfreq/(cnt-dummy)
+   ' dummy := clkfreq/(cnt-dummy)
 
 '===================================================================================================
 '===================== PID PART ==================================================================
@@ -122,9 +122,9 @@ PRI startPID
 
 PRI runPID  |i
 
-  kp := 1
+  kp := 100
   ki := 0
-  kd := 0
+  kd := 25
 
   pidOff 
   respondContent := 2
@@ -134,8 +134,8 @@ PRI runPID  |i
 
   repeat
     sensor.getEulerAngle(@eAngle)
-    sensor.getAcc(@acc)
-    sensor.getGyroIntegral(@gyro)
+    'sensor.getAcc(@acc)
+    sensor.getGyro(@gyro)
     if pidOnOff == 1
       'pidAxis(0,2) ' x axis pid set ( white arms of the drone)
        pidXAxis
@@ -145,37 +145,35 @@ PRI runPID  |i
 
 PRI pidXAxis| pMotor, nMotor
 
-  pMotor := 2   ' motor 4  - positive tilt
-  nMotor := 0   ' motot 2  - negative tilt
+  pMotor := 2   ' motor 3  - positive tilt
+  nMotor := 0   ' motot 4  - negative tilt
  
   error := (targetEAngle[0] - eAngle[0])
 
-  if eAngle[0] > 0  ' positive tilt
-     proportional := (error*kp+50)/100
+  if error > 0
+    proportional := (error*kp + 5000)/10000
   else
-     proportional := (error*kp+50)/100
+    proportional := (error*kp - 5000)/10000  
 
-  if gyro[1] > 0  ' turning to the positive side
-    derivative := (gyro[1] * kd+500000)/1000_000
+  if gyro[1] >0
+    derivative := (gyro[1]   * kd + 50_0)/100_0  
   else
-    derivative := (gyro[1] * 2 * kd+500000)/1000_000  
+    derivative := (gyro[1]   * kd - 50_0)/100_0
 
-  outPut := proportional' + derivative + integral         
+  'positive motor
+  
+  outPut[1] := proportional + derivative '+ integral
+     
+  'negative motor
+  if gyro[1] > 0
+    'derivative := derivative*5
 
+  outPut[0] := proportional + derivative '+ integral 
 
  ' if eAngle[0] > 0  ' when tilted to positive x axis  and error is negative - output is negative
-    pulse[pMotor] := 1300 #> 1400 + (-outPut)  <# 1500
-    pulse[nMotor] := 1300 #> 1400 - (-outPut)  <# 1500
-   { if pulse[pMotor] + (-outPut)  =< 1500
-      pulse[pMotor] := 1400+(-outPut)   'increase motor 4th motor
-    if (pulse[nMotor] - (-outPut)) => 1300
-      pulse[nMotor] :=  1400+(-outPut)   'decrease motor 1st motor
-  elseif eAngle[0] < 0  ' when tilted to negative x axis
-    if pulse[nMotor] + (outPut) =< 1550
-      pulse[nMotor] :=  1400+(outPut) 
-    if (pulse[pMotor] - (outPut)) => 1300     
-      pulse[pMotor] :=  1400+(outPut)  
-                                            }
+    pulse[pMotor] := 1200 #> 1300 + (-outPut[1])  <# 1600
+    pulse[nMotor] := 1200 #> (1300 - (-outPut[0]))  <# 1600         
+
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
 '===================================================================================================
@@ -474,7 +472,7 @@ PRI initMotor                                             {{initializing the mot
       motorIteration++
     waitcnt(cnt + clkfreq / 1000*20)
 
-PRI runMotor | check, baseTime, totalElapse                 {{generating pwm for the motor connected to this pin}}              
+PRI runMotor | check, baseTime, totalElapse, senM[4]                 {{generating pwm for the motor connected to this pin}}              
   
   initMotor  'physical initialization for this motor 
   motorIteration := 0
@@ -482,6 +480,10 @@ PRI runMotor | check, baseTime, totalElapse                 {{generating pwm for
     dira[motorPin[motorIteration]] := 1   'set pin direction for this motor 
     pulse[motorIteration] := 1200         'set default pwm
     motorIteration++
+
+  senM[0] := 1000
+  senM[2] := 1035
+
   
   repeat
     check := inspectPulse
@@ -515,7 +517,7 @@ PRI runMotor | check, baseTime, totalElapse                 {{generating pwm for
        baseTime := cnt    
        
        outa[motorPin[0]]:= 1
-       waitcnt(baseTime + clkfreq/1000000*pulse[0])
+       waitcnt(baseTime + clkfreq/1000000*pulse[0]*senM[2]/senM[0])
        outa[motorPin[0]]:= 0
          
        outa[motorPin[1]]:= 1 

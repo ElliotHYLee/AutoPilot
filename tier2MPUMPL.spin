@@ -37,13 +37,12 @@ PUB main
     FDS.clear
 
     printSomeX
-{    fds.newline
-    fds.newline
-'    printSomeY
-    fds.newline
-    fds.newline
-    printAll
 
+'    printSomeY
+
+    fds.newline
+    'printAll
+{
     fds.newline
     fds.newline
     fds.str(String("compFilter Type: "))
@@ -51,7 +50,7 @@ PUB main
     fds.newline
     fds.newline
     fds.decln(acc[0]*acc[0]+acc[1]*acc[1]+acc[2]*acc[2])
-}
+ }
 '    printMagInfo    
     waitcnt(cnt+clkfreq/10)
 
@@ -256,7 +255,8 @@ PRI printMagInfo| i, j
     
   
 PRI printSomeX| i, j 
-
+  fds.dec(gyro[1])
+  fds.strLn(String("   gyro"))
   fds.dec(acc[0])
   fds.strLn(String("   AccX"))
 '  fds.dec(avgAcc[0])
