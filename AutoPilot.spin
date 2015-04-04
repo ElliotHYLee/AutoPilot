@@ -30,7 +30,7 @@ VAR
   'pid variables
   long pidStack[128], pidCogId
   long targetEAngle[3] , fProportional, fIntegral, fDerivative
-  long kp, ki, kd, pidUpdateIndex, prevTime[2] , fErrorPrev[2], error, dError, dt, proportional, derivative, integral, output[2]
+  long kp, ki, kd, pidUpdateIndex, prevTime[2] , fErrorPrev[2], error, dError, dt, proportional, derivative, integral, outPut
   byte pidOnOff
 
 PUB startAutoPilot|i
@@ -122,15 +122,11 @@ PRI startPID
 
 PRI runPID  |i
 
-  kp := 100
+  kp := 10
   ki := 0
-<<<<<<< HEAD
   kd := 25
 
-=======
-  kd := 0
- 
->>>>>>> origin/master
+
   pidOff 
   respondContent := 2
   respondType := 1
@@ -156,28 +152,21 @@ PRI pidXAxis| pMotor, nMotor
   error := (targetEAngle[0] - eAngle[0])
 
   if error > 0
-    proportional := (error*kp + 5000)/10000
+    proportional := (error*kp + 500)/1000
   else
-    proportional := (error*kp - 5000)/10000  
+    proportional := (error*kp - 500)/1000  
 
   if gyro[1] >0
-    derivative := (gyro[1]   * kd + 50_0)/100_0  
+    derivative := (gyro[1]   * kd + 500)/1000  
   else
-    derivative := (gyro[1]   * kd - 50_0)/100_0
+    derivative := (gyro[1]   * kd - 500)/1000
 
-  'positive motor
-  
-  outPut[1] := proportional + derivative '+ integral
-     
-  'negative motor
-  if gyro[1] > 0
-    'derivative := derivative*5
-
-  outPut[0] := proportional + derivative '+ integral 
+  outPut := proportional + derivative '+ integral
+   
 
  ' if eAngle[0] > 0  ' when tilted to positive x axis  and error is negative - output is negative
-    pulse[pMotor] := 1200 #> 1300 + (-outPut[1])  <# 1600
-    pulse[nMotor] := 1200 #> (1300 - (-outPut[0]))  <# 1600         
+    pulse[pMotor] := 1200 #> 1300 + (-outPut)  <# 1600
+    pulse[nMotor] := 1200 #> 1300 - (-outPut)  <# 1600         
 
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
