@@ -213,8 +213,9 @@ PUB getAcc(accPtr) | i
     Long[accPtr][i] := acc[i]
   return
 PUB getGyro(gyroPtr) | i
-  repeat i from 0 to 1
-    Long[gyroPtr][i] := gyro[i]
+  Long[gyroPtr][0] := gyro[0]
+  Long[gyroPtr][1] := gyro[1]
+  Long[gyroPtr][2] := gyro[2]
   return
 PUB magX
   return mag[0]

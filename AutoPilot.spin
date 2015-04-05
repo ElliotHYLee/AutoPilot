@@ -30,7 +30,7 @@ VAR
   'pid variables
   long pidStack[128], pidCogId
   long targetEAngle[3] , fProportional, fIntegral, fDerivative
-  long kp, ki, kd, pidUpdateIndex, prevTime[2] , fErrorPrev[2], error, dError, dt, proportional, derivative, integral, outPut
+  long kp, ki, kd, pidUpdateIndex, error, proportional, derivative, integral[2], outPut
   byte pidOnOff
 
 PUB startAutoPilot|i
@@ -125,9 +125,9 @@ PRI runPID  |i
   kp := 10
   ki := 0
   kd := 25
-
-
-  pidOff 
+  
+  pidOff
+  
   respondContent := 2
   respondType := 1
   respondContent := 1
@@ -139,41 +139,47 @@ PRI runPID  |i
     sensor.getGyro(@gyro)
     if pidOnOff == 1
       'pidAxis(0,2) ' x axis pid set ( white arms of the drone)
-       pidXAxis
+       pidXAxis(0)
       'pidAxis(1,3) ' y axis pid s0et ( red arms of the drone)  
-    else
-      'Do nothing  
 
-PRI pidXAxis| pMotor, nMotor
+PRI pidXAxis(axis)| pMotor, nMotor, dEdt
 
-  pMotor := 2   ' motor 3  - positive tilt
-  nMotor := 0   ' motot 4  - negative tilt
- 
-  error := (targetEAngle[0] - eAngle[0])
+  nMotor := axis       ' motot 0  - negative tilt 
+  pMotor := axis + 2   ' motor 2  - positive tilt
 
-  if error > 0
-    proportional := (error*kp + 500)/1000
+  if (axis==0)
+    dEdt := gyro[1]
   else
-    proportional := (error*kp - 500)/1000  
+    dEdt := gyro[0]
+    
+  error := (targetEAngle[axis] - eAngle[axis])
 
-  if gyro[1] >0
-    derivative := (gyro[1]   * kd + 500)/1000  
-  else
-    derivative := (gyro[1]   * kd - 500)/1000
+  proportional := (error * kp + getSign(error)*500)/1000
 
+  derivative := (dEdt * kd + getSign(dEdt)*500)/1000  
+
+  integral[0] += error*10/100
+  
   outPut := proportional + derivative '+ integral
    
 
  ' if eAngle[0] > 0  ' when tilted to positive x axis  and error is negative - output is negative
-    pulse[pMotor] := 1200 #> 1300 + (-outPut)  <# 1600
-    pulse[nMotor] := 1200 #> 1300 - (-outPut)  <# 1600         
+  pulse[pMotor] := 1200 #> 1300 + (-outPut)  <# 1600
+  pulse[nMotor] := 1200 #> 1300 - (-outPut)  <# 1600         
+
+PRI getSign(value)
+
+  if value >= 0
+    result := 1
+  else
+    result := -1         
 
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
 '===================================================================================================
 {{
 -----------------------------------------------------------------
-PID REGION                                                      |
+USB REGION                                                      |
   Number of cog used : 1                                        |
   Cog usage          : sending/reading data via usb             |
   Functions:         :                                          |
@@ -475,9 +481,8 @@ PRI runMotor | check, baseTime, totalElapse, senM[4]                 {{generatin
     pulse[motorIteration] := 1200         'set default pwm
     motorIteration++
 
-  senM[0] := 1000
-  senM[2] := 1035
-
+  senM[2] := 1000
+  senM[0] := 1035
   
   repeat
     check := inspectPulse
@@ -511,7 +516,7 @@ PRI runMotor | check, baseTime, totalElapse, senM[4]                 {{generatin
        baseTime := cnt    
        
        outa[motorPin[0]]:= 1
-       waitcnt(baseTime + clkfreq/1000000*pulse[0]*senM[2]/senM[0])
+       waitcnt(baseTime + clkfreq/1000000*pulse[0]*senM[0]/senM[2])
        outa[motorPin[0]]:= 0
          
        outa[motorPin[1]]:= 1 
