@@ -135,7 +135,7 @@ PRI runPID  |i
 
   repeat
     sensor.getEulerAngle(@eAngle)
-    'sensor.getAcc(@acc)
+    sensor.getAcc(@acc)
     sensor.getGyro(@gyro)
     if pidOnOff == 1
       'pidAxis(0,2) ' x axis pid set ( white arms of the drone)
@@ -211,7 +211,7 @@ PRI communicate
         sendOrdinaryMsg
         'sendTestMsg
         'sendPidTestMsg
-
+        
 
 PRI sendPidTestMsg
 
@@ -284,13 +284,13 @@ PRI sendTestMsg
 PRI sendOrdinaryMsg | i  
 
   usb.str(String("[k0"))
-  usb.dec(error)
+  usb.dec(derivative)
   usb.str(String("]"))
   usb.str(String("[k1"))
   usb.dec(proportional)
   usb.str(String("]"))
   usb.str(String("[k3"))
-  'usb.dec(derivative)
+  usb.dec(output)
   usb.str(String("]"))
 
  'write motor info
@@ -311,7 +311,7 @@ PRI sendOrdinaryMsg | i
         2: usb.str(String("z"))
       usb.dec(eAngle[i])
       usb.str(String("]"))
-      
+      {
       usb.str(String("[a"))
       case i
         0: usb.str(String("x"))
@@ -326,8 +326,10 @@ PRI sendOrdinaryMsg | i
         1: usb.str(String("y"))
         2: usb.str(String("z"))
       usb.dec(gyro[i])
-      usb.str(String("]"))  
+      usb.str(String("]"))
+      }
     i++
+
       
 PRI char2ASCII(charVar)  ' currently not used
   result := byte[charVar]
