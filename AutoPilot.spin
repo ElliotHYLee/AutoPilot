@@ -4,6 +4,7 @@ CON
                       
 OBJ
   usb            : "Parallax Serial Terminal"
+  xbee           : "FullDuplexSerial"
   sensor         : "tier2MPUMPL.spin"
   motors         : "Motors.spin"
 VAR
@@ -24,8 +25,12 @@ VAR
   long gyro[3], acc[3], eAngle[3]
 
   'usb variables
-  long newValue, type, usbStack[64],usbCogId, pstCodId
-  long varChar, motorNumber 
+  long newValue, type, comStack[64],comCogId, serialCogId1
+  long varChar, motorNumber
+
+  'usb variables
+  long serialCogId2
+
 
   'pid variables
   long pidStack[128], pidCogId
@@ -38,7 +43,6 @@ PUB startAutoPilot|i
   repeat i from 0 to 2
     targetEAngle[i] := 0
 
-
   'usb start
   newUSB
 
@@ -46,7 +50,7 @@ PUB startAutoPilot|i
   startSensor
   
   'motor start
-  setMotor(0,1,2,3)
+  setMotor(2,3,4,5)
 
   waitcnt(cnt + clkfreq*3)
   'pid start
@@ -150,7 +154,8 @@ PRI getAbs(value)
   if value > 0
     result := value
   else
-    result := -value        
+    result := -value
+    
 
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
@@ -158,25 +163,27 @@ PRI getAbs(value)
 {{
 -----------------------------------------------------------------
 USB REGION                                                      |
-  Number of cog used : 1                                        |
-  Cog usage          : sending/reading data via usb             |
+  Number of cog used : 3                                        |
+  Cog usage          : sending/reading data via usb & xbee      |
   Functions:         :                                          |
 -----------------------------------------------------------------
 }}
 
 PRI newUSB
-  pstCodId:=usb.start(115200)
-  '------------------
+  serialCogId1 := usb.start(115200)
+  
+  serialCogId2 := xbee.start(0,1,0,9600) 
+
   startUSB
-  '------------------  
+
 PRI stopUSB
-  if usbCogId
-    cogstop(usbCogId ~ - 1)
+  if comCogId
+    cogstop(comCogId ~ - 1)
   
 PRI startUSB
   stopUSB
   respondType := 0      
-  usbCogId := cognew(communicate, @usbStack) + 1  'start running motor
+  comCogId := cognew(communicate, @comStack) + 1  'start running motor
 
 PRI communicate 
   repeat
@@ -187,8 +194,13 @@ PRI communicate
         respondBack(respondType)
       else
         sendOrdinaryMsg
+        sendXbeeMsg
         'sendTestMsg
         'sendPidTestMsg
+
+PRI sendXbeeMsg
+
+  xbee.StrLn(String("hello world"))
         
 PRI sendTestMsg
   usb.clear   
