@@ -5,7 +5,7 @@ CON
 OBJ
   usb            : "Parallax Serial Terminal"
   sensor         : "tier2MPUMPL.spin"
-
+  motors         : "Motors.spin"
 VAR
   'system variable
 
@@ -30,7 +30,7 @@ VAR
   'pid variables
   long pidStack[128], pidCogId
   long targetEAngle[3] , fProportional, fIntegral, fDerivative
-  long kp, ki, kd, pidUpdateIndex, error, proportional, derivative, integral[2], outPut
+  long kp, ki, kd, pidUpdateIndex, error, proportional, derivative, integral[2], integral_intermediate, outPut
   byte pidOnOff
 
 PUB startAutoPilot|i
@@ -46,7 +46,7 @@ PUB startAutoPilot|i
   startSensor
   
   'motor start
-  newMotor(0,1,2,3)
+  setMotor(0,1,2,3)
 
   waitcnt(cnt + clkfreq*3)
   'pid start
@@ -55,37 +55,6 @@ PUB startAutoPilot|i
   cogstop(0)
 
 
-'===================================================================================================
-'===================== ATTITUDE SENSOR PART ==================================================================
-'===================================================================================================
-{{
------------------------------------------------------------------
-ATTITUDE SENSOR REGION                                          |
-  Number of cog used : 1                                        |
-  Sensors            : MPU9150, AK8, MPL                        |
-  Cog usage          : Reading Sensor Values                    |
-                       Calculating Complementary Filter         |
-  Functions:         : stopSensor                               |
-                       startSensor (call startSensor)           |
-                       runSensor (start MPU, AK8, MPl sensor)   |
------------------------------------------------------------------
-}}
-
-PRI stopSensor
-  if sensorCodId
-    cogstop(sensorCodId ~ - 1)
-  
-PRI startSensor 
-  sensor.initSensor(15,14) ' scl, sda, cFilter portion in %
-  sensor.setMpu(%000_11_000, %000_01_000) '2000deg/s, 4g
-  stopSensor
-  sensorCodId:= cognew(runSensor, @sensorStack) + 1
-
-PRI runSensor
-  repeat
-    'dummy := cnt
-    sensor.run
-   ' dummy := clkfreq/(cnt-dummy)
 
 '===================================================================================================
 '===================== PID PART ==================================================================
@@ -122,9 +91,9 @@ PRI startPID
 
 PRI runPID  |i
 
-  kp := 10
-  ki := 0
-  kd := 25
+  kp := 125
+  ki := 75
+  kd := 450
   
   pidOff
   
@@ -154,13 +123,16 @@ PRI pidXAxis(axis)| pMotor, nMotor, dEdt
     
   error := (targetEAngle[axis] - eAngle[axis])
 
-  proportional := (error * kp + getSign(error)*500)/1000
 
-  derivative := (dEdt * kd + getSign(dEdt)*500)/1000  
+  integral_intermediate := (integral_intermediate + (error+500)/1000)
+  integral[0] := (integral_intermediate*ki+5_000_000)/10_000_000
 
-  integral[0] += error*10/100
-  
-  outPut := proportional + derivative '+ integral
+
+  proportional := (error * kp + getSign(error)*5000)/10000
+
+  derivative := (dEdt * kd + getSign(dEdt)*5000)/10000  
+   
+  outPut := proportional + derivative + integral[0]
    
 
  ' if eAngle[0] > 0  ' when tilted to positive x axis  and error is negative - output is negative
@@ -172,7 +144,13 @@ PRI getSign(value)
   if value >= 0
     result := 1
   else
-    result := -1         
+    result := -1
+
+PRI getAbs(value)
+  if value > 0
+    result := value
+  else
+    result := -value        
 
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
@@ -212,46 +190,6 @@ PRI communicate
         'sendTestMsg
         'sendPidTestMsg
         
-
-PRI sendPidTestMsg
-
-  usb.clear
-  usb.str(String("on/off: "))
-  usb.decLn(pidOnOff)  
-  usb.str(String("error: "))
-  usb.decLn(error)
-  usb.str(String("proportional: "))
-  usb.decLn(proportional)
-  usb.str(String("derivative: "))
-  usb.decLn(derivative)
-  usb.str(String("integral: "))
-  usb.decLn(integral)
-  usb.str(String("output: "))
-  usb.decLn(output)
-  waitcnt(cnt + clkfreq/10)
-  
-                  
-PRI respondBack(x)
-  case x
-    1:
-      if respondContent == 1     ' respondContent type 1 = pid gains
-        usb.str(String("[pp"))
-        usb.dec(kp)
-        usb.str(String("]"))
-        usb.str(String("[pi"))
-        usb.dec(ki)
-        usb.str(String("]"))
-        usb.str(String("[pd"))
-        usb.dec(kd)
-        usb.str(String("]"))               
-      elseif respondContent ==2    ' respondContent type 1 = pid on/off status 
-        usb.str(String("[po"))
-        usb.dec(pidOnOff)
-        usb.str(String("]"))  
-
-  respondType := 0
-  respondContent := 0
-
 PRI sendTestMsg
   usb.clear   
 
@@ -329,8 +267,48 @@ PRI sendOrdinaryMsg | i
       usb.str(String("]"))
       }
     i++
+            
 
-      
+PRI sendPidTestMsg
+
+  usb.clear
+  usb.str(String("on/off: "))
+  usb.decLn(pidOnOff)  
+  usb.str(String("error: "))
+  usb.decLn(error)
+  usb.str(String("proportional: "))
+  usb.decLn(proportional)
+  usb.str(String("derivative: "))
+  usb.decLn(derivative)
+  usb.str(String("integral: "))
+  usb.decLn(integral[0])
+  usb.str(String("output: "))
+  usb.decLn(output)
+  waitcnt(cnt + clkfreq/10)
+  
+                  
+PRI respondBack(x)
+  case x
+    1:
+      if respondContent == 1     ' respondContent type 1 = pid gains
+        usb.str(String("[pp"))
+        usb.dec(kp)
+        usb.str(String("]"))
+        usb.str(String("[pi"))
+        usb.dec(ki)
+        usb.str(String("]"))
+        usb.str(String("[pd"))
+        usb.dec(kd)
+        usb.str(String("]"))               
+      elseif respondContent ==2    ' respondContent type 1 = pid on/off status 
+        usb.str(String("[po"))
+        usb.dec(pidOnOff)
+        usb.str(String("]"))  
+
+  respondType := 0
+  respondContent := 0
+
+
 PRI char2ASCII(charVar)  ' currently not used
   result := byte[charVar]
   ' Don't know how, but this returns ascii code of char
@@ -441,14 +419,11 @@ MOTOR CONTROL REGION                                            |
                        insepctPulse                             |
 -----------------------------------------------------------------
 }}
-PRI newMotor(pin0, pin1, pin2, pin3)  {{ constructor }}
-  motorPin[0] := pin0  'set pin number for this motor
-  motorPin[1] := pin1
-  motorPin[2] := pin2
-  motorPin[3] := pin3
-  'waitcnt(cnt + clkfreq)
+PRI setMotor(pin0, pin1, pin2, pin3)  {{ constructor }}
+  motors.setMotorPins(pin0, pin1, pin2, pin3)
+  motors.setMotorPWM(@pulse)
   startMotor
-  
+
 PRI startMotor
   stopMotor
   motorCogId := cognew(runMotor, @motorStack) + 1  'start running motor
@@ -457,91 +432,38 @@ PRI stopMotor {{kind of destructor}}
   if motorCogId
     cogstop(motorCogId ~ - 1)
 
-PRI initMotor                                             {{initializing the motor connected to this pin}}
-  motorIteration:=0                       'set pin directions               
-  repeat while motorIteration<4
-    dira[motorPin[motorIteration]] := 1
-    pulse[motorIteration] :=45
-    motorIteration++  
-  
-  repeat while pulse[0] < 150
-    motorIteration:=0  
-    repeat while motorIteration<4
-      outa[motorPin[motorIteration]]:=1
-      waitcnt(cnt + (clkfreq / 1000 ) )
-      outa[motorPin[motorIteration]]:=0
-      pulse[motorIteration] ++
-      motorIteration++
-    waitcnt(cnt + clkfreq / 1000*20)
+PRI runMotor
 
-PRI runMotor | check, baseTime, totalElapse, senM[4]                 {{generating pwm for the motor connected to this pin}}              
-  
-  initMotor  'physical initialization for this motor 
-  motorIteration := 0
-  repeat while motorIteration<4
-    dira[motorPin[motorIteration]] := 1   'set pin direction for this motor 
-    pulse[motorIteration] := 1200         'set default pwm
-    motorIteration++
+  motors.runMotor   ' this funcion has a loop in it
 
-  senM[2] := 1000
-  senM[0] := 1035
+'===================================================================================================
+'===================== ATTITUDE SENSOR PART ==================================================================
+'===================================================================================================
+{{
+-----------------------------------------------------------------
+ATTITUDE SENSOR REGION                                          |
+  Number of cog used : 1                                        |
+  Sensors            : MPU9150, AK8, MPL                        |
+  Cog usage          : Reading Sensor Values                    |
+                       Calculating Complementary Filter         |
+  Functions:         : stopSensor                               |
+                       startSensor (call startSensor)           |
+                       runSensor (start MPU, AK8, MPl sensor)   |
+-----------------------------------------------------------------
+}}
+
+PRI stopSensor
+  if sensorCodId
+    cogstop(sensorCodId ~ - 1)
   
+PRI startSensor 
+  sensor.initSensor(15,14) ' scl, sda, cFilter portion in %
+  sensor.setMpu(%000_11_000, %000_01_000) '2000deg/s, 4g
+  stopSensor
+  sensorCodId:= cognew(runSensor, @sensorStack) + 1
+
+PRI runSensor
   repeat
-    check := inspectPulse
-    if check==0 'abnormaly
-      'usb.str(String("running well"))
-       totalElapse:=0
-       baseTime := cnt    
-       
-       outa[motorPin[0]]:= 1
-       waitcnt(baseTime + clkfreq/1000000*1150)
-       outa[motorPin[0]]:= 0
-         
-       outa[motorPin[1]]:= 1 
-       waitcnt(cnt + clkfreq/1000000*1150)
-       outa[motorPin[1]]:= 0
-       
-       outa[motorPin[2]]:= 1
-       waitcnt(cnt + clkfreq/1000000*1150)
-       outa[motorPin[2]]:= 0
-        
-       outa[motorPin[3]]:= 1
-       waitcnt(cnt + clkfreq/1000000*1150)
-       outa[motorPin[3]]:= 0
-       totalElapse := pulse[0] + pulse[1] + pulse[2] + pulse[3]
-       waitcnt(baseTime + (clkfreq/1000*20 - clkfreq/1000000*totalElapse))      
-
-    else   ' good to go
-    
-      'usb.str(String("running well"))
-       totalElapse:=0
-       baseTime := cnt    
-       
-       outa[motorPin[0]]:= 1
-       waitcnt(baseTime + clkfreq/1000000*pulse[0]*senM[0]/senM[2])
-       outa[motorPin[0]]:= 0
-         
-       outa[motorPin[1]]:= 1 
-       waitcnt(cnt + clkfreq/1000000*pulse[1])
-       outa[motorPin[1]]:= 0
-       
-       outa[motorPin[2]]:= 1
-       waitcnt(cnt + clkfreq/1000000*pulse[2])
-       outa[motorPin[2]]:= 0
-        
-       outa[motorPin[3]]:= 1
-       waitcnt(cnt + clkfreq/1000000*pulse[3])
-       outa[motorPin[3]]:= 0
-       totalElapse := pulse[0] + pulse[1] + pulse[2] + pulse[3]
-       waitcnt(baseTime + (clkfreq/1000*20 - clkfreq/1000000*totalElapse))
-
-PRI inspectPulse | i
-  i:=0
-  repeat while i < 4
-    if ((pulse[i] < 1100) OR (2000 < pulse[i]))
-      return 0   ' abnormal pwm
-    i++
-  return 1
-
-
-  
+    'dummy := cnt
+    sensor.run
+   ' dummy := clkfreq/(cnt-dummy)
