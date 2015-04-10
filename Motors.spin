@@ -4,7 +4,7 @@ CON
                       
 VAR
   'motor variables
-  long motorPin[4], pulsePtr[4]
+  long motorPin[4], pulsePtr[4], senM[4]
   byte motorIteration 
 
    
@@ -35,7 +35,7 @@ PUB setMotorSensitivity(s1, s2, s3, s4)
 
 
 
-PUB runMotor | check, baseTime, totalElapse, senM[4], i                 {{generating pwm for the motor connected to this pin}}              
+PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm for the motor connected to this pin}}              
   
   initMotor  'physical initialization for this motor 
   motorIteration := 0

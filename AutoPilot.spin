@@ -17,7 +17,7 @@ VAR
   long systemMode, respondType, respondContent
   
   'motor variables
-  long pulse[4], motorPin[4], motorStack[64],motorCogId 
+  long throttle, pulse[4], motorPin[4], motorStack[64],motorCogId 
   byte motorIteration 
 
  'attitude variables
@@ -43,22 +43,27 @@ PUB startAutoPilot|i
   repeat i from 0 to 2
     targetEAngle[i] := 0
 
-  'usb start
+  '1. usb start  (usb com for Kinect)                   x 2 cogs
   newUSB
 
- 'attitude start
+  '2. xbee start (wireless com for Ground Station)      x 2 cogs
+
+  
+  '3. attitude start (MPU9150(+AK8) & MPL11A2)          x 1 cog
   startSensor
   
-  'motor start
-  setMotor(2,3,4,5)
-
-  waitcnt(cnt + clkfreq*3)
-  'pid start
+  '4. attitude pid start                                x 1 cog
   startPID
 
-  cogstop(0)
+  '5. postion pid start                                 x 1 cog
 
+  
+  '6. motor start                                       x 1 cog
+  setMotor(2,3,4,5)  
+  
 
+  cogstop(0)                                      '-------------------
+                                                  ' total : 8 cogs
 
 '===================================================================================================
 '===================== PID PART ==================================================================
@@ -111,9 +116,8 @@ PRI runPID  |i
     sensor.getAcc(@acc)
     sensor.getGyro(@gyro)
     if pidOnOff == 1
-      'pidAxis(0,2) ' x axis pid set ( white arms of the drone)
-       pidXAxis(0)
-      'pidAxis(1,3) ' y axis pid s0et ( red arms of the drone)  
+       pidXAxis(0)   ' x axis
+      'pidAxis(1)    ' y axis 
 
 PRI pidXAxis(axis)| pMotor, nMotor, dEdt
 
@@ -127,21 +131,17 @@ PRI pidXAxis(axis)| pMotor, nMotor, dEdt
     
   error := (targetEAngle[axis] - eAngle[axis])
 
-
-  integral_intermediate := (integral_intermediate + (error+500)/1000)
-  integral[0] := (integral_intermediate*ki+5_000_000)/10_000_000
-
-
   proportional := (error * kp + getSign(error)*5000)/10000
 
   derivative := (dEdt * kd + getSign(dEdt)*5000)/10000  
+
+  integral_intermediate := (integral_intermediate + (error+500)/1000)
+  integral[0] := (integral_intermediate*ki+5_000_000)/10_000_000
    
   outPut := proportional + derivative + integral[0]
    
-
- ' if eAngle[0] > 0  ' when tilted to positive x axis  and error is negative - output is negative
-  pulse[pMotor] := 1200 #> 1300 + (-outPut)  <# 1600
-  pulse[nMotor] := 1200 #> 1300 - (-outPut)  <# 1600         
+  pulse[pMotor] := 1200 #> 1300 - outPut  <# 1600
+  pulse[nMotor] := 1200 #> 1300 + outPut  <# 1600         
 
 PRI getSign(value)
 
@@ -170,6 +170,7 @@ USB REGION                                                      |
 }}
 
 PRI newUSB
+
   serialCogId1 := usb.start(115200)
   
   serialCogId2 := xbee.start(0,1,0,9600) 
@@ -412,8 +413,6 @@ PRI systemModeUpdate(mode)
        pidOn
 
 
-
-
 '===================================================================================================
 '===================== MOTOR PART ==================================================================
 '===================================================================================================
@@ -431,6 +430,11 @@ MOTOR CONTROL REGION                                            |
                        insepctPulse                             |
 -----------------------------------------------------------------
 }}
+
+PRI setThrottle(value)
+
+  throttle := value
+
 PRI setMotor(pin0, pin1, pin2, pin3)  {{ constructor }}
   motors.setMotorPins(pin0, pin1, pin2, pin3)
   motors.setMotorPWM(@pulse)
