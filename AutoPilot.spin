@@ -7,9 +7,10 @@ OBJ
   xbee           : "FullDuplexSerial"
   sensor         : "tier2MPUMPL.spin"
   motors         : "Motors.spin"
+  math           : "MyMath.spin"
 VAR
   'system variable
-
+    
   'systemMode 1 = idle     (idel pwm: 1100)
   'systemMode 2 = prepare  (default pwm: 1200)
   'systemMode 3 = hover    (let PID control pwm to maintain current balance)
@@ -66,7 +67,7 @@ PUB startAutoPilot|i
                                                   ' total : 8 cogs
 
 '===================================================================================================
-'===================== PID PART ==================================================================
+'===================== PID PART Attitude Control===================================================
 '===================================================================================================
 {{
 -----------------------------------------------------------------
@@ -131,9 +132,9 @@ PRI pidXAxis(axis)| pMotor, nMotor, dEdt
     
   error := (targetEAngle[axis] - eAngle[axis])
 
-  proportional := (error * kp + getSign(error)*5000)/10000
+  proportional := (error * kp + math.getSign(error)*5000)/10000
 
-  derivative := (dEdt * kd + getSign(dEdt)*5000)/10000  
+  derivative := (dEdt * kd + math.getSign(dEdt)*5000)/10000  
 
   integral_intermediate := (integral_intermediate + (error+500)/1000)
   integral[0] := (integral_intermediate*ki+5_000_000)/10_000_000
@@ -143,19 +144,6 @@ PRI pidXAxis(axis)| pMotor, nMotor, dEdt
   pulse[pMotor] := 1200 #> 1300 - outPut  <# 1600
   pulse[nMotor] := 1200 #> 1300 + outPut  <# 1600         
 
-PRI getSign(value)
-
-  if value >= 0
-    result := 1
-  else
-    result := -1
-
-PRI getAbs(value)
-  if value > 0
-    result := value
-  else
-    result := -value
-    
 
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
@@ -186,7 +174,8 @@ PRI startUSB
   respondType := 0      
   comCogId := cognew(communicate, @comStack) + 1  'start running motor
 
-PRI communicate 
+PRI communicate | base
+  base := cnt  
   repeat
     if usb.RxCount > 0  
       readCharArray
@@ -194,11 +183,13 @@ PRI communicate
       if respondType > 0 ' need to respond to the request from C#
         respondBack(respondType)
       else
-        sendOrdinaryMsg
-        sendXbeeMsg
+        if (cnt > base + clkfreq/90)
+          sendOrdinaryMsg
+          base := cnt
+        'sendXbeeMsg
         'sendTestMsg
         'sendPidTestMsg
-
+  
 PRI sendXbeeMsg
 
   xbee.StrLn(String("hello world"))
@@ -275,7 +266,7 @@ PRI sendOrdinaryMsg | i
       case i
         0: usb.str(String("x"))
         1: usb.str(String("y"))
-        2: usb.str(String("z"))
+        2: usb.str(String("z")) 
       usb.dec(gyro[i])
       usb.str(String("]"))
       }

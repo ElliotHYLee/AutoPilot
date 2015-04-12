@@ -6,8 +6,8 @@ PERCENT_CONST = 1000
 
 OBJ
   sensor    : "Tier1MPUMPL.spin"
-  FDS    : "FullDuplexSerial"
-  math   : "FloatMath"  'no cog
+  FDS    : "FullDuplexSerial.spin"
+  math   : "MyMath.spin"  'no cog
 Var
   '2nd-level analized data
   Long compFilter[3], gForce, heading[3]
@@ -35,8 +35,9 @@ PUB main
   repeat
 
     FDS.clear
+    printCompFilter
 
-    printSomeX
+'    printSomeX
 
 '    printSomeY
 
@@ -117,10 +118,10 @@ Complementary Filter for 2000 deg/s and 4g
   gyroIntegral[1] := gyroIntegral[1] + (gyro[0]*26/100)  
   compFilter[1] := (a*(compFilter[1] + (gyro[0]*26/100))+500)/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[1]+500)/PERCENT_CONST
 
-  tempX := math.FMul(math.FFloat(compFilter[0]), math.FFloat(compFilter[0]))
-  tempY := math.FMul(math.FFloat(compFilter[1]), math.FFloat(compFilter[1]))
-  tempTot := math.FFloat(68000000)
-  compFilter[2] :=  math.FRound(math.FSqr(math.FSub(tempTot,math.FAdd(tempX, tempY))))
+  tempX := (compFilter[0] * compFilter[0])/100
+  tempY := (compFilter[1] * compFilter[1])/100
+  tempTot := 680000 - tempX - tempY
+  compFilter[2] := 10*math.sqrt(tempTot)
 
 '  compFilter[2] := acc[2]
 
@@ -138,8 +139,11 @@ Complementary Filter for 2000 deg/s and 2g
 
   gyroIntegral[1] := gyroIntegral[1] + (gyro[0]*50/100)  
   compFilter[1] := a*(compFilter[1] + (gyro[0]*50/100))/PERCENT_CONST + ((PERCENT_CONST-a)*avgAcc[1])/PERCENT_CONST
-  tempTot := math.FFloat(68000000)    
-  compFilter[2] :=  math.FRound(math.FSqr(math.FSub(tempTot,math.FAdd(tempX, tempY))))    
+  
+  tempX := (compFilter[0] * compFilter[0]+5000)/10000
+  tempY := (compFilter[1] * compFilter[1]+5000)/10000
+  tempTot := 6800 - tempX - tempY
+  compFilter[2] := 100*math.sqrt(tempTot)
 
   
 PUB getAvgAcc | i, avgCoef
@@ -195,7 +199,7 @@ PUB getEulerAngle(eAnglePtr)
 
   Long[eAnglePtr][0] := compFilter[0]
   Long[eAnglePtr][1] := compFilter[1]
-  Long[eAnglePtr][2] := avgAcc[2]
+  Long[eAnglePtr][2] := compFilter[2]
   return
   
 PUB getAltitude
@@ -212,15 +216,18 @@ PUB getAcc(accPtr) | i
   repeat i from 0 to 2
     Long[accPtr][i] := acc[i]
   return
+  
 PUB getGyro(gyroPtr) | i
   Long[gyroPtr][0] := gyro[0]
   Long[gyroPtr][1] := gyro[1]
   Long[gyroPtr][2] := gyro[2]
   return
+  
 PUB magX
   return mag[0]
 PUB magY
   return mag[1]
+  
 PUB magZ
   return mag[2]  
 
@@ -294,7 +301,12 @@ PRI printCompFilter
   fds.str(String("cy: "))
   fds.decLn(compFilter[1])
   fds.str(String("cz: "))
-  fds.decLn(compFilter[2])           
+  fds.decLn(compFilter[2])
+
+  'if (compFilter[2] < 80000 )
+ '   waitcnt(cnt + clkfreq*5)
+
+          
 PRI printAll | i, j
   repeat i from 0 to 2
     repeat j from 0 to 2
@@ -329,3 +341,5 @@ PRI printAll | i, j
   FDS.decLn(temperature)
   FDS.Str(String("gForce = "))
   FDS.decLn(gForce)
+
+
