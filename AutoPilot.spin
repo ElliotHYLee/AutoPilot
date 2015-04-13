@@ -4,10 +4,11 @@ CON
                       
 OBJ
   usb            : "Parallax Serial Terminal"
-  xbee           : "FullDuplexSerial"
+  xbee           : "Communication_XBee"
   sensor         : "tier2MPUMPL.spin"
   motors         : "Motors.spin"
   math           : "MyMath.spin"
+  
 VAR
   'system variable
     
@@ -29,9 +30,8 @@ VAR
   long newValue, type, comStack[64],comCogId, serialCogId1
   long varChar, motorNumber
 
-  'usb variables
-  long serialCogId2
-
+  'Xbee variables
+  long serialCogId_XBee, comCogId_XBee, comStack_XBee[128]
 
   'pid variables
   long pidStack[128], pidCogId
@@ -48,7 +48,7 @@ PUB startAutoPilot|i
   newUSB
 
   '2. xbee start (wireless com for Ground Station)      x 2 cogs
-
+  newXBee
   
   '3. attitude start (MPU9150(+AK8) & MPL11A2)          x 1 cog
   startSensor
@@ -144,25 +144,60 @@ PRI pidXAxis(axis)| pMotor, nMotor, dEdt
   pulse[pMotor] := 1200 #> 1300 - outPut  <# 1600
   pulse[nMotor] := 1200 #> 1300 + outPut  <# 1600         
 
-
 '===================================================================================================
-'===================== COMMUNICATION PART ==================================================================
+'===================== XBee COMMUNICATION PART ==================================================================
 '===================================================================================================
 {{
 -----------------------------------------------------------------
 USB REGION                                                      |
-  Number of cog used : 3                                        |
+  Number of cog used : 2                                        |
   Cog usage          : sending/reading data via usb & xbee      |
   Functions:         :                                          |
 -----------------------------------------------------------------
 }}
 
-PRI newUSB
+PUB newXBee
+
+  serialCogId_Xbee := xbee.init(0,1,0,9600)  
+
+  xbee.setPtr(@acc, @gyro, @compFilter, @pulse, @kp, @ki, @kd, @proportional, @derivative, @integral ,@output)
+  
+  startXBee
+
+PRI stopXBee
+
+
+PRI startXBee
+
+  stopXBee
+  comCogId_XBee := cognew(runXBee, @comStack_XBee)
+  
+PRI runXBee | base
+
+  base := cnt
+  repeat
+    base := xbee.communicate(base)
+
+  
+
+  
+  
+'===================================================================================================
+'===================== USB COMMUNICATION PART ==================================================================
+'===================================================================================================
+{{
+-----------------------------------------------------------------
+USB REGION                                                      |
+  Number of cog used : 2                                        |
+  Cog usage          : sending/reading data via usb & xbee      |
+  Functions:         :                                          |
+-----------------------------------------------------------------
+}}
+
+PUB newUSB
 
   serialCogId1 := usb.start(115200)
   
-  serialCogId2 := xbee.start(0,1,0,9600) 
-
   startUSB
 
 PRI stopUSB
