@@ -45,7 +45,7 @@ PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm 
     motorIteration++
 
   senM[2] := 1000
-  senM[0] := 1036
+  senM[0] := 1034
   
   repeat
     check := inspectPulse

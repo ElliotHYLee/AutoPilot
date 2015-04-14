@@ -4,7 +4,7 @@ CON
                       
 OBJ
   usb            : "Parallax Serial Terminal"
-  xbee           : "Communication_XBee"
+'  xbee           : "Communication_XBee"
   sensor         : "tier2MPUMPL.spin"
   motors         : "Motors.spin"
   math           : "MyMath.spin"
@@ -48,7 +48,7 @@ PUB startAutoPilot|i
   newUSB
 
   '2. xbee start (wireless com for Ground Station)      x 2 cogs
-  newXBee
+ 'newXBee
   
   '3. attitude start (MPU9150(+AK8) & MPL11A2)          x 1 cog
   startSensor
@@ -101,9 +101,9 @@ PRI startPID
 
 PRI runPID  |i
 
-  kp := 125
-  ki := 75
-  kd := 450
+  kp := 150
+  ki := 0
+  kd := 425
   
   pidOff
   
@@ -137,12 +137,12 @@ PRI pidXAxis(axis)| pMotor, nMotor, dEdt
   derivative := (dEdt * kd + math.getSign(dEdt)*5000)/10000  
 
   integral_intermediate := (integral_intermediate + (error+500)/1000)
-  integral[0] := (integral_intermediate*ki+5_000_000)/10_000_000
+  integral[0] := (integral_intermediate*ki)/1000
    
   outPut := proportional + derivative + integral[0]
    
-  pulse[pMotor] := 1200 #> 1300 - outPut  <# 1600
-  pulse[nMotor] := 1200 #> 1300 + outPut  <# 1600         
+  pulse[pMotor] := 1200 #> 1250 - outPut  <# 1600
+  pulse[nMotor] := 1200 #> 1250 + outPut  <# 1600         
 
 '===================================================================================================
 '===================== XBee COMMUNICATION PART ==================================================================
@@ -154,7 +154,7 @@ USB REGION                                                      |
   Cog usage          : sending/reading data via usb & xbee      |
   Functions:         :                                          |
 -----------------------------------------------------------------
-}}
+
 
 PUB newXBee
 
@@ -177,7 +177,7 @@ PRI runXBee | base
   base := cnt
   repeat
     base := xbee.communicate(base)
-
+ }}      
   
 
   
@@ -225,10 +225,6 @@ PRI communicate | base
         'sendTestMsg
         'sendPidTestMsg
   
-PRI sendXbeeMsg
-
-  xbee.StrLn(String("hello world"))
-        
 PRI sendTestMsg
   usb.clear   
 
