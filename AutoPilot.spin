@@ -37,6 +37,7 @@ VAR
   long pidStack[128], pidCogId
   long targetEAngle[3] , fProportional, fIntegral, fDerivative
   long kp, ki, kd, pidUpdateIndex, error, proportional, derivative, integral[2], integral_intermediate, outPut
+  long prevTime, curTime, tElapse, dummy , dummy2 , sensorElapse
   byte pidOnOff
 
 PUB startAutoPilot|i
@@ -101,11 +102,11 @@ PRI startPID
 
 PRI runPID  |i
 
-  kp := 150
-  ki := 0
-  kd := 425
+  kp := 85
+  ki := 8000
+  kd := 350
   
-  pidOff
+  pidOn
   
   respondContent := 2
   respondType := 1
@@ -117,11 +118,12 @@ PRI runPID  |i
     sensor.getAcc(@acc)
     sensor.getGyro(@gyro)
     if pidOnOff == 1
+       
        pidXAxis(0)   ' x axis
       'pidAxis(1)    ' y axis 
 
 PRI pidXAxis(axis)| pMotor, nMotor, dEdt
-
+  
   nMotor := axis       ' motot 0  - negative tilt 
   pMotor := axis + 2   ' motor 2  - positive tilt
 
@@ -136,10 +138,19 @@ PRI pidXAxis(axis)| pMotor, nMotor, dEdt
 
   derivative := (dEdt * kd + math.getSign(dEdt)*5000)/10000  
 
-  integral_intermediate := (integral_intermediate + (error+500)/1000)
-  integral[0] := (integral_intermediate*ki)/1000
-   
-  outPut := proportional + derivative + integral[0]
+  integral_intermediate := (integral_intermediate + (error*ki)/1_000_000)
+  integral[0] := (integral_intermediate)/1000
+
+  curTime := cnt  
+  tElapse := (curTime - prevTime )*1000000/clkfreq  'micro second
+  
+  prevTime := curTime
+
+  
+  if -5000 < error AND error < 1000 
+    outPut := proportional + derivative + integral[0]
+  else
+    outPut := proportional + derivative 
    
   pulse[pMotor] := 1200 #> 1250 - outPut  <# 1600
   pulse[nMotor] := 1200 #> 1250 + outPut  <# 1600         
@@ -219,11 +230,11 @@ PRI communicate | base
         respondBack(respondType)
       else
         if (cnt > base + clkfreq/90)
-          sendOrdinaryMsg
+          'sendOrdinaryMsg
           base := cnt
-        'sendXbeeMsg
-        'sendTestMsg
-        'sendPidTestMsg
+          'sendXbeeMsg
+          'sendTestMsg
+          sendPidTestMsg
   
 PRI sendTestMsg
   usb.clear   
@@ -319,7 +330,12 @@ PRI sendPidTestMsg
   usb.decLn(integral[0])
   usb.str(String("output: "))
   usb.decLn(output)
-  waitcnt(cnt + clkfreq/10)
+  usb.str(String("tElapse: "))
+  usb.decLn(tElapse)
+  usb.str(String("sensor: "))
+  usb.decLn(sensorElapse)
+
+   waitcnt(cnt + clkfreq/10)
   
                   
 PRI respondBack(x)
@@ -502,6 +518,9 @@ PRI startSensor
 
 PRI runSensor
   repeat
-    'dummy := cnt
+    dummy := cnt
     sensor.run
-   ' dummy := clkfreq/(cnt-dummy)
+    dummy2 := cnt
+    sensorElapse := (cnt*100 - dummy*100)/clkfreq
+
+    
