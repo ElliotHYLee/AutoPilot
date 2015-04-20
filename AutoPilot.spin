@@ -230,11 +230,11 @@ PRI communicate | base
         respondBack(respondType)
       else
         if (cnt > base + clkfreq/90)
-          'sendOrdinaryMsg
+          sendOrdinaryMsg
           base := cnt
           'sendXbeeMsg
           'sendTestMsg
-          sendPidTestMsg
+          'sendPidTestMsg
   
 PRI sendTestMsg
   usb.clear   
