@@ -103,9 +103,9 @@ PRI startPID
 
 PRI runPID  |i
 
-  kp := 100
-  ki := 3050
-  kd := 250
+  kp := 220
+  ki := 2000
+  kd := 600
   
   pidOff
   
@@ -114,25 +114,18 @@ PRI runPID  |i
   respondContent := 1
   respondType := 1              
 
-  attCtrl.setXaxis(@kp, @kd, @ki)
-  attCtrl.setAttVal(@eAngle, @gyro)
+  attCtrl.setXaxis(@kp, @ki, @kd, @output)
+  
   
   repeat
     sensor.getEulerAngle(@eAngle)
     sensor.getAcc(@acc)
     sensor.getGyro(@gyro)
     if pidOnOff == 1
-      'temporary
-      pidXAxis(0)   ' x axis
-       'pidAxis(1)    ' y axis 
-PRI temporary
-  output := attCtrl.calcPIDx(targetEAngle[0]) 
-  error := attCtrl.getErr
-  proportional := attCtrl.getPro
-  derivative := attCtrl.getDer
-  integral := attCtrl.getInt
-  pulse[2] := 1200 #> 1250 - outPut  <# 1600
-  pulse[0] := 1200 #> 1250 + outPut  <# 1600 
+       
+       pidXAxis(0)   ' x axis
+      'pidAxis(1)    ' y axis 
+
 PRI pidXAxis(axis)| pMotor, nMotor, dEdt
   
   nMotor := axis       ' motot 0  - negative tilt 
@@ -158,7 +151,7 @@ PRI pidXAxis(axis)| pMotor, nMotor, dEdt
   prevTime := curTime
 
   
-  if -3000 < error AND error < 3000 
+  if -5000 < error AND error < 5000 
     outPut := proportional + derivative + integral[0]
   else
     outPut := proportional + derivative
