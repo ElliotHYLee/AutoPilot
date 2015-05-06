@@ -44,9 +44,11 @@ PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm 
     long[pulsePtr][motorIteration] := 1200         'set default pwm
     motorIteration++
 
-  senM[2] :=  10000
-  senM[0] :=  10345
-  
+  senM[1] :=  10345
+  senM[3] :=  10000
+
+  senM[0] :=  10000
+  senM[2] :=  10160  
   repeat
     check := inspectPulse
     if check == 0 'abnormaly
@@ -70,15 +72,15 @@ PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm 
 
 '       repeat i from 0 to 3
        outa[motorPin[0]]:= 1
-       waitcnt(baseTime + clkfreq/1000000*long[pulsePtr][0]*senM[0]/senM[2])
+       waitcnt(baseTime + clkfreq/1000000*long[pulsePtr][0])
        outa[motorPin[0]]:= 0
          
        outa[motorPin[1]]:= 1 
-       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][1])
+       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][1]*senM[1]/senM[3])
        outa[motorPin[1]]:= 0
        
        outa[motorPin[2]]:= 1
-       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][2])
+       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][2]*senM[2]/senM[0])
        outa[motorPin[2]]:= 0
         
        outa[motorPin[3]]:= 1

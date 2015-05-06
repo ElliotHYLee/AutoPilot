@@ -38,6 +38,7 @@ VAR
   long pidStack[128], pidCogId
   long targetEAngle[3] , fProportional, fIntegral, fDerivative
   long kp, ki, kd, pidUpdateIndex, error, proportional, derivative, integral[2], integral_intermediate, outPut
+  long yKp, yKd, yKi
   long prevTime, curTime, tElapse, dummy , dummy2 , sensorElapse
   byte pidOnOff
 
@@ -103,10 +104,14 @@ PRI startPID
 
 PRI runPID  |i
 
-  kp := 220
-  ki := 2000
-  kd := 600
+  kp := 100
+  ki := 3050
+  kd := 250
   
+  yKp := 120
+  yKi := 0
+  yKd := 250
+ 
   pidOff
   
   respondContent := 2
@@ -114,18 +119,42 @@ PRI runPID  |i
   respondContent := 1
   respondType := 1              
 
-  attCtrl.setXaxis(@kp, @ki, @kd, @output)
+  attCtrl.setXaxis(@kp, @kd, @ki)
+  attCtrl.setYaxis(@yKp, @yKd, @yKi)
   
+  attCtrl.setAttVal(@eAngle, @gyro)
   
   repeat
     sensor.getEulerAngle(@eAngle)
     sensor.getAcc(@acc)
     sensor.getGyro(@gyro)
     if pidOnOff == 1
+      xAxisPID
+      yAxisPID
+      'pidXAxis(0)   ' x axis
+       'pidAxis(1)    ' y axis
        
-       pidXAxis(0)   ' x axis
-      'pidAxis(1)    ' y axis 
+PRI xAxisPID
+  output := attCtrl.calcPIDx(targetEAngle[0]) 
+  error := attCtrl.getErr
+  proportional := attCtrl.getPro
+  derivative := attCtrl.getDer
+  integral := attCtrl.getInt
+  pulse[3] := 1200 #> 1300 - outPut  <# 1600
+  pulse[1] := 1200 #> 1300 + outPut  <# 1600
 
+       
+PRI yAxisPID
+  output := attCtrl.calcPIDy(targetEAngle[0]) 
+  error := attCtrl.getErr
+  proportional := attCtrl.getPro
+  derivative := attCtrl.getDer
+  integral := attCtrl.getInt
+  pulse[0] := 1200 #> 1300 - outPut  <# 1600
+  pulse[2] := 1200 #> 1300 + outPut  <# 1600
+
+
+  
 PRI pidXAxis(axis)| pMotor, nMotor, dEdt
   
   nMotor := axis       ' motot 0  - negative tilt 
