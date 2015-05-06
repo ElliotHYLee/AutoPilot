@@ -8,6 +8,7 @@ OBJ
   sensor         : "tier2MPUMPL.spin"
   motors         : "Motors.spin"
   math           : "MyMath.spin"
+  attCtrl        : "PID_Attitude.spin"
   
 VAR
   'system variable
@@ -113,6 +114,9 @@ PRI runPID  |i
   respondContent := 1
   respondType := 1              
 
+  attCtrl.setXaxis(@kp, @ki, @kd, @output)
+  
+  
   repeat
     sensor.getEulerAngle(@eAngle)
     sensor.getAcc(@acc)
@@ -189,10 +193,7 @@ PRI runXBee | base
   base := cnt
   repeat
     base := xbee.communicate(base)
- }}      
-  
-
-  
+ }}        
   
 '===================================================================================================
 '===================== USB COMMUNICATION PART ==================================================================
