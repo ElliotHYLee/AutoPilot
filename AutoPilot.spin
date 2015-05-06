@@ -102,11 +102,11 @@ PRI startPID
 
 PRI runPID  |i
 
-  kp := 85
-  ki := 8000
-  kd := 350
+  kp := 220
+  ki := 2000
+  kd := 600
   
-  pidOn
+  pidOff
   
   respondContent := 2
   respondType := 1
@@ -139,7 +139,7 @@ PRI pidXAxis(axis)| pMotor, nMotor, dEdt
   derivative := (dEdt * kd + math.getSign(dEdt)*5000)/10000  
 
   integral_intermediate := (integral_intermediate + (error*ki)/1_000_000)
-  integral[0] := (integral_intermediate)/1000
+  integral[0] := -20#> (integral_intermediate)/1000  <# 20
 
   curTime := cnt  
   tElapse := (curTime - prevTime )*1000000/clkfreq  'micro second
@@ -147,10 +147,11 @@ PRI pidXAxis(axis)| pMotor, nMotor, dEdt
   prevTime := curTime
 
   
-  if -5000 < error AND error < 1000 
+  if -5000 < error AND error < 5000 
     outPut := proportional + derivative + integral[0]
   else
-    outPut := proportional + derivative 
+    outPut := proportional + derivative
+    integral[0] := 0
    
   pulse[pMotor] := 1200 #> 1250 - outPut  <# 1600
   pulse[nMotor] := 1200 #> 1250 + outPut  <# 1600         
