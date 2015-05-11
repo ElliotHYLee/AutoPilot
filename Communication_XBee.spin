@@ -104,40 +104,40 @@ PUB communicate | base , x,y
 
 PRI sendPidConst
 
-        'p0 = Kp of x axis
-        'p1 = Ki of x axis
-        'p3 = Kd of x axis
-        'p4 = Kp of y axis
-        ' ......
-        serial.str(String("[p0"))
-        serial.dec(long[xKpPtr])
-        serial.str(String("]"))
-        serial.str(String("[p1"))
-        serial.dec(long[xKiPtr])
-        serial.str(String("]"))
-        serial.str(String("[p2"))
-        serial.dec(long[xKdPtr])
-        serial.str(String("]"))
+  'p0 = Kp of x axis
+  'p1 = Ki of x axis
+  'p3 = Kd of x axis
+  'p4 = Kp of y axis
+  ' ......
+  serial.str(String("[p0"))
+  serial.dec(long[xKpPtr])
+  serial.str(String("]"))
+  serial.str(String("[p1"))
+  serial.dec(long[xKiPtr])
+  serial.str(String("]"))
+  serial.str(String("[p2"))
+  serial.dec(long[xKdPtr])
+  serial.str(String("]"))
 
-        serial.str(String("[p3"))
-        serial.dec(long[yKpPtr])
-        serial.str(String("]"))
-        serial.str(String("[p4"))
-        serial.dec(long[yKiPtr])
-        serial.str(String("]"))
-        serial.str(String("[p5"))
-        serial.dec(long[yKdPtr])
-        serial.str(String("]"))  
+  serial.str(String("[p3"))
+  serial.dec(long[yKpPtr])
+  serial.str(String("]"))
+  serial.str(String("[p4"))
+  serial.dec(long[yKiPtr])
+  serial.str(String("]"))
+  serial.str(String("[p5"))
+  serial.dec(long[yKdPtr])
+  serial.str(String("]"))  
 
-        serial.str(String("[p6"))
-        serial.dec(long[zKpPtr])
-        serial.str(String("]"))
-        serial.str(String("[p7"))
-        serial.dec(long[zKiPtr])
-        serial.str(String("]"))
-        serial.str(String("[p8"))
-        serial.dec(long[zKdPtr])
-        serial.str(String("]"))
+  serial.str(String("[p6"))
+  serial.dec(long[zKpPtr])
+  serial.str(String("]"))
+  serial.str(String("[p7"))
+  serial.dec(long[zKiPtr])
+  serial.str(String("]"))
+  serial.str(String("[p8"))
+  serial.dec(long[zKdPtr])
+  serial.str(String("]"))
 
 PRI sendPidCalc
 

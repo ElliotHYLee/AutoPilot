@@ -12,7 +12,7 @@ VAR
 -----------------------------------------------------------------
 MOTOR CONTROL REGION                                            |
   Number of cog used : 0                                        |
-  Motors             : Brushless DC motor x 4                   |
+  Motors             : Brushless DC motor x 6                   |
   Functions:         : initMotor                                |
                        runMotor                                 |
                        insepctPulse                             |
@@ -32,6 +32,10 @@ PUB setMotorPWM(pwmPtr) | i
   repeat i from 0 to 5
     pulsePtr[i] := pwmPtr[i]
     i++
+
+PUB setThrottle(throttlePtr)
+
+
 
 PUB setMotorSensitivity(s1, s2, s3, s4)
 
