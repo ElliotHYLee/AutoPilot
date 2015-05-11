@@ -19,7 +19,7 @@ MOTOR CONTROL REGION                                            |
 -----------------------------------------------------------------
 }}
 
-PUB setMotorPins(pin0, pin1, pin2, pin3)  {{ constructor }}
+PUB setMotorPins(pin0, pin1, pin2, pin3, pin4, pin5)  {{ constructor }}
 
   motorPin[0] := pin0  'set pin number for this motor
   motorPin[1] := pin1
@@ -27,7 +27,7 @@ PUB setMotorPins(pin0, pin1, pin2, pin3)  {{ constructor }}
   motorPin[3] := pin3
 
 PUB setMotorPWM(pwmPtr) | i
-  repeat i from 0 to 3
+  repeat i from 0 to 5
     pulsePtr[i] := pwmPtr[i]
     i++
 
@@ -39,7 +39,7 @@ PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm 
   
   initMotor  'physical initialization for this motor 
   motorIteration := 0
-  repeat while motorIteration<4
+  repeat while motorIteration < 6
     dira[motorPin[motorIteration]] := 1   'set pin direction for this motor 
     long[pulsePtr][motorIteration] := 1200         'set default pwm
     motorIteration++
@@ -76,17 +76,26 @@ PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm 
        outa[motorPin[0]]:= 0
          
        outa[motorPin[1]]:= 1 
-       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][1]*senM[1]/senM[3])
+       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][1])
        outa[motorPin[1]]:= 0
        
        outa[motorPin[2]]:= 1
-       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][2]*senM[2]/senM[0])
+       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][2])
        outa[motorPin[2]]:= 0
         
        outa[motorPin[3]]:= 1
        waitcnt(cnt + clkfreq/1000000*long[pulsePtr][3])
        outa[motorPin[3]]:= 0
-       totalElapse := long[pulsePtr][0] + long[pulsePtr][1] + long[pulsePtr][2] + long[pulsePtr][3]
+
+       outa[motorPin[4]]:= 1
+       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][4])
+       outa[motorPin[4]]:= 0
+
+       outa[motorPin[5]]:= 1
+       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][5])
+       outa[motorPin[5]]:= 0       
+       
+       totalElapse := long[pulsePtr][0] + long[pulsePtr][1] + long[pulsePtr][2] + long[pulsePtr][3] + long[pulsePtr][4] + long[pulsePtr][5]
        waitcnt(baseTime + (clkfreq/1000*20 - clkfreq/1000000*totalElapse))
 
 PRI inspectPulse | i
@@ -100,7 +109,7 @@ PRI inspectPulse | i
 
 PRI initMotor  {{initializing the motor connected to this pin}}
   motorIteration:=0                       'set pin directions               
-  repeat while motorIteration<4
+  repeat while motorIteration < 6
     dira[motorPin[motorIteration]] := 1
     long[pulsePtr][motorIteration] :=45
     motorIteration++  

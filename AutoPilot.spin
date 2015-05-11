@@ -4,7 +4,7 @@ CON
                       
 OBJ
   usb            : "Parallax Serial Terminal"
-'  xbee           : "Communication_XBee"
+  xbee           : "Communication_XBee"
   sensor         : "tier2MPUMPL.spin"
   motors         : "Motors.spin"
   math           : "MyMath.spin"
@@ -20,7 +20,7 @@ VAR
   long systemMode, respondType, respondContent
   
   'motor variables
-  long throttle, pulse[4], motorPin[4], motorStack[64],motorCogId 
+  long throttle, pulse[6], motorPin[6], motorStack[128],motorCogId 
   byte motorIteration 
 
  'attitude variables
@@ -36,11 +36,16 @@ VAR
 
   'pid variables
   long pidStack[128], pidCogId
-  long targetEAngle[3] , fProportional, fIntegral, fDerivative
-  long kp, ki, kd, pidUpdateIndex, error, proportional, derivative, integral[2], integral_intermediate, outPut
+  long targetEAngle[3], pidUpdateIndex
+  long xKp, xKd, xKi 
   long yKp, yKd, yKi
+  long zKp, zKd, zKi  
+  long xErr, xPro, xDer, xInt, xOutput
+  long yErr, yPro, yDer, yInt, yOutput
+  long zErr, zPro, zDer, zInt, zOutput
+  
   long prevTime, curTime, tElapse, dummy , dummy2 , sensorElapse
-  byte pidOnOff
+  byte pidOnOff[3]
 
 PUB startAutoPilot|i
 
@@ -48,22 +53,20 @@ PUB startAutoPilot|i
     targetEAngle[i] := 0
 
   '1. usb start  (usb com for Kinect)                   x 2 cogs
-  newUSB
+  'newUSB
 
   '2. xbee start (wireless com for Ground Station)      x 2 cogs
- 'newXBee
+  newXBee
   
   '3. attitude start (MPU9150(+AK8) & MPL11A2)          x 1 cog
   startSensor
   
   '4. attitude pid start                                x 1 cog
   startPID
+  'position PID
 
-  '5. postion pid start                                 x 1 cog
-
-  
   '6. motor start                                       x 1 cog
-  setMotor(2,3,4,5)  
+  setMotor(2,3,4,5,6,7)  
   
 
   cogstop(0)                                      '-------------------
@@ -86,11 +89,23 @@ PID REGION                                                      |
 -----------------------------------------------------------------
 }}
 
-PRI pidOn
-  pidOnOff := 1
+PRI pidOnX
+  pidOnOff[0] := 1
   
-PRI pidOff
-  pidOnOff := 0
+PRI pidOffX
+  pidOnOff[0] := 0
+
+PRI pidOnY
+  pidOnOff[1] := 1
+  
+PRI pidOffY
+  pidOnOff[1] := 0
+
+PRI pidOnZ
+  pidOnOff[2] := 1
+  
+PRI pidOffZ
+  pidOnOff[2] := 0  
 
 PRI stopPID
   if pidCogId             
@@ -104,22 +119,24 @@ PRI startPID
 
 PRI runPID  |i
 
-  kp := 100
-  ki := 3050
-  kd := 250
+  xKp := 100
+  xKi := 3050
+  xKd := 250
   
   yKp := 120
   yKi := 0
   yKd := 250
  
-  pidOff
+  pidOffX
+  pidOffY
+  pidOffZ
   
   respondContent := 2
   respondType := 1
   respondContent := 1
   respondType := 1              
 
-  attCtrl.setXaxis(@kp, @kd, @ki)
+  attCtrl.setXaxis(@xKp, @xKd, @xKi)
   attCtrl.setYaxis(@yKp, @yKd, @yKi)
   
   attCtrl.setAttVal(@eAngle, @gyro)
@@ -128,66 +145,34 @@ PRI runPID  |i
     sensor.getEulerAngle(@eAngle)
     sensor.getAcc(@acc)
     sensor.getGyro(@gyro)
-    if pidOnOff == 1
+    if pidOnOff[0] == 1
       xAxisPID
+    if pidOnOff[1] == 1
       yAxisPID
-      'pidXAxis(0)   ' x axis
-       'pidAxis(1)    ' y axis
+    if pidOnOff[2] == 1
+      'zAxisPID 
        
 PRI xAxisPID
-  output := attCtrl.calcPIDx(targetEAngle[0]) 
-  error := attCtrl.getErr
-  proportional := attCtrl.getPro
-  derivative := attCtrl.getDer
-  integral := attCtrl.getInt
-  pulse[3] := 1200 #> 1300 - outPut  <# 1600
-  pulse[1] := 1200 #> 1300 + outPut  <# 1600
+
+  xOutput := attCtrl.calcPIDx(targetEAngle[0]) 
+  xErr := attCtrl.getErr
+  xPro := attCtrl.getPro
+  xDer := attCtrl.getDer
+  xInt := attCtrl.getInt
+  pulse[3] := 1200 #> 1300 - xOutput <# 1600
+  pulse[1] := 1200 #> 1300 + xOutput <# 1600
 
        
 PRI yAxisPID
-  output := attCtrl.calcPIDy(targetEAngle[0]) 
-  error := attCtrl.getErr
-  proportional := attCtrl.getPro
-  derivative := attCtrl.getDer
-  integral := attCtrl.getInt
-  pulse[0] := 1200 #> 1300 - outPut  <# 1600
-  pulse[2] := 1200 #> 1300 + outPut  <# 1600
 
+  yOutput := attCtrl.calcPIDy(targetEAngle[0]) 
+  yErr := attCtrl.getErr
+  yPro := attCtrl.getPro
+  yDer := attCtrl.getDer
+  yInt := attCtrl.getInt
+  pulse[0] := 1200 #> 1300 - yOutput <# 1600
+  pulse[2] := 1200 #> 1300 + yOutput <# 1600
 
-  
-PRI pidXAxis(axis)| pMotor, nMotor, dEdt
-  
-  nMotor := axis       ' motot 0  - negative tilt 
-  pMotor := axis + 2   ' motor 2  - positive tilt
-
-  if (axis==0)
-    dEdt := gyro[1]
-  else
-    dEdt := gyro[0]
-    
-  error := (targetEAngle[axis] - eAngle[axis])
-
-  proportional := (error * kp + math.getSign(error)*5000)/10000
-
-  derivative := (dEdt * kd + math.getSign(dEdt)*5000)/10000  
-
-  integral_intermediate := (integral_intermediate + (error*ki)/1_000_000)
-  integral[0] := -20#> (integral_intermediate)/1000  <# 20
-
-  curTime := cnt  
-  tElapse := (curTime - prevTime )*1000000/clkfreq  'micro second
-  
-  prevTime := curTime
-
-  
-  if -5000 < error AND error < 5000 
-    outPut := proportional + derivative + integral[0]
-  else
-    outPut := proportional + derivative
-    integral[0] := 0
-   
-  pulse[pMotor] := 1200 #> 1250 - outPut  <# 1600
-  pulse[nMotor] := 1200 #> 1250 + outPut  <# 1600         
 
 '===================================================================================================
 '===================== XBee COMMUNICATION PART ==================================================================
@@ -199,30 +184,33 @@ USB REGION                                                      |
   Cog usage          : sending/reading data via usb & xbee      |
   Functions:         :                                          |
 -----------------------------------------------------------------
-
+}}
 
 PUB newXBee
+  ' assume it's xbee
+  serialCogId_Xbee := xbee.init(31,30,0,115200)
+  'serialCogId_Xbee := xbee.init(0,1,0,57600)  
 
-  serialCogId_Xbee := xbee.init(0,1,0,9600)  
-
-  xbee.setPtr(@acc, @gyro, @compFilter, @pulse, @kp, @ki, @kd, @proportional, @derivative, @integral ,@output)
-  
+  xbee.setAttPtr(@acc, @gyro, @eAngle)
+  xbee.setMotPtr(@pulse)
+  xbee.setXPidPtr(@xKp, @xKd, @xKi, @xPro, @xDer, @xInt, @xOutput)
+  xbee.setYPidPtr(@yKp, @yKd, @yKi, @yPro, @yDer, @yInt, @yOutput)
+  xbee.setZPidPtr(@zKp, @zKd, @zKi, @zPro, @zDer, @zInt, @zOutput)
+  xbee.setPidOnOffPtr(@pidOnOff)   
   startXBee
 
 PRI stopXBee
-
+  if comCogId_Xbee
+    cogstop(comCogId_Xbee)
 
 PRI startXBee
 
   stopXBee
   comCogId_XBee := cognew(runXBee, @comStack_XBee)
   
-PRI runXBee | base
+PRI runXBee
 
-  base := cnt
-  repeat
-    base := xbee.communicate(base)
- }}        
+  xbee.communicate 
   
 '===================================================================================================
 '===================== USB COMMUNICATION PART ==================================================================
@@ -259,6 +247,7 @@ PRI communicate | base
     else
       if respondType > 0 ' need to respond to the request from C#
         respondBack(respondType)
+        
       else
         if (cnt > base + clkfreq/90)
           sendOrdinaryMsg
@@ -299,13 +288,13 @@ PRI sendTestMsg
 PRI sendOrdinaryMsg | i  
 
   usb.str(String("[k0"))
-  usb.dec(derivative)
+  usb.dec(xDer)
   usb.str(String("]"))
   usb.str(String("[k1"))
-  usb.dec(proportional)
+  usb.dec(xPro)
   usb.str(String("]"))
   usb.str(String("[k3"))
-  usb.dec(output)
+  usb.dec(xOutput)
   usb.str(String("]"))
 
  'write motor info
@@ -346,43 +335,22 @@ PRI sendOrdinaryMsg | i
     i++
             
 
-PRI sendPidTestMsg
 
-  usb.clear
-  usb.str(String("on/off: "))
-  usb.decLn(pidOnOff)  
-  usb.str(String("error: "))
-  usb.decLn(error)
-  usb.str(String("proportional: "))
-  usb.decLn(proportional)
-  usb.str(String("derivative: "))
-  usb.decLn(derivative)
-  usb.str(String("integral: "))
-  usb.decLn(integral[0])
-  usb.str(String("output: "))
-  usb.decLn(output)
-  usb.str(String("tElapse: "))
-  usb.decLn(tElapse)
-  usb.str(String("sensor: "))
-  usb.decLn(sensorElapse)
-
-   waitcnt(cnt + clkfreq/10)
-  
                   
 PRI respondBack(x)
   case x
     1:
       if respondContent == 1     ' respondContent type 1 = pid gains
         usb.str(String("[pp"))
-        usb.dec(kp)
+        usb.dec(xkp)
         usb.str(String("]"))
         usb.str(String("[pi"))
-        usb.dec(ki)
+        usb.dec(xki)
         usb.str(String("]"))
         usb.str(String("[pd"))
-        usb.dec(kd)
+        usb.dec(xkd)
         usb.str(String("]"))               
-      elseif respondContent ==2    ' respondContent type 1 = pid on/off status 
+      elseif respondContent == 2    ' respondContent type 1 = pid on/off status 
         usb.str(String("[po"))
         usb.dec(pidOnOff)
         usb.str(String("]"))  
@@ -429,9 +397,9 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
        'waitcnt(cnt + clkfreq*5)
        case pidUpdateIndex
          1: pidOnOff := newPidProperty
-         2: kp := newPidProperty
-         3: ki := newPidProperty
-         4: kd := newPidProperty
+         2: xKp := newPidProperty
+         3: xki := newPidProperty
+         4: xkd := newPidProperty
        type := 0
        newValue := 0
        respondContent := 1   ' respond content 1 = pid constants
@@ -465,21 +433,29 @@ PRI systemModeUpdate(mode)
   systemMode := mode
   case mode
      1: 'idle
-       pidOff
+       pidOffX
+       pidOffY
+       'pidOffZ
        pulse[0] := 1100
        pulse[1] := 1100
        pulse[2] := 1100
        pulse[3] := 1100
      2: 'prepare
-       pidOn
+       pidOnX
+       pidOnY
+       'pidOnZ
        pulse[0] := 1200
        pulse[1] := 1200
        pulse[2] := 1200
        pulse[3] := 1200
      3: 'hover
-       pidOn
+       pidOnX
+       pidOnY
+       'pidOnZ
      4: 'navigation
-       pidOn
+       pidOnX
+       pidOnY
+       'pidOnZ
 
 
 '===================================================================================================
@@ -504,8 +480,8 @@ PRI setThrottle(value)
 
   throttle := value
 
-PRI setMotor(pin0, pin1, pin2, pin3)  {{ constructor }}
-  motors.setMotorPins(pin0, pin1, pin2, pin3)
+PRI setMotor(pin0, pin1, pin2, pin3, pin4, pin5)  {{ constructor }}
+  motors.setMotorPins(pin0, pin1, pin2, pin3, pin4, pin5)
   motors.setMotorPWM(@pulse)
   startMotor
 
