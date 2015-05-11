@@ -4,7 +4,7 @@ CON
                       
 VAR
   'motor variables
-  long motorPin[4], pulsePtr[4], senM[4]
+  long motorPin[6], pulsePtr[6], senM[4]
   byte motorIteration 
 
    
@@ -25,6 +25,8 @@ PUB setMotorPins(pin0, pin1, pin2, pin3, pin4, pin5)  {{ constructor }}
   motorPin[1] := pin1
   motorPin[2] := pin2
   motorPin[3] := pin3
+  motorPin[4] := pin4
+  motorPin[5] := pin5
 
 PUB setMotorPWM(pwmPtr) | i
   repeat i from 0 to 5
@@ -100,7 +102,7 @@ PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm 
 
 PRI inspectPulse | i
   i:=0
-  repeat while i < 4
+  repeat while i < 6
     if ((long[pulsePtr][i] < 1100) OR (2000 < long[pulsePtr][i]))
       return 0   ' abnormal pwm
     i++
@@ -111,12 +113,12 @@ PRI initMotor  {{initializing the motor connected to this pin}}
   motorIteration:=0                       'set pin directions               
   repeat while motorIteration < 6
     dira[motorPin[motorIteration]] := 1
-    long[pulsePtr][motorIteration] :=45
+    long[pulsePtr][motorIteration] := 45
     motorIteration++  
   
   repeat while long[pulsePtr][0] < 150
     motorIteration:=0  
-    repeat while motorIteration<4
+    repeat while motorIteration < 6
       outa[motorPin[motorIteration]]:=1
       waitcnt(cnt + (clkfreq / 1000 ) )
       outa[motorPin[motorIteration]]:=0
