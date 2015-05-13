@@ -98,7 +98,7 @@ PUB communicate | base , x,y
         if (cnt > base + clkfreq/90)
           'sendPidConst
           'sendPidCalc
-          'sendAttMsg
+          sendAttMsg
           sendMotorMsg
           base := cnt
 
