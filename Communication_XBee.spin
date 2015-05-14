@@ -325,8 +325,6 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
        respondBack(respondType)
        if (newValue == 12)
          sendPidOnOffStatus   
-       serial.str(String("request noted:"))
-       serial.decLn(newValue)
        'waitcnt(cnt + clkfreq*2)
        type := 0
        newValue := 0
@@ -345,8 +343,8 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
      if 9 < newValue  AND newValue < 50  'pif on off msg: o10 -> x axis off
        pidAxis := newValue/10
        setPidStatus(newValue)
-       serial.str(String("pid on off request :"))
-       serial.decLn(newValue)
+      ' serial.str(String("pid on off request :"))
+      ' serial.decLn(newValue)
        'waitcnt(cnt + clkfreq*2)
        type := 0
        newValue := 0
@@ -355,6 +353,8 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
    elseif (type == 6)   ' Throttle value
      if 1100 < newValue AND newValue < 2500
        updateThrottle(newValue)
+       serial.str(String("throttle request :"))
+       serial.decLn(newValue)
        type := 0
        newValue := 0
        
