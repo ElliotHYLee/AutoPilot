@@ -17,7 +17,8 @@ VAR
 
   long systemMode, respondType, respondContent              
   long varchar, varchar2, newValue, type,motorNumber,pidUpdateIndex
-  long pidAxis, pidOnOffPtr[3]    
+  long pidAxis
+  long pidOnOffPtr[3]    
 
 PUB main
 
@@ -101,7 +102,7 @@ PUB communicate | base , x,y
       else
         if (cnt > base + clkfreq/90)
           'sendPidConst
-          'sendPidCalc
+          sendPidCalc
           sendAttMsg
           sendMotorMsg
           sendThrottleMsg
@@ -236,9 +237,9 @@ PRI respondBack(x)
   case x
     1:
       if respondContent == 1     ' respondContent type 1 = pid gains
-          sendPidConst                      
+        sendPidConst                      
       elseif respondContent == 2    ' respondContent type 1 = pid on/off status 
-          sendPidOnOffStatus
+        sendPidOnOffStatus
                 
   respondType := 0
   respondContent := 0
@@ -246,13 +247,13 @@ PRI respondBack(x)
 PRI sendPidOnOffStatus
 
   serial.str(String("[o0"))
-  serial.dec(Long[pidOnOffPtr][0])
+  serial.dec(long[pidOnOffPtr][0])
   serial.str(String("]"))  
   serial.str(String("[o1"))
-  serial.dec(Long[pidOnOffPtr][1])
+  serial.dec(long[pidOnOffPtr][1])
   serial.str(String("]"))
   serial.str(String("[o2"))
-  serial.dec(Long[pidOnOffPtr][2])
+  serial.dec(long[pidOnOffPtr][2])
   serial.str(String("]"))
         
 PRI char2ASCII(charVar)  ' currently not used
@@ -318,9 +319,15 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
      if 10 < newValue
        respondType := newValue/10
        newRequest := newValue//10
-       'waitcnt(cnt + clkfreq*5)
        case respondType
          1: respondContent := newRequest
+       respondContent := newRequest   ' respond content 2 = pid on/off
+       respondBack(respondType)
+       if (newValue == 12)
+         sendPidOnOffStatus   
+       serial.str(String("request noted:"))
+       serial.decLn(newValue)
+       'waitcnt(cnt + clkfreq*2)
        type := 0
        newValue := 0
        'serial.RxFlush
@@ -335,18 +342,15 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
        respondBack(1)      'repond type 1 = all pid types
 
    elseif (type == 5)   ' pid on/off status
-     if 9 < newValue
+     if 9 < newValue  AND newValue < 50  'pif on off msg: o10 -> x axis off
        pidAxis := newValue/10
+       setPidStatus(newValue)
+       serial.str(String("pid on off request :"))
        serial.decLn(newValue)
-       waitcnt(cnt + clkfreq*5)
-       case pidAxis
-         1: long[pidOnOffPtr][0] := newValue//10
-         2: long[pidOnOffPtr][1] := newValue//10
-         3: long[pidOnOffPtr][2] := newValue//10
+       'waitcnt(cnt + clkfreq*2)
        type := 0
        newValue := 0
-       respondContent := 2 'respond content 2 = pid on/off
-       respondBack(1)      'repond type 1 = all pid types
+       sendPidOnOffStatus
 
    elseif (type == 6)   ' Throttle value
      if 1100 < newValue AND newValue < 2500
@@ -377,24 +381,49 @@ PRI systemModeUpdate(mode)
      4: 'navigation
        pidOn
 
+PRI setPidStatus(val)
+
+  if val== 10
+    pidOffX
+  if val == 11
+    pidOnX
+  if val == 20
+    pidOffY
+  if val == 21
+    pidOnY
+  if val == 30
+    pidOffZ
+  if val == 31
+    pidOnZ
+
+
 PRI pidOn
   pidOnX
   pidOnY
-  pidOnZ 
+  pidOnZ
+  
 PRI pidOff
   pidOffX
   pidOffY
   pidOffZ
+  
 PRI pidOnX
-  long[pidOnOffPtr][0] := 1  
+  long[pidOnOffPtr][0] := 1
+  
 PRI pidOnY
-  long[pidOnOffPtr][1] := 1      
+  long[pidOnOffPtr][1] := 1
+   ' serial.str(String("pidY is on"))
+  'waitcnt(cnt + clkfreq)
+  
 PRI pidOnZ
-  long[pidOnOffPtr][2] := 1 
+  long[pidOnOffPtr][2] := 1
+  
 PRI pidOffX
-  long[pidOnOffPtr][0] := 0 
+  long[pidOnOffPtr][0] := 0
+  
 PRI pidOffY
-  long[pidOnOffPtr][1] := 0  
+  long[pidOnOffPtr][1] := 0
+
 PRI pidOffZ
   long[pidOnOffPtr][2] := 0
 

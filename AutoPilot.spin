@@ -43,7 +43,7 @@ VAR
   long xErr, xPro, xDer, xInt, xOutput
   long yErr, yPro, yDer, yInt, yOutput
   long zErr, zPro, zDer, zInt, zOutput
-  byte pidOnOff[3]
+  long pidOnOff[3]
     
   long prevTime, curTime, tElapse, dummy , dummy2 , sensorElapse
 
@@ -59,7 +59,7 @@ PUB startAutoPilot|i
   newXBee
   
   '3. attitude start (MPU9150(+AK8) & MPL11A2)          x 1 cog
-  'startSensor
+  startSensor
   
   '4. attitude pid start                                x 1 cog
   startPID
@@ -124,7 +124,7 @@ PRI runPID  |i
   
   yKp := 120
   yKi := 0
-  yKd := 250
+  yKd := 0
  
   pidOffX
   pidOffY
@@ -154,24 +154,25 @@ PRI runPID  |i
 PRI xAxisPID
 
   xOutput := attCtrl.calcPIDx(targetEAngle[0]) 
-  xErr := attCtrl.getErr
-  xPro := attCtrl.getPro
-  xDer := attCtrl.getDer
-  xInt := attCtrl.getInt
+  xErr := attCtrl.getErrX
+  xPro := attCtrl.getProX
+  xDer := attCtrl.getDerX
+  xInt := attCtrl.getIntX
   pulse[3] := 1200 #> throttle - xOutput <# 1600
   pulse[1] := 1200 #> throttle + xOutput <# 1600
 
        
-PRI yAxisPID
+PRI yAxisPID  'y = pitch axis
 
   yOutput := attCtrl.calcPIDy(targetEAngle[0]) 
-  yErr := attCtrl.getErr
-  yPro := attCtrl.getPro
-  yDer := attCtrl.getDer
-  yInt := attCtrl.getInt
+  yErr := attCtrl.getErrY
+  yPro := attCtrl.getProY
+  yDer := attCtrl.getDerY
+  yInt := attCtrl.getIntY
   pulse[0] := 1200 #> throttle - yOutput <# 1600
-  pulse[2] := 1200 #> throttle + yOutput <# 1600
-
+  pulse[1] := 1200 #> throttle - yOutput <# 1600  
+  pulse[3] := 1200 #> throttle + yOutput <# 1600
+  pulse[4] := 1200 #> throttle + yOutput <# 1600  
 
 '===================================================================================================
 '===================== XBee COMMUNICATION PART ==================================================================
