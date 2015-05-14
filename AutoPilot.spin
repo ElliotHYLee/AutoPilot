@@ -59,7 +59,7 @@ PUB startAutoPilot|i
   newXBee
   
   '3. attitude start (MPU9150(+AK8) & MPL11A2)          x 1 cog
-  startSensor
+  'startSensor
   
   '4. attitude pid start                                x 1 cog
   startPID
@@ -193,6 +193,7 @@ PUB newXBee
 
   xbee.setAttPtr(@acc, @gyro, @eAngle)
   xbee.setMotPtr(@pulse)
+  xbee.setThrottle(@throttle)
   xbee.setXPidPtr(@xKp, @xKd, @xKi, @xPro, @xDer, @xInt, @xOutput)
   xbee.setYPidPtr(@yKp, @yKd, @yKi, @yPro, @yDer, @yInt, @yOutput)
   xbee.setZPidPtr(@zKp, @zKd, @zKi, @zPro, @zDer, @zInt, @zOutput)

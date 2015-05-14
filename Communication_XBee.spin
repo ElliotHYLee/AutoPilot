@@ -8,7 +8,7 @@ OBJ
 VAR
 
   long accPtr[3], gyroPtr[3], eAnglePtr[3]
-  long pulsePtr[6]
+  long pulsePtr[6], throttlePtr
 
   long xOnPtr, xOffPtr, yOnPtr, yOffPtr, zOnPtr, zOffPtr
   long xKpPtr, xKiPtr, xKdPtr, xOutputPtr, xProPtr, xDerPtr, xIntPtr
@@ -16,7 +16,7 @@ VAR
   long zKpPtr, zKiPtr, zKdPtr, zOutputPtr, zProPtr, zDerPtr, zIntPtr
 
   long systemMode, respondType, respondContent              
-  long varchar, newValue, type,motorNumber,pidUpdateIndex
+  long varchar, varchar2, newValue, type,motorNumber,pidUpdateIndex
   long pidAxis, pidOnOffPtr[3]    
 
 PUB main
@@ -41,6 +41,10 @@ PUB setMotPtr(pwmPtr) | i
     pulsePtr[i] := pwmPtr[i]
     i++           
 
+PUB setThrottle(valuePtr)
+
+  throttlePtr := valuePtr  
+    
 PUB setPidOnOffPtr(val)
 
   pidOnOffPtr[0] := val[0]
@@ -100,6 +104,7 @@ PUB communicate | base , x,y
           'sendPidCalc
           sendAttMsg
           sendMotorMsg
+          sendThrottleMsg
           base := cnt
 
 PRI sendPidConst
@@ -180,8 +185,16 @@ PRI sendPidCalc
   serial.dec(long[zOutputPtr])
   serial.str(String("]"))
 
+
+PRI sendThrottleMsg
+
+  serial.str(String("[t"))
+  serial.dec(0)
+  serial.dec(long[throttlePtr])
+  serial.str(String("]"))
+
 PRI sendMotorMsg | i
-               
+
   repeat i from 0 to 5
     'motor write
     serial.str(String("[m"))
@@ -232,15 +245,15 @@ PRI respondBack(x)
 
 PRI sendPidOnOffStatus
 
-        serial.str(String("[o0"))
-        serial.dec(Long[pidOnOffPtr][0])
-        serial.str(String("]"))  
-        serial.str(String("[o1"))
-        serial.dec(Long[pidOnOffPtr][1])
-        serial.str(String("]"))
-        serial.str(String("[o2"))
-        serial.dec(Long[pidOnOffPtr][2])
-        serial.str(String("]"))
+  serial.str(String("[o0"))
+  serial.dec(Long[pidOnOffPtr][0])
+  serial.str(String("]"))  
+  serial.str(String("[o1"))
+  serial.dec(Long[pidOnOffPtr][1])
+  serial.str(String("]"))
+  serial.str(String("[o2"))
+  serial.dec(Long[pidOnOffPtr][2])
+  serial.str(String("]"))
         
 PRI char2ASCII(charVar)  ' currently not used
   result := byte[charVar]
@@ -250,6 +263,7 @@ PRI ASCII2Dec(ASCII)
   result := ASCII - 48    
   
 PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
+   varChar2 := varchar
    varChar := serial.CharIn
    if (48=<varChar AND varChar=<57) 'btw 0-9
      newValue := newValue*10 + ASCII2Dec(varChar)
@@ -263,7 +277,8 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
      type := 4  ' next 5 digits are mode types
    elseif(varChar == 79) ' O -> PID on/off
      type := 5  ' next 5 digits are mode types
-   elseif(varChar ==  84) ' T -> throttle/reference pid value
+   elseif(varChar2 ==  84 AND varchar == 72) ' TH -> throttle/reference pid value
+     type := 6  
                             
    if (type==1)
      if 11099 < newValue AND newValue < 63000
@@ -332,28 +347,31 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
        newValue := 0
        respondContent := 2 'respond content 2 = pid on/off
        respondBack(1)      'repond type 1 = all pid types
+
+   elseif (type == 6)   ' Throttle value
+     if 1100 < newValue AND newValue < 2500
+       updateThrottle(newValue)
+       type := 0
+       newValue := 0
        
+PRI updateThrottle(val)| i
+
+  long[throttlePtr] := val
+  repeat i from 0 to 5
+    long[pulsePtr][i] := val 
+  
 PRI systemModeUpdate(mode)
 
   systemMode := mode
   case mode
      1: 'idle
        pidOff
-       long[pulsePtr][0] := 1100
-       long[pulsePtr][1] := 1100
-       long[pulsePtr][2] := 1100
-       long[pulsePtr][3] := 1100
-       long[pulsePtr][4] := 1100
-       long[pulsePtr][5] := 1100
+       updateThrottle(1100)
+       
      2: 'prepare
        pidOn
-       long[pulsePtr][0] := 1200
-       long[pulsePtr][1] := 1200
-       long[pulsePtr][2] := 1200
-       long[pulsePtr][3] := 1200
-       long[pulsePtr][4] := 1200
-       long[pulsePtr][5] := 1200
-
+       updateThrottle(1200)
+       
      3: 'hover
        pidOn
      4: 'navigation
@@ -378,4 +396,6 @@ PRI pidOffX
 PRI pidOffY
   long[pidOnOffPtr][1] := 0  
 PRI pidOffZ
-  long[pidOnOffPtr][2] := 0    
+  long[pidOnOffPtr][2] := 0
+
+  
