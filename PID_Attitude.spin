@@ -60,7 +60,7 @@ PUB calcPIDx(targetVal): output ' controlling motor pulse 0 and 2
   xPro := (xErr * long[xKpPtr] + math.getSign(xErr)*5000)/10000
   xDer := (long[gyro][1] * long[xKdPtr] + math.getSign(long[gyro][1])*5000)/10000
   xIntInt := (xIntInt + (xErr*long[xKiPtr])/1_000_000)
-  xInt := -20#> (xIntInt)/1000  <# 20   
+  xInt := -500#> (xIntInt)/1000  <# 500   
 
   if -5000 < xErr AND xErr < 5000 
     output := xPro + xDer + xInt
@@ -75,7 +75,7 @@ PUB calcPIDy(targetVal): output ' controlling motor pulse 0 and 2
   yPro := (yErr * long[yKpPtr] + math.getSign(yErr)*5000)/10000
   yDer := (long[gyro][0] * long[yKdPtr] + math.getSign(long[gyro][0])*5000)/10000
   yIntInt := (yIntInt + (yErr*long[yKiPtr])/1_000_000)
-  yInt := -20#> (yIntInt)/1000  <# 20   
+  yInt := -500#> (yIntInt)/1000  <# 500   
 
   if -5000 < yErr AND yErr < 5000 
     output := yPro - yDer + yInt
@@ -83,5 +83,15 @@ PUB calcPIDy(targetVal): output ' controlling motor pulse 0 and 2
     output :=  yPro - yDer
     yInt := 0
 
-
- 
+PUB resetY
+  yPro := 0
+  yDer := 0
+  yIntInt := 0
+  yInt := 0
+  
+  
+PUB resetX
+  xPro := 0
+  xDer := 0
+  xIntInt := 0
+  xInt := 0

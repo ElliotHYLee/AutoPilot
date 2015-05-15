@@ -122,9 +122,9 @@ PRI runPID  |i
   xKi := 3050
   xKd := 250
   
-  yKp := 120
-  yKi := 0
-  yKd := 0
+  yKp := 500
+  yKi := 10000
+  yKd := 1000
  
   pidOffX
   pidOffY
@@ -146,8 +146,12 @@ PRI runPID  |i
     sensor.getGyro(@gyro)
     if pidOnOff[0] == 1
       xAxisPID
+    else
+      attCtrl.resetX
     if pidOnOff[1] == 1
       yAxisPID
+    else
+      attCtrl.resetY
     if pidOnOff[2] == 1
       'zAxisPID 
        
