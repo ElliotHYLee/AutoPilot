@@ -168,7 +168,7 @@ PRI xAxisPID
        
 PRI yAxisPID  'y = pitch axis
 
-  yOutput := attCtrl.calcPIDy(targetEAngle[0]) 
+  yOutput := attCtrl.calcPIDy(targetEAngle[1]) 
   yErr := attCtrl.getErrY
   yPro := attCtrl.getProY
   yDer := attCtrl.getDerY
@@ -225,7 +225,7 @@ PRI runXBee
 -----------------------------------------------------------------
 MOTOR CONTROL REGION                                            |
   Number of cog used : 1                                        |
-  Motors             : Brushless DC motor x 4                   |
+  Motors             : Brushless DC motor x 6                   |
   Cog usage          : Generating PWM for motor                 |
   Functions:         : newMotor                                 |
                        startMotor                               |

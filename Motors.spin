@@ -11,7 +11,7 @@ VAR
 {{
 -----------------------------------------------------------------
 MOTOR CONTROL REGION                                            |
-  Number of cog used : 0                                        |
+  Number of cog used : 1                                        |
   Motors             : Brushless DC motor x 6                   |
   Functions:         : initMotor                                |
                        runMotor                                 |

@@ -278,7 +278,7 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
      type := 4  ' next 5 digits are mode types
    elseif(varChar == 79) ' O -> PID on/off
      type := 5  ' next 5 digits are mode types
-   elseif(varChar2 ==  84 AND varchar == 72) ' TH -> throttle/reference pid value
+   elseif(varChar2 ==  84 AND varchar == 72) ' TH -> throttle
      type := 6  
                             
    if (type==1)
