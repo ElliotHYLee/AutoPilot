@@ -59,7 +59,7 @@ PUB startAutoPilot|i
   newXBee
   
   '3. attitude start (MPU9150(+AK8) & MPL11A2)          x 1 cog
-  'startSensor
+  startSensor
   
   '4. attitude pid start                                x 1 cog
   'startPID
