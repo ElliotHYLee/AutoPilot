@@ -133,7 +133,7 @@ PRI runPID  |i
   respondContent := 2
   respondType := 1
   respondContent := 1
-  respondType := 1              
+  respondType := 1       
 
   attCtrl.setXaxis(@xKp, @xKd, @xKi)
   attCtrl.setYaxis(@yKp, @yKd, @yKi)
