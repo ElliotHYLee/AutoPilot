@@ -123,8 +123,8 @@ PRI runPID  |i
   xKd := 250
   
   yKp := 500
-  yKi := 1000
-  yKd := 1000
+  yKi := 3000
+  yKd := 1200
  
   pidOffX
   pidOffY
