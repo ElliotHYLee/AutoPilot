@@ -62,7 +62,7 @@ PUB startAutoPilot|i
   startSensor
   
   '4. attitude pid start                                x 1 cog
-  'startPID
+  startPID
   'position PID
 
   '6. motor start                                       x 1 cog
@@ -118,9 +118,9 @@ PRI startPID
 
 PRI runPID  |i
 
-  xKp := 100
-  xKi := 3050
-  xKd := 250
+  xKp := 800
+  xKi := 6000
+  xKd := 2000
   
   yKp := 500
   yKi := 3000
@@ -162,8 +162,8 @@ PRI xAxisPID
   xPro := attCtrl.getProX
   xDer := attCtrl.getDerX
   xInt := attCtrl.getIntX
-  pulse[3] := 1200 #> throttle - xOutput <# 1600
-  pulse[1] := 1200 #> throttle + xOutput <# 1600
+  pulse[5] := 1200 #> throttle - xOutput <# 1750
+  pulse[2] := 1200 #> throttle + xOutput <# 1750
 
        
 PRI yAxisPID  'y = pitch axis
@@ -173,10 +173,10 @@ PRI yAxisPID  'y = pitch axis
   yPro := attCtrl.getProY
   yDer := attCtrl.getDerY
   yInt := attCtrl.getIntY
-  pulse[0] := 1200 #> throttle - yOutput <# 1600
-  pulse[1] := 1200 #> throttle - yOutput <# 1600  
-  pulse[3] := 1200 #> throttle + yOutput <# 1600
-  pulse[4] := 1200 #> throttle + yOutput <# 1600  
+  pulse[0] := 1200 #> throttle - yOutput <# 1750
+  pulse[1] := 1200 #> throttle - yOutput <# 1750  
+  pulse[3] := 1200 #> throttle + yOutput <# 1750
+  pulse[4] := 1200 #> throttle + yOutput <# 1750  
 
 '===================================================================================================
 '===================== XBee COMMUNICATION PART ==================================================================

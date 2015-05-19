@@ -59,7 +59,7 @@ PUB calcPIDx(targetVal): output ' controlling motor pulse 0 and 2
   xErr := (targetVal- long[eAngle][0]) 
   xPro := (xErr * long[xKpPtr] + math.getSign(xErr)*5000)/10000
   xDer := (long[gyro][1] * long[xKdPtr] + math.getSign(long[gyro][1])*5000)/10000
-  xIntInt := (xIntInt + (xErr*long[xKiPtr])/1_000_000)
+  xIntInt := (xIntInt + (xErr*long[xKiPtr])/100_000)
   xInt := -500#> (xIntInt)/1000  <# 500   
 
   if -5000 < xErr AND xErr < 5000 
