@@ -83,6 +83,22 @@ PUB calcPIDy(targetVal): output ' controlling motor pulse 0 and 2
     output :=  yPro - yDer
     yInt := 0
 
+PUB calcPIDy2(targetVal, kp, ki, kd): output ' controlling motor pulse 0 and 2
+
+  yErr := (targetVal- long[eAngle][1]) 
+  yPro := (yErr * kp + math.getSign(yErr)*5000)/10000
+  yDer := (long[gyro][0] * kd + math.getSign(long[gyro][0])*5000)/10000
+  yIntInt := (yIntInt + (yErr*ki)/100_000)
+  yInt := -500#> (yIntInt)/1000  <# 500   
+
+  if -5000 < yErr AND yErr < 5000 
+    output := yPro - yDer + yInt
+  else
+    output :=  yPro - yDer
+    yInt := 0
+
+    
+
 PUB resetY
   yPro := 0
   yDer := 0

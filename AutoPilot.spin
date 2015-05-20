@@ -116,16 +116,33 @@ PRI startPID
 
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
+
+PRI setYConst  | x
+
+  x := throttle
+  
+  if 1100 < x AND x < 1350
+    yKp := 600
+    yKi := 3000
+    yKd := 1000     
+  elseif x < 1500 
+    yKp := 300
+    yKi := 3000
+    yKd := 550
+  elseif x < 1700
+    yKp := 250
+    yKi := 3000
+    yKd := 450
+
+
 PRI runPID  |i
 
   xKp := 800
   xKi := 6000
   xKd := 2000
   
-  yKp := 500
-  yKi := 3000
-  yKd := 1200
- 
+  setYConst
+
   pidOffX
   pidOffY
   pidOffZ
@@ -149,6 +166,7 @@ PRI runPID  |i
     else
       attCtrl.resetX
     if pidOnOff[1] == 1
+      
       yAxisPID
     else
       attCtrl.resetY
@@ -162,21 +180,23 @@ PRI xAxisPID
   xPro := attCtrl.getProX
   xDer := attCtrl.getDerX
   xInt := attCtrl.getIntX
-  pulse[5] := 1200 #> throttle - xOutput <# 1750
-  pulse[2] := 1200 #> throttle + xOutput <# 1750
+  pulse[5] := 1200 #> throttle - xOutput <# 1690
+  pulse[2] := 1200 #> throttle + xOutput <# 1690
 
        
 PRI yAxisPID  'y = pitch axis
 
-  yOutput := attCtrl.calcPIDy(targetEAngle[1]) 
+  setYConst
+
+  yOutput := attCtrl.calcPIDy2(targetEAngle[1], yKp, yKi, yKd) 
   yErr := attCtrl.getErrY
   yPro := attCtrl.getProY
   yDer := attCtrl.getDerY
   yInt := attCtrl.getIntY
-  pulse[0] := 1200 #> throttle - yOutput <# 1750
-  pulse[1] := 1200 #> throttle - yOutput <# 1750  
-  pulse[3] := 1200 #> throttle + yOutput <# 1750
-  pulse[4] := 1200 #> throttle + yOutput <# 1750  
+  pulse[0] := 1200 #> throttle - yOutput <# 1690
+  pulse[1] := 1200 #> throttle - yOutput <# 1690  
+  pulse[3] := 1200 #> throttle + yOutput <# 1690
+  pulse[4] := 1200 #> throttle + yOutput <# 1690  
 
 '===================================================================================================
 '===================== XBee COMMUNICATION PART ==================================================================
