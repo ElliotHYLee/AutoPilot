@@ -37,6 +37,8 @@ VAR
   'pid variables
   long pidStack[128], pidCogId
   long targetEAngle[3], pidUpdateIndex
+  long xKpCand[3], xKdCand[3], xKiCand[3]
+  long yKpCand[3], yKdCand[3], yKiCand[3]    
   long xKp, xKd, xKi 
   long yKp, yKd, yKi
   long zKp, zKd, zKi  
@@ -52,22 +54,25 @@ PUB startAutoPilot|i
   repeat i from 0 to 2
     targetEAngle[i] := 0
 
-  '1. usb start  (usb com for Kinect)                   x 2 cogs
-  'newUSB
-
-  '2. xbee start (wireless com for Ground Station)      x 2 cogs
-  newXBee
-  
-  '3. attitude start (MPU9150(+AK8) & MPL11A2)          x 1 cog
-  startSensor
-  
-  '4. attitude pid start                                x 1 cog
-  startPID
-  'position PID
-
-  '6. motor start                                       x 1 cog
+  '1. motor start                                       x 1 cog
   setMotor(2,3,4,5,6,7)
 
+
+
+  '2. usb start  (usb com for Kinect)                   x 2 cogs
+  'newUSB
+
+  '3. xbee start (wireless com for Ground Station)      x 2 cogs
+  newXBee
+  
+  '4. attitude start (MPU9150(+AK8) & MPL11A2)          x 1 cog
+  startSensor
+
+  
+  '5. attitude pid start                                x 1 cog
+  startPID
+  'position PID
+                 
   cogstop(0)                                      '-------------------
                                                   ' total : 8 cogs
 
@@ -116,16 +121,29 @@ PRI startPID
 
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
+
+PRI setYConst
+  if throttle <= 1350
+    yKp := 500
+    yKi := 1000
+    yKd := 1000     
+  elseif ((1350<throttle) AND (throttle<=1499) )
+    yKp := 300
+    yKi := 500
+    yKd := 550
+  elseif (1500 =<throttle)
+    yKp := 250
+    yKi := 400
+    yKd := 450
+    
 PRI runPID  |i
 
   xKp := 800
   xKi := 6000
   xKd := 2000
+
+  setYConst
   
-  yKp := 500
-  yKi := 3000
-  yKd := 1200
- 
   pidOffX
   pidOffY
   pidOffZ
@@ -149,6 +167,7 @@ PRI runPID  |i
     else
       attCtrl.resetX
     if pidOnOff[1] == 1
+      setYConst
       yAxisPID
     else
       attCtrl.resetY
@@ -162,8 +181,8 @@ PRI xAxisPID
   xPro := attCtrl.getProX
   xDer := attCtrl.getDerX
   xInt := attCtrl.getIntX
-  pulse[5] := 1200 #> throttle - xOutput <# 1750
-  pulse[2] := 1200 #> throttle + xOutput <# 1750
+  pulse[5] := 1200 #> throttle - xOutput <# 1700
+  pulse[2] := 1200 #> throttle + xOutput <# 1700
 
        
 PRI yAxisPID  'y = pitch axis
@@ -173,10 +192,10 @@ PRI yAxisPID  'y = pitch axis
   yPro := attCtrl.getProY
   yDer := attCtrl.getDerY
   yInt := attCtrl.getIntY
-  pulse[0] := 1200 #> throttle - yOutput <# 1750
-  pulse[1] := 1200 #> throttle - yOutput <# 1750  
-  pulse[3] := 1200 #> throttle + yOutput <# 1750
-  pulse[4] := 1200 #> throttle + yOutput <# 1750  
+  pulse[0] := 1200 #> throttle - yOutput <# 1700
+  pulse[1] := 1200 #> throttle - yOutput <# 1700  
+  pulse[3] := 1200 #> throttle + yOutput <# 1700
+  pulse[4] := 1200 #> throttle + yOutput <# 1700  
 
 '===================================================================================================
 '===================== XBee COMMUNICATION PART ==================================================================

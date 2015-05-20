@@ -360,9 +360,14 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
        
 PRI updateThrottle(val)| i
 
+
   long[throttlePtr] := val
   repeat i from 0 to 5
     long[pulsePtr][i] := val 
+
+  resetY
+  resetX
+
   
 PRI systemModeUpdate(mode)
 
@@ -427,4 +432,11 @@ PRI pidOffY
 PRI pidOffZ
   long[pidOnOffPtr][2] := 0
 
+
+
+PUB resetY
+  long[yIntPtr] := 0
   
+  
+PUB resetX
+ long[xIntPtr] := 0   
