@@ -77,11 +77,11 @@ PUB calcPIDy(targetVal): output ' controlling motor pulse 0 and 2
   yIntInt := (yIntInt + (yErr*long[yKiPtr])/100_000)
   yInt := -500#> (yIntInt)/1000  <# 500   
 
-  'if -5000 < yErr AND yErr < 5000 
+  if -5000 < yErr AND yErr < 5000 
     output := yPro - yDer + yInt
-  'else
-  '  output :=  yPro - yDer
-  '  yInt := 0
+  else
+    output :=  yPro - yDer
+    yInt := 0
 
 PUB resetY
   yPro := 0
