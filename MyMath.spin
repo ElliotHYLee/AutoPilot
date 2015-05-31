@@ -114,6 +114,6 @@ PUB invOp(matAPtr, matResultPtr)| det, i
 
   repeat i from 0 to 8 'rounding up for final result
     if long[matResultPtr][i] > 0
-      long[matResultPtr][i] := (long[matResultPtr][i] + absolute(det)/2) / det
+      long[matResultPtr][i] := (long[matResultPtr][i] + getAbs(det)/2) / det
     else
-      long[matResultPtr][i] := (long[matResultPtr][i] - absolute(det)/2) /det   
+      long[matResultPtr][i] := (long[matResultPtr][i] - getAbs(det)/2) /det   

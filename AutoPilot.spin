@@ -116,6 +116,22 @@ PRI startPID
 
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
+PRI setXConst  | x
+
+  x := throttle
+  
+  if 1100 < x AND x < 1350
+    xKp := 800
+    xKi := 6000
+    xKd := 2000     
+  elseif x < 1500 
+    xKp := 400
+    xKi := 6000
+    xKd := 550
+  elseif x < 1700
+    xKp := 250
+    xKi := 3000
+    xKd := 450
 
 PRI setYConst  | x
 
@@ -137,10 +153,7 @@ PRI setYConst  | x
 
 PRI runPID  |i
 
-  xKp := 800
-  xKi := 6000
-  xKd := 2000
-  
+  setXConst
   setYConst
 
   pidOffX
@@ -174,6 +187,8 @@ PRI runPID  |i
       'zAxisPID 
        
 PRI xAxisPID
+
+  setXConst
 
   xOutput := attCtrl.calcPIDx(targetEAngle[0]) 
   xErr := attCtrl.getErrX
