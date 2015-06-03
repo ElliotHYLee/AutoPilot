@@ -120,35 +120,28 @@ PRI setXConst  | x
 
   x := throttle
   
-  if 1100 < x AND x < 1350
-    xKp := 800
-    xKi := 6000
-    xKd := 2000     
-  elseif x < 1500 
-    xKp := 400
-    xKi := 6000
-    xKd := 550
-  elseif x < 1700
-    xKp := 250
+  if 1100 < x AND x < 1500
+    xKp := 600
     xKi := 3000
-    xKd := 450
+    xKd := 1000     
+  elseif x < 2000
+    xKp := 400
+    xKi := 3000
+    xKd := 800
 
 PRI setYConst  | x
 
   x := throttle
   
-  if 1100 < x AND x < 1350
+  if 1100 < x AND x < 1500
     yKp := 600
     yKi := 3000
     yKd := 1000     
-  elseif x < 1500 
-    yKp := 300
+  elseif x < 2000 
+    yKp := 400
     yKi := 3000
-    yKd := 550
-  elseif x < 1700
-    yKp := 250
-    yKi := 3000
-    yKd := 450
+    yKd := 800
+
 
 
 PRI runPID  |i
@@ -195,9 +188,14 @@ PRI xAxisPID
   xPro := attCtrl.getProX
   xDer := attCtrl.getDerX
   xInt := attCtrl.getIntX
-  pulse[5] := 1200 #> throttle - xOutput <# 1690
-  pulse[2] := 1200 #> throttle + xOutput <# 1690
 
+  'pulse[0] := 1200 #> throttle - xOutput/2 <# 1690
+  pulse[5] := 1200 #> throttle - xOutput <# 1690
+  'pulse[4] := 1200 #> throttle - xOutput/2 <# 1690
+
+  'pulse[1] := 1200 #> throttle + xOutput/2 <# 1690
+  pulse[2] := 1200 #> throttle + xOutput <# 1690
+  'pulse[3] := 1200 #> throttle + xOutput/2 <# 1690
        
 PRI yAxisPID  'y = pitch axis
 
@@ -208,10 +206,10 @@ PRI yAxisPID  'y = pitch axis
   yPro := attCtrl.getProY
   yDer := attCtrl.getDerY
   yInt := attCtrl.getIntY
-  pulse[0] := 1200 #> throttle - yOutput <# 1690
-  pulse[1] := 1200 #> throttle - yOutput <# 1690  
-  pulse[3] := 1200 #> throttle + yOutput <# 1690
-  pulse[4] := 1200 #> throttle + yOutput <# 1690  
+  pulse[0] := 1200 #> throttle - yOutput*57/100 <# 1690
+  pulse[1] := 1200 #> throttle - yOutput*57/100 <# 1690  
+  pulse[3] := 1200 #> throttle + yOutput*57/100 <# 1690
+  pulse[4] := 1200 #> throttle + yOutput*57/100 <# 1690  
 
 '===================================================================================================
 '===================== XBee COMMUNICATION PART ==================================================================
