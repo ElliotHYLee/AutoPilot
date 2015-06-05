@@ -20,8 +20,7 @@ VAR
   long systemMode, respondType, respondContent
   
   'motor variables
-  long throttle, pulse[6], motorPin[6], motorStack[128],motorCogId 
-  byte motorIteration 
+  long throttle, pulse[6], motorPin[6], motorStack[128], motorCogId 
 
  'attitude variables
   long sensorCodId, sensorStack[128] 
@@ -187,13 +186,13 @@ PRI xAxisPID
   xDer := attCtrl.getDerX
   xInt := attCtrl.getIntX
 
-  'pulse[0] := 1200 #> throttle - xOutput/2 <# 1690
-  pulse[5] := 1200 #> throttle - xOutput <# 1690
-  'pulse[4] := 1200 #> throttle - xOutput/2 <# 1690
+  'pulse[0] := 1200 #> throttle - xOutput/2 <# 1950
+  pulse[5] := 1200 #> throttle - xOutput <# 1950
+  'pulse[4] := 1200 #> throttle - xOutput/2 <# 1950
 
-  'pulse[1] := 1200 #> throttle + xOutput/2 <# 1690
-  pulse[2] := 1200 #> throttle + xOutput <# 1690
-  'pulse[3] := 1200 #> throttle + xOutput/2 <# 1690
+  'pulse[1] := 1200 #> throttle + xOutput/2 <# 1950
+  pulse[2] := 1200 #> throttle + xOutput <# 1950
+  'pulse[3] := 1200 #> throttle + xOutput/2 <# 1950
        
 PRI yAxisPID  'y = pitch axis
 
@@ -204,10 +203,10 @@ PRI yAxisPID  'y = pitch axis
   yPro := attCtrl.getProY
   yDer := attCtrl.getDerY
   yInt := attCtrl.getIntY
-  pulse[0] := 1200 #> throttle - yOutput*57/100 <# 1690
-  pulse[1] := 1200 #> throttle - yOutput*57/100 <# 1690  
-  pulse[3] := 1200 #> throttle + yOutput*57/100 <# 1690
-  pulse[4] := 1200 #> throttle + yOutput*57/100 <# 1690  
+  pulse[0] := 1200 #> throttle - yOutput*57/100 <# 1950
+  pulse[1] := 1200 #> throttle - yOutput*57/100 <# 1950  
+  pulse[3] := 1200 #> throttle + yOutput*57/100 <# 1950
+  pulse[4] := 1200 #> throttle + yOutput*57/100 <# 1950  
 
 '===================================================================================================
 '===================== XBee COMMUNICATION PART ==================================================================
@@ -268,9 +267,7 @@ MOTOR CONTROL REGION                                            |
 }}
 
 PRI setThrottle(value)
-
   throttle := value
-  motors.setThrottle(throttle)
 
 PRI setMotor(pin0, pin1, pin2, pin3, pin4, pin5)  {{ constructor }}
   motors.setMotorPins(pin0, pin1, pin2, pin3, pin4, pin5)

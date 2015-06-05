@@ -5,8 +5,6 @@ CON
 VAR
   'motor variables
   long motorPin[6], pulsePtr[6], senM[4]
-  byte motorIteration 
-
    
 {{
 -----------------------------------------------------------------
@@ -31,101 +29,49 @@ PUB setMotorPins(pin0, pin1, pin2, pin3, pin4, pin5)  {{ constructor }}
 PUB setMotorPWM(pwmPtr) | i
   repeat i from 0 to 5
     pulsePtr[i] := pwmPtr[i]
-    i++
-
-PUB setThrottle(throttlePtr)
-
-
-
-PUB setMotorSensitivity(s1, s2, s3, s4)
-
-
 
 PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm for the motor connected to this pin}}              
   
   initMotor  'physical initialization for this motor 
-  motorIteration := 0
-  repeat while motorIteration < 6
-    dira[motorPin[motorIteration]] := 1   'set pin direction for this motor 
-    long[pulsePtr][motorIteration] := 1200         'set default pwm
-    motorIteration++
 
-  senM[1] :=  10345
-  senM[3] :=  10000
+  repeat i from 0 to 5
+    dira[motorPin[i]] := 1   'set pin direction for this motor 
+    long[pulsePtr][i] := 1200         'set default pwm
 
-  senM[0] :=  10000
-  senM[2] :=  10160  
   repeat
-    check := inspectPulse
-    if check == 0 'abnormaly
-      'usb.str(String("running well"))
-       totalElapse:=0
-       baseTime := cnt    
-
-       repeat i from 0 to 3
-         outa[motorPin[i]]:= 1
-         waitcnt(baseTime + clkfreq/1000000*1150)
-         outa[motorPin[i]]:= 0
-
-       totalElapse := long[pulsePtr][0] + long[pulsePtr][1] + long[pulsePtr][2] + long[pulsePtr][3]
-       waitcnt(baseTime + (clkfreq/1000*20 - clkfreq/1000000*totalElapse))      
-
-    else   ' good to go
-    
-      'usb.str(String("running well"))
-       totalElapse:=0
-       baseTime := cnt    
-
-'       repeat i from 0 to 3
-       outa[motorPin[0]]:= 1
-       waitcnt(baseTime + clkfreq/1000000*long[pulsePtr][0])
-       outa[motorPin[0]]:= 0
-         
-       outa[motorPin[1]]:= 1 
-       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][1])
-       outa[motorPin[1]]:= 0
-       
-       outa[motorPin[2]]:= 1
-       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][2])
-       outa[motorPin[2]]:= 0
-        
-       outa[motorPin[3]]:= 1
-       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][3])
-       outa[motorPin[3]]:= 0
-
-       outa[motorPin[4]]:= 1
-       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][4])
-       outa[motorPin[4]]:= 0
-
-       outa[motorPin[5]]:= 1
-       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][5])
-       outa[motorPin[5]]:= 0       
-       
-       totalElapse := long[pulsePtr][0] + long[pulsePtr][1] + long[pulsePtr][2] + long[pulsePtr][3] + long[pulsePtr][4] + long[pulsePtr][5]
-       waitcnt(baseTime + (clkfreq/1000*50 - clkfreq/1000000*totalElapse))
-
-PRI inspectPulse | i
-  i:=0
-  repeat while i < 6
-    if ((long[pulsePtr][i] < 1100) OR (2000 < long[pulsePtr][i]))
-      return 0   ' abnormal pwm
-    i++
-  return 1
-
-
-PRI initMotor  {{initializing the motor connected to this pin}}
-  motorIteration:=0                       'set pin directions               
-  repeat while motorIteration < 6
-    dira[motorPin[motorIteration]] := 1
-    long[pulsePtr][motorIteration] := 45
-    motorIteration++  
   
-  repeat while long[pulsePtr][0] < 150
-    motorIteration:=0  
-    repeat while motorIteration < 6
-      outa[motorPin[motorIteration]]:=1
+    inspectPulse ' when abnormal pwm comes, udpate all wpm as 1200
+    
+    totalElapse := 0
+    baseTime := cnt    
+
+    repeat i from 0 to 5
+      outa[motorPin[i]]:= 1
+      waitcnt(cnt + clkfreq/1000000*long[pulsePtr][i])
+      outa[motorPin[i]]:= 0
+         
+    repeat i from 0 to 5
+      totalElapse += long[pulsePtr][i]
+       
+    waitcnt(baseTime + (clkfreq/1000*50 - clkfreq/1000000*totalElapse))
+
+PRI inspectPulse | i , j
+
+  repeat i from 0 to 5
+    if ((long[pulsePtr][i] < 1100) OR (1950 < long[pulsePtr][i]))
+      repeat j from 0 to 5
+        long[pulsePtr][j] := 1200
+      return 0
+      
+PRI initMotor | i {{initializing the motor connected to this pin}}
+
+ 'set pin directions               
+  repeat i from 0 to 5
+    dira[motorPin[i]] := 1
+
+  repeat 10
+    repeat i from 0 to 5
+      outa[motorPin[i]]:=1
       waitcnt(cnt + (clkfreq / 1000 ) )
-      outa[motorPin[motorIteration]]:=0
-      long[pulsePtr][motorIteration] ++
-      motorIteration++
-    waitcnt(cnt + clkfreq / 1000*20)
+      outa[motorPin[i]]:=0
+    waitcnt(cnt + clkfreq / 1000*20)  
