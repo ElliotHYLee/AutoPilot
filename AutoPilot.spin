@@ -143,7 +143,6 @@ PRI setYConst  | x
     yKd := 800
 
 
-
 PRI runPID  |i
 
   setXConst
@@ -172,7 +171,6 @@ PRI runPID  |i
     else
       attCtrl.resetX
     if pidOnOff[1] == 1
-      
       yAxisPID
     else
       attCtrl.resetY
@@ -201,7 +199,7 @@ PRI yAxisPID  'y = pitch axis
 
   setYConst
 
-  yOutput := attCtrl.calcPIDy2(targetEAngle[1], yKp, yKi, yKd) 
+  yOutput := attCtrl.calcPIDy(targetEAngle[1]) 
   yErr := attCtrl.getErrY
   yPro := attCtrl.getProY
   yDer := attCtrl.getDerY

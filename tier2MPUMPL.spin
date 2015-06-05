@@ -52,7 +52,7 @@ PUB main
     fds.newline
     fds.decln(acc[0]*acc[0]+acc[1]*acc[1]+acc[2]*acc[2])
  }
-'    printMagInfo    
+    printMagInfo    
     waitcnt(cnt+clkfreq/10)
 
 
@@ -250,7 +250,7 @@ PRI printMagInfo| i, j
   fds.str(String(" Z: "))
   fds.decLn(avgMag[2])
   fds.newline
-  fds.str(string("magnitude of magnetometer"))
+  fds.str(string("magnitude of magnetometer: "))
   fds.decLn(avgMag[0]*avgMag[0] + avgMag[1]*avgMag[1] + avgMag[2]*avgMag[2])
 
   fds.newline  
@@ -341,5 +341,4 @@ PRI printAll | i, j
   FDS.decLn(temperature)
   FDS.Str(String("gForce = "))
   FDS.decLn(gForce)
-
 
