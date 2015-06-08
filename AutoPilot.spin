@@ -162,19 +162,25 @@ PRI runPID  |i
   attCtrl.setAttVal(@eAngle, @gyro)
   
   repeat
-    sensor.getEulerAngle(@eAngle)
-    sensor.getAcc(@acc)
-    sensor.getGyro(@gyro)
+    updateAttitude   
     if pidOnOff[0] == 1
+      updateAttitude               '' updating often
       xAxisPID
     else
       attCtrl.resetX
     if pidOnOff[1] == 1
+      updateAttitude               '' updating often
       yAxisPID
     else
       attCtrl.resetY
     if pidOnOff[2] == 1
       'zAxisPID 
+
+PRI updateAttitude 
+
+  sensor.getEulerAngle(@eAngle)
+  sensor.getAcc(@acc)
+  sensor.getGyro(@gyro)
        
 PRI xAxisPID
 
@@ -319,6 +325,6 @@ PRI runSensor
     'dummy := cnt
     sensor.run
     'dummy2 := cnt
-    sensorElapse := (cnt*100 - dummy*100)/clkfreq
+    'sensorElapse := (cnt*100 - dummy*100)/clkfreq
 
     

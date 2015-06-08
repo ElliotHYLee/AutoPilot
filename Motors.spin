@@ -39,7 +39,6 @@ PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm 
     long[pulsePtr][i] := 1200         'set default pwm
 
   repeat
-  
     inspectPulse ' when abnormal pwm comes, udpate all wpm as 1200
     
     totalElapse := 0
