@@ -215,13 +215,13 @@ PRI sendAttMsg | i
     serial.str(String("]"))
 
     
-{{
+
     serial.str(String("[a"))
     case i
       0: serial.str(String("x"))
       1: serial.str(String("y"))
       2: serial.str(String("z"))
-    serial.dec(acc[i])
+    serial.dec(long[accPtr][i])
     serial.str(String("]"))
 
     serial.str(String("[g"))
@@ -229,9 +229,9 @@ PRI sendAttMsg | i
       0: serial.str(String("x"))
       1: serial.str(String("y"))
       2: serial.str(String("z")) 
-    serial.dec(gyro[i])
+    serial.dec(long[gyroPtr][i])
     serial.str(String("]"))
-}}
+
                 
 PRI respondBack(x)
   case x

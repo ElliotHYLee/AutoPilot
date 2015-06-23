@@ -21,7 +21,11 @@ Var
 
   'program variable
   byte compFilterType
-  long runStack[128], playID, displayStack[128] 
+  long runStack[128], playID, displayStack[128]
+
+  long before, after, elapse
+  
+  
 PUB main
 
   FDS.quickStart  
@@ -52,7 +56,12 @@ PUB main
     fds.newline
     fds.decln(acc[0]*acc[0]+acc[1]*acc[1]+acc[2]*acc[2])
  }
-    printMagInfo    
+    printMagInfo
+
+    fds.newline
+    fds.newline
+    fds.decLn(elapse)
+    fds.decLn(clkfreq) 
     waitcnt(cnt+clkfreq/10)
 
 
@@ -68,7 +77,10 @@ PUB startPlay
  
 PUB playSensor
   repeat
+    'before := cnt
     run
+    'elapse := cnt - before
+    
                      
 PUB initSensor(scl, sda)
   sensor.initSensor(scl, sda)
@@ -190,7 +202,7 @@ PUB getAvgMag | i, avgCoef
 
 PUB getHeading(headingPtr)| i
   repeat i from 0 to 2
-    Long[headingPtr][i] := heading[i]
+    Long[headingPtr][i] := avgMag[i]
     
 PUB getTemperautre(dataPtr)
   Long[dataPtr] := temperature
@@ -257,10 +269,6 @@ PRI printMagInfo| i, j
   fds.str(String("x/y (aTan)"))
   fds.decLn(avgMag[0]/avgMag[1])
   
-  
-
-
-    
   
 PRI printSomeX| i, j 
   fds.dec(gyro[1])
@@ -341,4 +349,3 @@ PRI printAll | i, j
   FDS.decLn(temperature)
   FDS.Str(String("gForce = "))
   FDS.decLn(gForce)
-
