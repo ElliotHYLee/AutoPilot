@@ -133,13 +133,13 @@ PRI setYConst  | x
   x := throttle
   
   if 1100 < x AND x < 1500
-    yKp := 600
-    yKi := 3000
-    yKd := 1000     
-  elseif x < 2000 
-    yKp := 400
-    yKi := 3000
-    yKd := 800
+    yKp := 550
+    yKi := 500
+    yKd := 300     
+ ' elseif x < 2000 
+ '   yKp := 400
+ '   yKi := 3000
+ '   yKd := 800
 
 
 PRI runPID  |i
@@ -170,7 +170,7 @@ PRI runPID  |i
       attCtrl.resetX
     if pidOnOff[1] == 1
       updateAttitude               '' updating often
-      yAxisPID
+      pitchPID
     else
       attCtrl.resetY
     if pidOnOff[2] == 1
@@ -206,19 +206,19 @@ PRI xAxisPID
   pulse[2] := 1200 #> throttle + xOutput <# 1950
   'pulse[3] := 1200 #> throttle + xOutput/2 <# 1950
        
-PRI yAxisPID  'y = pitch axis
+PRI pitchPID  'y = pitch axis
 
-  setYConst
+  'setYConst
 
   yOutput := attCtrl.calcPIDy(targetEAngle[0]) 
   yErr := attCtrl.getErrY
   yPro := attCtrl.getProY
   yDer := attCtrl.getDerY
   yInt := attCtrl.getIntY
-  pulse[0] := 1200 #> throttle - yOutput*57/100 <# 1500'1950
-  pulse[1] := 1200 #> throttle - yOutput*57/100 <# 1500'1950  
-  pulse[3] := 1200 #> throttle + yOutput*57/100 <# 1500'1950
-  pulse[4] := 1200 #> throttle + yOutput*57/100 <# 1500'1950  
+  pulse[0] := 1200 #> throttle + yOutput*57/100 <# 1500'1950
+  pulse[1] := 1200 #> throttle + yOutput*57/100 <# 1500'1950  
+  pulse[3] := 1200 #> throttle - yOutput*57/100 <# 1500'1950
+  pulse[4] := 1200 #> throttle - yOutput*57/100 <# 1500'1950  
 
 '===================================================================================================
 '===================== XBee COMMUNICATION PART ==================================================================

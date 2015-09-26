@@ -69,7 +69,7 @@ PUB calcPIDx(targetVal): output ' controlling motor pulse 0 and 2
     xInt := 0
 
     
-PUB calcPIDy(targetVal): output ' controlling motor pulse 0 and 2  - pitch control
+PUB calcPIDy(targetVal): output  ' controlling motor pulse 0 and 2  - pitch control
 
   yErr := (targetVal- long[eAngle][0]) 
   yPro := (yErr * long[yKpPtr] + math.getSign(yErr)*5000)/10000
