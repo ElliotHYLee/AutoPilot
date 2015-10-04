@@ -3,7 +3,7 @@ CON
   _xinfreq = 5_000_000
                       
 OBJ
-  usb            : "Parallax Serial Terminal"
+  usb            : "ParallaxSerialTerminal"
   xbee           : "Communication_XBee"
   sensor         : "tier3MPUMPL_DCM.spin"
   motors         : "Motors.spin"
@@ -56,6 +56,8 @@ PUB startAutoPilot|i
 
   '2. xbee start (wireless com for Ground Station)      x 2 cogs
   newXBee
+  'usb.quickStart
+  
   
   '3. attitude start (MPU9150(+AK8) & MPL11A2)          x 1 cog
   startSensor
@@ -119,37 +121,45 @@ PRI setXConst  | x
 
   x := throttle
   
-  if 1100 < x AND x < 1500
-    xKp := 600
-    xKi := 3000
-    xKd := 1000     
-  elseif x < 2000
-    xKp := 400
-    xKi := 3000
-    xKd := 800
+'  if 1100 < x AND x < 1500
+    xKp := 150
+    xKi := 2000
+    xKd := 20     
+'  elseif x < 2000
+'    xKp := 400
+'    xKi := 3000
+'    xKd := 800
 
 PRI setYConst  | x
 
   x := throttle
   
-  if 1100 < x AND x < 1500
-    yKp := 550
-    yKi := 500
-    yKd := 300     
+'  if 1100 < x AND x < 1500
+    yKp := 150
+    yKi := 2000
+    yKd := 20     
  ' elseif x < 2000 
  '   yKp := 400
  '   yKi := 3000
  '   yKd := 800
+PRI setZConst  | x
 
+  x := throttle
+  
+'  if 1100 < x AND x < 1500
+    zKp := 20
+    zKi := 0
+    zKd := 10  
 
-PRI runPID  |i
+PRI runPID  |i, prev, dt, delay
 
   setXConst
   setYConst
+  setZConst
 
-  pidOffX
-  pidOffY
-  pidOffZ
+  'pidOffX
+  'pidOffY
+  'pidOffZ
   
   respondContent := 2
   respondType := 1
@@ -158,24 +168,34 @@ PRI runPID  |i
 
   attCtrl.setXaxis(@xKp, @xKd, @xKi)
   attCtrl.setYaxis(@yKp, @yKd, @yKi)
+  attCtrl.setZaxis(@yKp, @yKd, @yKi)  
   
   attCtrl.setAttVal(@eAngle, @gyro)
+
   
   repeat
+    prev := cnt
     updateAttitude   
     if pidOnOff[0] == 1
-      updateAttitude               '' updating often
-      'xAxisPID
+      rollPID
     else
       attCtrl.resetX
     if pidOnOff[1] == 1
-      updateAttitude               '' updating often
       pitchPID
     else
       attCtrl.resetY
     if pidOnOff[2] == 1
-      'zAxisPID 
+      yawPID 
+    else
+      attCtrl.resetZ
+    dt := cnt - prev
+    waitcnt(cnt + clkfreq/128- dt   )     ' 128 = ~avg DCM frequency
+    
+    'dt := cnt - prev
+    'usb.decLn(clkfreq/dt)
 
+
+    
 PRI updateAttitude 
 
 '  sensor.getEulerAngle(@eAngle)
@@ -188,38 +208,57 @@ PRI updateAttitude
   sensor.getGyro(@gyro)
   sensor.getEulerAngles(@eAngle)
        
-PRI xAxisPID
+PRI rollPID
 
-  setXConst
+  'setXConst
 
-  xOutput := attCtrl.calcPIDx(targetEAngle[1]) 
+  xOutput := attCtrl.calcPIDRoll(targetEAngle[1]) 
   xErr := attCtrl.getErrX
   xPro := attCtrl.getProX
   xDer := attCtrl.getDerX
   xInt := attCtrl.getIntX
 
-  'pulse[0] := 1200 #> throttle - xOutput/2 <# 1950
-  pulse[5] := 1200 #> throttle - xOutput <# 1950
-  'pulse[4] := 1200 #> throttle - xOutput/2 <# 1950
+  pulse[0] := 1200 #> throttle - xOutput/3 <# 1600'1950 
+  pulse[5] := 1200 #> throttle - xOutput/3 <# 1600'1950 
+  pulse[4] := 1200 #> throttle - xOutput/3 <# 1600'1950 
 
-  'pulse[1] := 1200 #> throttle + xOutput/2 <# 1950
-  pulse[2] := 1200 #> throttle + xOutput <# 1950
-  'pulse[3] := 1200 #> throttle + xOutput/2 <# 1950
+  pulse[1] := 1200 #> throttle + xOutput/3 <# 1600'1950
+  pulse[2] := 1200 #> throttle + xOutput/3 <# 1600'1950 
+  pulse[3] := 1200 #> throttle + xOutput/3 <# 1600'1950 
        
 PRI pitchPID  'y = pitch axis
 
   'setYConst
 
-  yOutput := attCtrl.calcPIDy(targetEAngle[0]) 
+  yOutput := attCtrl.calcPIDPitch(targetEAngle[0]) 
   yErr := attCtrl.getErrY
   yPro := attCtrl.getProY
   yDer := attCtrl.getDerY
   yInt := attCtrl.getIntY
-  pulse[0] := 1200 #> throttle + yOutput*57/100 <# 1500'1950
-  pulse[1] := 1200 #> throttle + yOutput*57/100 <# 1500'1950  
-  pulse[3] := 1200 #> throttle - yOutput*57/100 <# 1500'1950
-  pulse[4] := 1200 #> throttle - yOutput*57/100 <# 1500'1950  
+  
+  pulse[0] := 1200 #> throttle + yOutput <# 1600'1950
+  pulse[1] := 1200 #> throttle + yOutput <# 1600'1950  
+  pulse[3] := 1200 #> throttle - yOutput <# 1600'1950
+  pulse[4] := 1200 #> throttle - yOutput <# 1600'1950
+  
+PRI yawPID
 
+  'setZConst
+
+  zOutput := -attCtrl.calcPIDYaw(targetEAngle[2]) 
+  zErr := attCtrl.getErrZ
+  zPro := attCtrl.getProZ
+  zDer := attCtrl.getDerZ
+  zInt := attCtrl.getIntZ
+
+  pulse[0] := 1200 #> throttle + zOutput <# 1600'1950 
+  pulse[3] := 1200 #> throttle + zOutput <# 1600'1950  
+
+  pulse[1] := 1200 #> throttle - zOutput <# 1600'1950    
+  pulse[4] := 1200 #> throttle - zOutput <# 1600'1950 
+
+
+  
 '===================================================================================================
 '===================== XBee COMMUNICATION PART ==================================================================
 '===================================================================================================

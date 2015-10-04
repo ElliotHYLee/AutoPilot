@@ -351,7 +351,7 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
        sendPidOnOffStatus
 
    elseif (type == 6)   ' Throttle value
-     if 1100 < newValue AND newValue < 2500
+     if 1099 < newValue AND newValue < 2500
        updateThrottle(newValue)
        serial.str(String("throttle request :"))
        serial.decLn(newValue)

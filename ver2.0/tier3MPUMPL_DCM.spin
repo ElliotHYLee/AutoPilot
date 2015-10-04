@@ -793,40 +793,30 @@ PRI printFirstEulerOutput
   fds.strLn(String("  centi degree"))
 
 
+
 PRI printEuler
-
-  fds.strLn(String("Calculated Euler Angles"))
-
-  fds.str(String("pitch = "))
-  fds.dec(t3_euler_d[0])
-  fds.strLn(String("  centi degree"))
-
-  
-  fds.str(String("roll = "))
-  fds.dec(t3_euler_d[1])
-  fds.strLn(String("  centi degree"))
-
-  fds.str(string("yaw = "))
-  fds.dec(t3_euler_d[2])
-  fds.strLn(String("  centi degree"))
-
-PRI printEulerOutput
 
 
   fds.strLn(String("Calcualted Euler Angles"))
 
   fds.str(String("pitch = "))
-  fds.dec(t3_euler_d[0])
-  fds.strLn(String("  centi degree"))
+  fds.dec(t3_euler_d[0]/100)
+  fds.str(String("."))
+  fds.dec(math.getAbs(t3_euler_d[0])//100)   
+  fds.strLn(String(" degree"))
 
   
   fds.str(String("roll = "))
-  fds.dec(t3_euler_d[1])
-  fds.strLn(String("  centi degree"))
+  fds.dec(t3_euler_d[1]/100)
+  fds.str(String("."))
+  fds.dec(math.getAbs(t3_euler_d[1])//100)   
+  fds.strLn(String(" degree"))
 
   fds.str(string("yaw = "))
-  fds.dec(t3_euler_d[2])
-  fds.strLn(String("  centi degree"))
+  fds.dec(t3_euler_d[2]/100)
+  fds.str(String("."))
+  fds.dec(math.getAbs(t3_euler_d[2])//100)   
+  fds.strLn(String(" degree"))
 
 
 

@@ -29,7 +29,16 @@ PUB getProY
 PUB getDerY
   return yDer
 PUB getIntY
-  return yInt  
+  return yInt
+
+PUB getErrZ
+  return zErr
+PUB getProZ
+  return zPro
+PUB getDerZ
+  return yDer
+PUB getIntZ
+  return zInt
            
 PUB setAttVal(eAnglePtr, gyroPtr)
 
@@ -54,13 +63,13 @@ PUB setZaxis(kpPtr, kdPtr, kiPtr)
   zKdPtr := kdPtr
   zKiPtr := kiPtr
 
-PUB calcPIDx(targetVal): output ' controlling motor pulse 0 and 2
+PUB calcPIDRoll(targetVal): output ' controlling motor pulse 0 and 2
 
   xErr := (targetVal- long[eAngle][1]) 
   xPro := (xErr * long[xKpPtr] + math.getSign(xErr)*5000)/10000
   xDer := (long[gyro][1] * long[xKdPtr] + math.getSign(long[gyro][1])*5000)/10000
   xIntInt := (xIntInt + (xErr*long[xKiPtr])/100_000)
-  xInt := -500 #> (xIntInt)/1000  <# 500   
+  xInt := -100 #> (xIntInt)/1000  <# 100   
 
   if -5000 < xErr AND xErr < 5000 
     output := xPro + xDer + xInt
@@ -69,13 +78,17 @@ PUB calcPIDx(targetVal): output ' controlling motor pulse 0 and 2
     xInt := 0
 
     
-PUB calcPIDy(targetVal): output  ' controlling motor pulse 0 and 2  - pitch control
+PUB calcPIDPitch(targetVal): output  ' controlling motor pulse 0 and 2  - pitch control
 
   yErr := (targetVal- long[eAngle][0]) 
   yPro := (yErr * long[yKpPtr] + math.getSign(yErr)*5000)/10000
   yDer := (long[gyro][0] * long[yKdPtr] + math.getSign(long[gyro][0])*5000)/10000
   yIntInt := (yIntInt + (yErr*long[yKiPtr])/100_000)
-  yInt := -500 #> (yIntInt)/1000  <# 500   
+'  if (yIntInt> 50000) 
+'    yIntInt := 50000
+'  elseif  (yIntINt <-5000) 
+'     yIntInt := -50000 
+  yInt := -100 #> (yIntInt)/1000  <# 100   
 
   if -5000 < yErr AND yErr < 5000 
     output := yPro - yDer + yInt
@@ -83,20 +96,37 @@ PUB calcPIDy(targetVal): output  ' controlling motor pulse 0 and 2  - pitch cont
     output :=  yPro - yDer
     yInt := 0
 
-PUB calcPIDz(targetVal): output
+PUB calcPIDYaw(targetVal): output
 
- 
-    
+  zErr := (targetVal- long[eAngle][2]) 
+  zPro := (zErr * long[zKpPtr] + math.getSign(zErr)*5000)/10000
+  zDer := (long[gyro][2] * long[zKdPtr] + math.getSign(long[gyro][2])*5000)/10000
+  zIntInt := (zIntInt + (zErr*long[zKiPtr])/100_000)
+
+  zInt := 0'-50 #> (zIntInt)/1000  <# 50   
+
+  if -5000 < zErr AND zErr < 5000 
+    output := zPro - zDer + zInt
+  else
+    output :=  zPro - zDer
+    zInt := 0
+  
 
 PUB resetY
   yPro := 0
   yDer := 0
   yIntInt := 0
   yInt := 0
-  
+
   
 PUB resetX
   xPro := 0
   xDer := 0
   xIntInt := 0
   xInt := 0
+
+PUB resetZ
+  zPro := 0
+  zDer := 0
+  zIntInt := 0
+  zInt := 0
