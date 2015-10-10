@@ -211,7 +211,18 @@ PUB acc2ang | x, y, temp
   t3_first_euler_in[0] := tr.atan2(x, y)  ' theta
   t3_first_euler_in[1] := tr.atan2(-t3_avgAcc[2], -t3_avgAcc[1])
   t3_first_euler_in[2] := 0
-  
+
+PUB acc2ang_runTime | x, y, temp
+
+  temp := t3_acc[2] * t3_acc[2]+t3_acc[1] * t3_acc[1]
+  x := sqrt(temp)
+  y := t3_acc[0] 
+
+  t3_first_euler_in[0] := tr.atan2(x, y)  ' theta
+  t3_first_euler_in[1] := tr.atan2(-t3_acc[2], -t3_acc[1])
+  t3_first_euler_in[2] := 0
+
+
 PUB sqrt(value)| x, i
 
   x := value
@@ -234,8 +245,8 @@ PUB getOmega |ki
   ki := 100
   repeat t3_counter from 0 to 2
     t3_omega[t3_counter] := t3_gyro[t3_counter]*CMNSCALE/131*314/100/180   '10_000 rad/s
-    if (t3_omega[t3_counter] < 70 AND t3_omega[t3_counter] > -70)  ' for now eliminate gyro noise
-      t3_omega[t3_counter] := 0 
+    'if (t3_omega[t3_counter] < 70 AND t3_omega[t3_counter] > -70)  ' for now eliminate gyro noise
+     ' t3_omega[t3_counter] := 0 
   t3_omega[t3_counter] += t3_I[t3_counter]* ki/10000 /CMNSCALE
     
 PUB getEye
@@ -269,7 +280,7 @@ PUB startDcm
   stopDcm
   t3_dcmCogId := cognew(runDcm, @t3_dcmStack) + 1
 
-PUB runDcm
+PUB runDcm | err0, err1, err2
   
   repeat
     if t3_gyroIsUpdated
@@ -286,8 +297,16 @@ PUB runDcm
         t3_accMagIsUpdated := 0
        
       d2a
+      {
+      acc2ang_runTime
 
+      err0 := t3_first_euler_in[0] - t3_euler[0]
+      err1 := t3_first_euler_in[1] - t3_euler[1]
+      err2 := t3_first_euler_in[2] - t3_euler[2]
 
+      if (math.getAbs(err0) > 500) OR (math.getAbs(err1)> 500) OR (math.getAbs(err2)> 500) 
+        math.a2d(@t3_dcm,@t3_first_euler_in)  
+      }
       t3_gyroIsUpdated := 0
       t3_dcmIsUpdated := 1  ' to report to upper level object
       t3_dt_dcm := cnt - t3_prev_dcm
@@ -543,6 +562,7 @@ PUB dcmStep8
    
   ' done in 'getOmega
 
+  
 PUB freezResult | local_c
 
  ' long t3_dcm_d[9], t3_eye_d[9], t3_imdt_d[9]

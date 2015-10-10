@@ -10,7 +10,7 @@ long zKpPtr, zKdPtr, zKiPtr, zErr, zPro, zDer, zInt, zIntInt, zOutput
 
 long eAngle[3], gyro[3]
 
-long oldDer_roll
+long oldDer_roll,oldDer_pitch
 
 OBJ
 
@@ -66,61 +66,57 @@ PUB setZaxis(kpPtr, kdPtr, kiPtr)
   zKdPtr := kdPtr
   zKiPtr := kiPtr
 
-PUB calcPIDRoll(targetVal): output| alpha ' controlling motor pulse 0 and 2
+PUB calcPIDRoll(targetVal): output| alpha, angVel ' controlling motor pulse 0 and 2
 
   
   xErr := (targetVal- long[eAngle][1])  'eAngle[1] = roll
-  xPro :=  (xErr * long[xKpPtr])/10000
-  alpha := long[xKdPtr]
-  oldDer_roll := (long[gyro][1]*alpha )/1000 + (oldDer_roll*(1000 - alpha))/1000
-  xDer := (oldDer_roll)/10   '(long[gyro][1] * long[xKdPtr] )/10000
-  xIntInt := (xIntInt + (xErr*long[xKiPtr])/100_000)
-  xInt := -500 #> (xIntInt)/1000  <# 500   
-
-
-   
+  if (-100 > xErr) OR (xErr>100)
+    xPro :=  (xErr * long[xKpPtr])/10000
+    'xDer := (long[gyro][1] * long[xKdPtr] )/10000
+    angVel := long[gyro][0]/131   '  deg/s
+    'if (-70  < angVel) AND (angVel<70)
+    '  angVel := 0
+    alpha := long[xKdPtr]
+    oldDer_roll := (angVel*alpha )/1000 + (oldDer_roll*(1000 - alpha))/1000
+    'xDer := (oldDer_roll)/100   '(long[gyro][1] * long[xKdPtr] )/10000
+    xDer := oldDer_roll'(angVel*long[xKdPtr]/1000)
+    xIntInt := (xIntInt + (xErr*long[xKiPtr])/100_000)
+    xInt := -500 #> (xIntInt)/1000  <# 500   
+     
     if -5000 < xErr AND xErr < 5000 
       output := (xPro - xDer + xInt)
     else
       output :=  xPro - xDer
       xInt := 0
 
-PUB calcPIDRoll2(targetVal): output ' controlling motor pulse 0 and 2
-
-{
-  xErr := (targetVal- long[eAngle][1])  'eAngle[1] = roll
-  xPro := (xErr * long[xKpPtr])/10000
-  xDer := (long[gyro][1] * long[xKdPtr] )/10000
- 'xIntInt := (xIntInt + (xErr*long[xKiPtr])/100_000)
-  'xInt := -100 #> (xIntInt)/1000  <# 100   
-
-
-  if xErr > 100     
-    if -5000 < xErr AND xErr < 5000 
-      output := (xPro + xDer + xInt)
-    else
-      output :=  xPro + xDer
-      xInt := 0
-}
-    
-PUB calcPIDPitch(targetVal): output  ' controlling motor pulse 0 and 2  - pitch control
+PUB calcPIDPitch(targetVal): output| alpha, angVel  ' controlling motor pulse 0 and 2  - pitch control
 
   yErr := (targetVal- long[eAngle][0]) 'eAngle[0] = pitch
-  'yPro := (yErr * long[yKpPtr] + math.getSign(yErr)*5000)/10000
-  yPro := (yErr * long[yKpPtr] )/10000    
-  'yDer := (long[gyro][0] * long[yKdPtr] + math.getSign(long[gyro][0])*5000)/10000
-  yDer := (long[gyro][0] * long[yKdPtr] )/10000
-  yIntInt := (yIntInt + (yErr*long[yKiPtr])/100_000)
+ 'yPro := (yErr * long[yKpPtr] + math.getSign(yErr)*5000)/10000
+    yPro := (yErr * long[yKpPtr] )/10000    
+    'yDer := (long[gyro][0] * long[yKdPtr] + math.getSign(long[gyro][0])*5000)/10000
 
+    angVel := long[gyro][1]/131  
+    if (-100 < long[gyro][1]) AND (long[gyro][1] < 100)
+      angVel := 0
+    
 
-  yInt := -200 #> (yIntInt)/1000  <# 200   
-
-  if yErr > 100  
-    if -5000 < yErr AND yErr < 5000 
-      output := yPro - yDer + yInt
-    else
-      output :=  yPro - yDer
-      yInt := 0
+    alpha := long[yKdPtr]
+    oldDer_pitch := (angVel*alpha*3 )/1000 + (oldDer_pitch*(1000 - alpha))/1000
+   
+    'yDer := (long[gyro][1] * long[yKdPtr] )/10000
+    yDer := oldDer_pitch'(angVel*long[yKdPtr]/1000)   
+    yIntInt := (yIntInt + (yErr*long[yKiPtr])/100_000)
+     
+     
+    yInt := -200 #> (yIntInt)/1000  <# 200   
+     
+    if yErr > 100  
+      if -5000 < yErr AND yErr < 5000 
+        output := yPro - yDer + yInt
+      else
+        output :=  yPro - yDer
+        yInt := 0
 
 PUB calcPIDYaw(targetVal): output
 

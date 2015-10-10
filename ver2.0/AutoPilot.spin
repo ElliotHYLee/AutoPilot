@@ -124,9 +124,10 @@ PRI setXConst  | x
   x := throttle
   
 '  if 1100 < x AND x < 1500
-    xKp := 50
-    xKi := 0
-    xKd := 10     
+
+    xKp := 500
+    xKi := 1000
+    xKd := 850     
 '  elseif x < 2000
 '    xKp := 400
 '    xKi := 3000
@@ -137,9 +138,9 @@ PRI setYConst  | x    ' pitch
   x := throttle
   
 '  if 1100 < x AND x < 1500
-    yKp := 50
+    yKp := 700
     yKi := 1000
-    yKd := 10     
+    yKd := 850     
  ' elseif x < 2000 
  '   yKp := 400
  '   yKi := 3000
@@ -148,7 +149,7 @@ PRI setZConst  | x
 
   x := throttle
   
-'  if 1100 < x AND x < 1500
+'  if 1100 < x AND x < 1500    9
   zKp := 300
   zKi := 0
   zKd := 200  
@@ -230,24 +231,6 @@ PRI rollPID
   pulse[2] := 1200 #> throttle + xOutput*86/100 <# thrustBound_max'1950 
   pulse[3] := 1200 #> throttle + xOutput*86/100 <# thrustBound_max'1950
   
-PRI rollPID2
-
-  'setXConst
-
-  xOutput := attCtrl.calcPIDRoll2(targetEAngle[1]) 
-  'xErr := attCtrl.getErrX
-  'xPro := attCtrl.getProX
-  'xDer := attCtrl.getDerX
-  'xInt := attCtrl.getIntX
-
-  
-  pulse[4] := 1200 #> throttle + xOutput*0/100 <# thrustBound_max'1950 
-  pulse[5] := 1200 #> throttle + xOutput*0/100 <# thrustBound_max'1950 
-  pulse[0] := 1200 #> throttle + xOutput*0/100 <# thrustBound_max'1950
-  
-  pulse[1] := 1200 #> throttle - xOutput*0/100 <# thrustBound_max'1950
-  pulse[2] := 1200 #> throttle - xOutput*0/100 <# thrustBound_max'1950 
-  pulse[3] := 1200 #> throttle - xOutput*0/100 <# thrustBound_max'1950 
                                               
 PRI pitchPID  'y = pitch axis
 
