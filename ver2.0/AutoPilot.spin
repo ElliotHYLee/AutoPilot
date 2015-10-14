@@ -138,9 +138,9 @@ PRI setYConst  | x    ' pitch
   x := throttle
   
 '  if 1100 < x AND x < 1500
-    yKp := 700
-    yKi := 1000
-    yKd := 850     
+    yKp := 500
+    yKi := 0
+    yKd := 100    
  ' elseif x < 2000 
  '   yKp := 400
  '   yKi := 3000
