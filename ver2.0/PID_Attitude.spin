@@ -10,7 +10,7 @@ long zKpPtr, zKdPtr, zKiPtr, zErr, zPro, zDer, zInt, zIntInt, zOutput
 
 long eAngle[3], gyro[3]
 
-long oldDer_roll,oldDer_pitch, oldDer_yaw
+long oldDer_roll,oldDer_pitch
 
 OBJ
 
@@ -39,7 +39,7 @@ PUB getErrZ
 PUB getProZ
   return zPro
 PUB getDerZ
-  return zDer
+  return yDer
 PUB getIntZ
   return zInt
            
@@ -100,28 +100,21 @@ PUB calcPIDPitch(targetVal): output| alpha, angVel  ' controlling motor pulse 0 
 
   yIntInt := (yIntInt + (yErr*long[yKiPtr])/100_000)
          
-  yInt := -500 #> (yIntInt)/1000  <# 500   
+  yInt := -200 #> (yIntInt)/1000  <# 200   
   if -5000 < yErr AND yErr < 5000 
     output := yPro - yDer + yInt
   else
     output :=  yPro - yDer
     yInt := 0
 
-PUB calcPIDYaw(targetVal): output   | alpha, angVel
+PUB calcPIDYaw(targetVal): output
 
   zErr := (targetVal- long[eAngle][2]) 
-  zPro := (zErr * long[zKpPtr])/10000
-  'zDer := (long[gyro][2]/131 * long[zKdPtr] )/100
-
-  angVel := long[gyro][2]/131  
-  alpha := long[zKdPtr]
-  
-  oldDer_yaw := (angVel*alpha )/1000 + (oldDer_yaw*(1000 - alpha))/1000
-  zDer := oldDer_yaw
-  
+  zPro := (zErr * long[zKpPtr] + math.getSign(zErr)*5000)/10000
+  zDer := (long[gyro][2] * long[zKdPtr] + math.getSign(long[gyro][2])*5000)/10000
   zIntInt := (zIntInt + (zErr*long[zKiPtr])/100_000)
 
-  zInt := -5000 #> (zIntInt)  <# 5000   
+  zInt := -50 #> (zIntInt)/1000  <# 50   
 
   if -5000 < zErr AND zErr < 5000 
     output := zPro - zDer + zInt
@@ -133,7 +126,6 @@ PUB calcPIDYaw(targetVal): output   | alpha, angVel
 PUB resetY
   yPro := 0
   yDer := 0
-  oldDer_pitch :=0
   yIntInt := 0
   yInt := 0
 
@@ -141,7 +133,6 @@ PUB resetY
 PUB resetX
   xPro := 0
   xDer := 0
-  oldDer_roll :=0
   xIntInt := 0
   xInt := 0
 

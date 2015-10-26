@@ -48,9 +48,11 @@ PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm 
       outa[motorPin[i]]:= 1
       waitcnt(cnt + clkfreq/1000000*long[pulsePtr][i])
       outa[motorPin[i]]:= 0
+         
+    repeat i from 0 to 5
       totalElapse += long[pulsePtr][i]
        
-    waitcnt(baseTime + (clkfreq/1000*25 - clkfreq/1000000*totalElapse))
+    waitcnt(baseTime + (clkfreq/1000*50 - clkfreq/1000000*totalElapse))
 
 PRI inspectPulse | i , j
 

@@ -122,37 +122,47 @@ PRI startPID
 PRI setXConst  | x
 
   x := throttle
+  
+'  if 1100 < x AND x < 1500
 
-  xKp := 150
-  xKi := 0
-  xKd := 100     
+    xKp := 500
+    xKi := 1000
+    xKd := 850     
+'  elseif x < 2000
+'    xKp := 400
+'    xKi := 3000
+'    xKd := 800
 
 PRI setYConst  | x    ' pitch
 
   x := throttle
-
-  yKp := 150
-  yKi := 0
-  yKd := 100    
-
+  
+'  if 1100 < x AND x < 1500
+    yKp := 500
+    yKi := 0
+    yKd := 100    
+ ' elseif x < 2000 
+ '   yKp := 400
+ '   yKi := 3000
+ '   yKd := 800
 PRI setZConst  | x
 
   x := throttle
-
-  zKp := 100
+  
+'  if 1100 < x AND x < 1500    9
+  zKp := 300
   zKi := 0
-  zKd := 50 
+  zKd := 200  
 
 PRI runPID  |i, prev, dt, delay
 
-  
   setXConst
   setYConst
   setZConst
 
-  pidOffX
-  pidOffY
-  pidOffZ
+  'pidOffX
+  'pidOffY
+  'pidOffZ
   
   respondContent := 2
   respondType := 1
@@ -165,58 +175,44 @@ PRI runPID  |i, prev, dt, delay
   
   attCtrl.setAttVal(@eAngle, @gyro)
 
-  thrustBound_max := 1950
+  thrustBound_max := 1800
   repeat
     prev := cnt
-    
     updateAttitude   
-
-    attitudePID
-    
+    if pidOnOff[0] == 1
+      rollPID
+      'rollPID2
+    else
+      attCtrl.resetX
+    if pidOnOff[1] == 1
+      pitchPID
+    else
+      attCtrl.resetY
+    if pidOnOff[2] == 1
+      yawPID 
+    else
+      attCtrl.resetZ
     dt := cnt - prev
-
     waitcnt(cnt + clkfreq/100 - dt   )     ' 137 = ~avg DCM frequency
     
+    'dt := cnt - prev
+    'usb.decLn(clkfreq/dt)
+
+
+    
 PRI updateAttitude 
+
+'  sensor.getEulerAngle(@eAngle)
+'  sensor.getAcc(@acc)
+'  sensor.getGyro(@gyro)
+
 
   'sensor.getMag(@mag)
   sensor.getAcc(@Acc)
   sensor.getGyro(@gyro)
   sensor.getEulerAngles(@eAngle)
-
-PRI attitudePID
-
-  if pidOnOff[0] == 1
-    rollPID
-  else
-    attCtrl.resetX
-    xOutput:=0 
-
-  if pidOnOff[1] == 1
-    pitchPID
-  else
-    attCtrl.resetY
-    yOutput:=0
-    
-  if pidOnOff[2] == 1
-    yawPID
-  else
-    attCtrl.resetZ
-    zOutput:=0
-    
-  if pidOnOff[0] OR pidOnOff[1] OR pidOnOff[2] 
-    pulse[1] := 1200 #> throttle + xOutput*86/100 + yOutput + zOutput <# thrustBound_max'1950
-    pulse[2] := 1200 #> throttle + xOutput*86/100                     <# thrustBound_max'1950 
-    pulse[3] := 1200 #> throttle + xOutput*86/100 - yOutput - zOutput <# thrustBound_max'1950    
-     
-    pulse[4] := 1200 #> throttle - xOutput*86/100 - yOutput + zOutput <# thrustBound_max'1950 
-    pulse[5] := 1200 #> throttle - xOutput*86/100                     <# thrustBound_max'1950 
-    pulse[0] := 1200 #> throttle - xOutput*86/100 + yOutput - zOutput <# thrustBound_max'1950
-     
-  
-                                                                                 
        
-PRI rollPID 
+PRI rollPID
 
   'setXConst
 
@@ -226,7 +222,17 @@ PRI rollPID
   xDer := attCtrl.getDerX
   xInt := attCtrl.getIntX
 
-PRI pitchPID 'y = pitch axis
+  
+  pulse[4] := 1200 #> throttle - xOutput*86/100 <# thrustBound_max'1950 
+  pulse[5] := 1200 #> throttle - xOutput*86/100 <# thrustBound_max'1950 
+  pulse[0] := 1200 #> throttle - xOutput*86/100 <# thrustBound_max'1950
+  
+  pulse[1] := 1200 #> throttle + xOutput*86/100 <# thrustBound_max'1950
+  pulse[2] := 1200 #> throttle + xOutput*86/100 <# thrustBound_max'1950 
+  pulse[3] := 1200 #> throttle + xOutput*86/100 <# thrustBound_max'1950
+  
+                                              
+PRI pitchPID  'y = pitch axis
 
   'setYConst
 
@@ -235,28 +241,28 @@ PRI pitchPID 'y = pitch axis
   yPro := attCtrl.getProY
   yDer := attCtrl.getDerY
   yInt := attCtrl.getIntY
-  {
+  
   pulse[0] := 1200 #> throttle + yOutput <# thrustBound_max'1950
   pulse[1] := 1200 #> throttle + yOutput <# thrustBound_max'1950  
   pulse[3] := 1200 #> throttle - yOutput <# thrustBound_max'1950
   pulse[4] := 1200 #> throttle - yOutput <# thrustBound_max'1950
-  }
+  
 PRI yawPID
 
   'setZConst
 
-  zOutput := attCtrl.calcPIDYaw(targetEAngle[2]) 
+  zOutput := -attCtrl.calcPIDYaw(targetEAngle[2]) 
   zErr := attCtrl.getErrZ
   zPro := attCtrl.getProZ
   zDer := attCtrl.getDerZ
   zInt := attCtrl.getIntZ
-  {
-  pulse[0] := 1200 #> throttle - zOutput <# thrustBound_max'1950 
-  pulse[3] := 1200 #> throttle - zOutput <# thrustBound_max'1950  
 
-  pulse[1] := 1200 #> throttle + zOutput <# thrustBound_max'1950    
-  pulse[4] := 1200 #> throttle + zOutput <# thrustBound_max'1950 
-  }
+  pulse[0] := 1200 #> throttle + zOutput <# thrustBound_max'1950 
+  pulse[3] := 1200 #> throttle + zOutput <# thrustBound_max'1950  
+
+  pulse[1] := 1200 #> throttle - zOutput <# thrustBound_max'1950    
+  pulse[4] := 1200 #> throttle - zOutput <# thrustBound_max'1950 
+
 
   
 '===================================================================================================
