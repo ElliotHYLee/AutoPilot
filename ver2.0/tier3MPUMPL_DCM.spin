@@ -246,7 +246,7 @@ PUB getOmega |ki
   repeat t3_counter from 0 to 2
     t3_omega[t3_counter] := t3_gyro[t3_counter]*CMNSCALE/131*314/100/180   '10_000 rad/s
     'if (t3_omega[t3_counter] < 70 AND t3_omega[t3_counter] > -70)  ' for now eliminate gyro noise
-     ' t3_omega[t3_counter] := 0 
+    '  t3_omega[t3_counter] := 0 
   t3_omega[t3_counter] += t3_I[t3_counter]* ki/10000 /CMNSCALE
     
 PUB getEye
