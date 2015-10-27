@@ -30,10 +30,17 @@ PUB setMotorPWM(pwmPtr) | i
   repeat i from 0 to 5
     pulsePtr[i] := pwmPtr[i]
 
-PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm for the motor connected to this pin}}              
+PUB runMotor | check, baseTime, totalElapse, i , array[6]             {{generating pwm for the motor connected to this pin}}              
   
   initMotor  'physical initialization for this motor 
 
+  array[0] := 0
+  array[1] := 3
+  array[2] := 1
+  array[3] := 4
+  array[4] := 2
+  array[5] := 5
+  
   repeat i from 0 to 5
     dira[motorPin[i]] := 1   'set pin direction for this motor 
     long[pulsePtr][i] := 1200         'set default pwm
@@ -45,9 +52,9 @@ PUB runMotor | check, baseTime, totalElapse, i                 {{generating pwm 
     baseTime := cnt    
 
     repeat i from 0 to 5
-      outa[motorPin[i]]:= 1
-      waitcnt(cnt + clkfreq/1000000*long[pulsePtr][i])
-      outa[motorPin[i]]:= 0
+      outa[motorPin[array[i]]]:= 1
+      waitcnt(cnt + clkfreq/1000000*long[pulsePtr][array[i]])
+      outa[motorPin[array[i]]]:= 0
          
     'repeat i from 0 to 5
       totalElapse += long[pulsePtr][i]

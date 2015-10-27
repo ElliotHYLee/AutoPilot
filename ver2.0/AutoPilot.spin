@@ -24,7 +24,7 @@ VAR
 
  'attitude variables
   long sensorCodId, sensorStack[128] 
-  long gyro[3], acc[3], eAngle[3]
+  long gyro[3], acc[3], eAngle[3],mag[3]
 
   'usb variables
   long newValue, type, comStack[64],comCogId, serialCogId1
@@ -119,29 +119,29 @@ PRI startPID
 
   pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
-PRI setXConst  | x
+PRI setXConst  | x   'Roll
 
   x := throttle
 
-  xKp := 900
-  xKi := 2000
-  xKd := 999     
+  xKp := 500
+  xKi := 1500
+  xKd := 800     
 
 PRI setYConst  | x    ' pitch
 
   x := throttle
 
-  yKp := 800
-  yKi := 0
-  yKd := 990    
+  yKp := 400
+  yKi := 1500
+  yKd := 600    
 
 PRI setZConst  | x
 
   x := throttle
 
-  zKp := 50
+  zKp := 45
   zKi := 0
-  zKd := 10 
+  zKd := 1000
 
 PRI runPID  |i, prev, dt, delay
 
@@ -179,7 +179,7 @@ PRI runPID  |i, prev, dt, delay
     
 PRI updateAttitude 
 
-  'sensor.getMag(@mag)
+  sensor.getMag(@mag)
   sensor.getAcc(@Acc)
   sensor.getGyro(@gyro)
   sensor.getEulerAngles(@eAngle)
@@ -195,7 +195,6 @@ PRI attitudePID
   else
     attCtrl.resetX
     
-
   if pidOnOff[1] == 1
     pitchPID
   else
@@ -206,14 +205,15 @@ PRI attitudePID
   else
     attCtrl.resetZ
 
-  if pidOnOff[0] OR pidOnOff[1] OR pidOnOff[2] 
+  if pidOnOff[0] OR pidOnOff[1] OR pidOnOff[2]
+
+    pulse[0] := 1200 #> throttle - xOutput*86/100 + yOutput - zOutput <# thrustBound_max'1950    
     pulse[1] := 1200 #> throttle + xOutput*86/100 + yOutput + zOutput <# thrustBound_max'1950
     pulse[2] := 1200 #> throttle + xOutput*86/100                     <# thrustBound_max'1950 
-    pulse[3] := 1200 #> throttle + xOutput*86/100 - yOutput - zOutput <# thrustBound_max'1950    
-     
+    pulse[3] := 1200 #> throttle + xOutput*86/100 - yOutput - zOutput <# thrustBound_max'1950
     pulse[4] := 1200 #> throttle - xOutput*86/100 - yOutput + zOutput <# thrustBound_max'1950 
     pulse[5] := 1200 #> throttle - xOutput*86/100                     <# thrustBound_max'1950 
-    pulse[0] := 1200 #> throttle - xOutput*86/100 + yOutput - zOutput <# thrustBound_max'1950
+    
      
   
                                                                                  
