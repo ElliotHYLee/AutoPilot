@@ -285,7 +285,8 @@ PUB newXBee
   xbee.setXPidPtr(@xKp, @xKd, @xKi, @xPro, @xDer, @xInt, @xOutput)
   xbee.setYPidPtr(@yKp, @yKd, @yKi, @yPro, @yDer, @yInt, @yOutput)
   xbee.setZPidPtr(@zKp, @zKd, @zKi, @zPro, @zDer, @zInt, @zOutput)
-  xbee.setPidOnOffPtr(@pidOnOff)   
+  xbee.setPidOnOffPtr(@pidOnOff)
+  xbee.setTargetAttitude(@targetEAngle)
   startXBee
 
 PRI stopXBee

@@ -7,7 +7,7 @@ OBJ
 
 VAR
 
-  long accPtr[3], gyroPtr[3], eAnglePtr[3]
+  long accPtr[3], gyroPtr[3], eAnglePtr[3], refAttPtr[3], newValueCounter
   long pulsePtr[6], throttlePtr
 
   long xOnPtr, xOffPtr, yOnPtr, yOffPtr, zOnPtr, zOffPtr
@@ -41,6 +41,13 @@ PUB setMotPtr(pwmPtr) | i
   repeat i from 0 to 5
     pulsePtr[i] := pwmPtr[i]
     i++           
+
+PUB setTargetAttitude(valuePtr)
+
+  refAttPtr[0] := valuePtr[0]
+  refAttPtr[1] := valuePtr[1]
+  refAttPtr[2] := valuePtr[2]
+  newValueCounter :=0 ' counts digits of newValue from GCS
 
 PUB setThrottle(valuePtr)
 
@@ -88,8 +95,9 @@ PUB communicate | base , x,y
   base := cnt
   repeat
     if serial.RxCount > 0  
-      readCharArray
+      readCharArray 
     else
+    {
       if respondType > 0 ' need to respond to the request from C#
         x := respondType
         y := respondContent
@@ -102,12 +110,12 @@ PUB communicate | base , x,y
       else
         if (cnt > base + clkfreq/90)
           'sendPidConst
-          sendPidCalc
-          sendAttMsg
-          sendMotorMsg
-          sendThrottleMsg
+          'sendPidCalc
+         ' sendAttMsg
+          'sendMotorMsg
+          'sendThrottleMsg
           base := cnt
-
+     }
 PRI sendPidConst
 
   'p0 = Kp of x axis
@@ -221,9 +229,9 @@ PRI sendAttMsg | i
       0: serial.str(String("x"))
       1: serial.str(String("y"))
       2: serial.str(String("z"))
-    serial.dec(long[accPtr][i])
+    serial.dec(long[refAttPtr][i])
     serial.str(String("]"))
-
+    {
     serial.str(String("[g"))
     case i
       0: serial.str(String("x"))
@@ -231,7 +239,7 @@ PRI sendAttMsg | i
       2: serial.str(String("z")) 
     serial.dec(long[gyroPtr][i])
     serial.str(String("]"))
-
+    }
                 
 PRI respondBack(x)
   case x
@@ -279,7 +287,9 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
    elseif(varChar == 79) ' O -> PID on/off
      type := 5  ' next 5 digits are mode types
    elseif(varChar2 ==  84 AND varchar == 72) ' TH -> throttle
-     type := 6  
+     type := 6
+   elseif(varChar2 ==  82 AND varchar == 65) ' RA -> Reference AttitudeR
+     type := 7       
                             
    if (type==1)
      if 11099 < newValue AND newValue < 63000
@@ -351,13 +361,59 @@ PRI readCharArray   | newPWM, newPidProperty, newRequest, newMode
        sendPidOnOffStatus
 
    elseif (type == 6)   ' Throttle value
-     if 1099 < newValue AND newValue < 2500
+     if 1099 < newValue AND newValue < 2500 
        updateThrottle(newValue)
-       serial.str(String("throttle request :"))
-       serial.decLn(newValue)
+       'serial.str(String("throttle request :"))
+       'serial.decLn(newValue)
        type := 0
        newValue := 0
        
+   elseif (type == 7)   ' Reference attitude
+     'newValueCounter++
+     'if 5 < newValueCounter
+        if 10000 =< newValue AND newValue =< 69000
+          'x axis: -90 deg = 19000,+90 deg = 9000
+          'y axis: -90 deg = 39000,+90 deg = 29000
+          'z axis: -90 deg = 59000,+90 deg = 49000
+          
+          
+          updateRefAtt(newValue)
+          
+          type := 0
+          newValue := 0
+
+          
+        'newValueCounter := 0
+
+   
+PRI updateRefAtt(x) | axis, targetAtt
+
+  axis := x/10_000 
+  targetAtt := x//10_000
+          
+
+  case axis
+        1: long[refAttPtr][0] := targetAtt
+        2: long[refAttPtr][0] := -targetAtt
+        3: long[refAttPtr][1] := targetAtt
+        4: long[refAttPtr][1] := -targetAtt
+        5: long[refAttPtr][2] := targetAtt
+        6: long[refAttPtr][2] := -targetAtt
+
+  {
+  if (  0 <= pnAxis AND  pnAxis <= 3)
+    if ( newTargetValue < 601)
+      case pnAxis
+        0: long[refAttPtr][0] := newTargetValue
+        1: long[refAttPtr][0] := -newTargetValue
+        2: long[refAttPtr][1] := newTargetValue
+        3: long[refAttPtr][1] := -newTargetValue
+  else
+    case pnAxis
+      4: long[refAttPtr][2] := newTargetValue
+      5: long[refAttPtr][2] := -newTargetValue
+    }
+ 
 PRI updateThrottle(val)| i
 
   long[throttlePtr] := val
