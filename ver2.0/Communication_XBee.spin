@@ -97,7 +97,7 @@ PUB communicate | base , x,y
     if serial.RxCount > 0  
       readCharArray 
     else
-    {
+        {
       if respondType > 0 ' need to respond to the request from C#
         x := respondType
         y := respondContent
@@ -111,9 +111,9 @@ PUB communicate | base , x,y
         if (cnt > base + clkfreq/90)
           'sendPidConst
           'sendPidCalc
-         ' sendAttMsg
-          'sendMotorMsg
-          'sendThrottleMsg
+           sendAttMsg
+           sendMotorMsg
+           sendThrottleMsg
           base := cnt
      }
 PRI sendPidConst
