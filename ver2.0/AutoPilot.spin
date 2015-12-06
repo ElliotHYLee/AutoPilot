@@ -276,8 +276,8 @@ USB REGION                                                      |
 PUB newXBee
 
   ' assume it's xbee
-  serialCogId_Xbee := xbee.init(31,30,0,115200)
-  'serialCogId_Xbee := xbee.init(0,1,0,57600)  
+  'serialCogId_Xbee := xbee.init(31,30,0,115200)
+  serialCogId_Xbee := xbee.init(0,1,0,57600)  
 
   xbee.setAttPtr(@acc, @gyro, @eAngle)
   xbee.setMotPtr(@pulse)
