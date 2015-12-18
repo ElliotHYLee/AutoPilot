@@ -3,7 +3,7 @@ CON
   _xinfreq = 5_000_000
 
 OBJ
-  xbee            : "FullDuplexSerial"
+
 
 pub main | x
 
