@@ -7,6 +7,8 @@ OBJ
 
 VAR
 
+  long dist_ground_ptr
+
   long accPtr[3], gyroPtr[3], eAnglePtr[3], refAttPtr[3], newValueCounter
   long pulsePtr[6], throttlePtr
 
@@ -29,6 +31,10 @@ PUB main
 PUB init(rx, tx, mode, baud) 
 
   result := serial.init(rx, tx, mode , baud)
+
+PUB setDistPtr(val)
+
+  dist_ground_ptr := val
  
 PUB setAttPtr(val1, val2, val3)
 
@@ -97,9 +103,6 @@ PUB communicate | base , x,y
     if serial.RxCount > 0  
       readCharArray 
     else
-
-        
-
       if respondType > 0 ' need to respond to the request from C#
         x := respondType
         y := respondContent
@@ -117,7 +120,7 @@ PUB communicate | base , x,y
           sendAttMsg
           sendMotorMsg
           sendThrottleMsg
-
+          sendDistGrdMsg
 
           base := cnt
      
@@ -214,7 +217,13 @@ PRI sendMotorMsg | i
     serial.str(String("[m"))
     serial.Dec(i+1)
     serial.Dec(long[pulsePtr][i])
-    serial.str(String("]"))      
+    serial.str(String("]"))
+
+PRI sendDistGrdMsg
+
+  serial.str(String("[dg"))
+  serial.dec(long[dist_ground_ptr])
+  serial.str(String("]"))         
 
 PRI sendAttMsg | i
 

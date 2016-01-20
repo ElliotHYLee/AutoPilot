@@ -1,6 +1,8 @@
 CON
   _clkmode = xtal1 + pll16x
   _xinfreq = 5_000_000
+
+  ULTRASONIC_SENSOR_PIN = 8
                       
 OBJ
   usb            : "ParallaxSerialTerminal"
@@ -9,7 +11,7 @@ OBJ
   motors         : "Motors.spin"
   math           : "MyMath.spin"
   attCtrl        : "PID_Attitude.spin"
-  
+  ping           : "ping.spin"
 VAR
   'system variable
     
@@ -18,6 +20,9 @@ VAR
   'systemMode 3 = hover    (let PID control pwm to maintain current balance)
   'systemMode 4 = navigate (let PID control pwm)  
   long systemMode, respondType, respondContent
+
+  'distance sensor var
+  long dist_ground
   
   'motor variables
   long throttle, pulse[6], motorPin[6], motorStack[128], motorCogId 
@@ -71,8 +76,11 @@ PUB startAutoPilot|i
   '6. motor start                                       x 1 cog
   setMotor(2,3,4,5,6,7)
 
-  cogstop(0)                                      '-------------------
-                                                  ' total : 8 cogs
+
+  repeat
+    dist_ground := ping.Millimeters(ULTRASONIC_SENSOR_PIN)
+    waitcnt(cnt + clkfreq/100)
+  'cogstop(0)                                      
 
 '===================================================================================================
 '===================== PID PART Attitude Control===================================================
@@ -287,6 +295,7 @@ PUB newXBee
   xbee.setZPidPtr(@zKp, @zKd, @zKi, @zPro, @zDer, @zInt, @zOutput)
   xbee.setPidOnOffPtr(@pidOnOff)
   xbee.setTargetAttitude(@targetEAngle)
+  xbee.setDistPtr(@dist_ground)
   startXBee
 
 PRI stopXBee
