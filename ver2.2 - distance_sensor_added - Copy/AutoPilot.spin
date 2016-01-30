@@ -5,8 +5,7 @@ CON
   ULTRASONIC_SENSOR_PIN = 8
                       
 OBJ
-  'usb            : "ParallaxSerialTerminal"
-  'xbee           : "Communication_XBee"
+
   com            : "fullDuplexSerial4Port_tier3.spin"
   sensor         : "tier3MPUMPL_DCM.spin"
   motors         : "Motors.spin"
@@ -32,14 +31,11 @@ VAR
   long sensorCodId, sensorStack[128] 
   long gyro[3], acc[3], eAngle[3],mag[3]
 
-  'usb variables
+  'communcation variables
   long comStack[64],com_listener_CogId, com_loop_CogId
-  'long motorNumber
 
-  'Xbee variables
-  'long serialCogId_XBee, comCogId_XBee, comStack_XBee[128]
-   
-  'pid variables
+
+  'pid variables  - attitude control
   long pidStack[128], pidCogId
   long targetEAngle[3], pidUpdateIndex
   long xKp, xKd, xKi 
@@ -51,6 +47,9 @@ VAR
   long pidOnOff[3]
   long thrustBound_max
 
+  'pid variables - position control
+  long pidStack_pos[128], pidCodId_pos
+  
    
   long prevTime, curTime, tElapse, dummy , dummy2 , sensorElapse
 
@@ -59,32 +58,28 @@ PUB startAutoPilot|i
   repeat i from 0 to 2
     targetEAngle[i] := 0
 
-  '1. usb start  (usb com for Kinect)                   x 2 cogs
-  'newUSB
-
-  '2. xbee start (wireless com for Ground Station)      x 2 cogs
+  '1. xbee start (wireless com for Ground Station)      x 2 cogs
   newCommunication
   'usb.quickStart
   
   
-  '3. attitude start (MPU9150(+AK8) & MPL11A2)          x 1 cog
+  '2. attitude start (MPU9150(+AK8) & MPL11A2)          x 2 cog
   startSensor
   
   '4. attitude pid start                                x 1 cog
   startPID
-  'position PID
+
+  '5. Position PID                                      x 1 cog
+  startPID_Pos 
 
   '6. motor start                                       x 1 cog
   setMotor(2,3,4,5,6,7)
 
-
-  repeat
-    dist_ground := ping.Millimeters(ULTRASONIC_SENSOR_PIN)
-    waitcnt(cnt + clkfreq/100)
-  'cogstop(0)                                      
+  '7 sd card
+  'cogstop(0)                        
 
 '===================================================================================================
-'===================== XBee COMMUNICATION PART ==================================================================
+'===================== COMMUNICATION PART ==================================================================
 '===================================================================================================
 {{
 -----------------------------------------------------------------
@@ -122,6 +117,49 @@ PRI startCommunication
 PRI runCommunication
 
   com.communicate 
+
+'===================================================================================================
+'===================== PID PART Location Control===================================================
+'===================================================================================================
+{{
+-----------------------------------------------------------------
+PID REGION                                                      |
+  Number of cog used : 1                                        |
+  Cog usage          : calculating PID _ Local position         |
+  Functions:         :                                          |
+-----------------------------------------------------------------
+}}
+PUB stopPID_Pos
+  if pidCodId_pos             
+    cogstop(pidCodId_pos ~ - 1)
+PUB startPID_Pos
+
+  stopPID_pos
+
+  pidCodId_pos := cognew(runPID_pos, @pidStack_pos) + 1  'start running pid controller
+
+PUB runPID_pos
+
+  repeat
+    getDistance_Ground
+
+PUB getDistance_Ground
+    dist_ground := ping.Millimeters(ULTRASONIC_SENSOR_PIN)*10/100    + dist_ground *90/100
+    waitcnt(cnt + clkfreq/100)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -360,7 +398,7 @@ PRI runMotor
 {{
 -----------------------------------------------------------------
 ATTITUDE SENSOR REGION                                          |
-  Number of cog used : 1                                        |
+  Number of cog used : 2                                        |
   Sensors            : MPU9150, AK8, MPL                        |
   Cog usage          : Reading Sensor Values                    |
                        Calculating Complementary Filter         |

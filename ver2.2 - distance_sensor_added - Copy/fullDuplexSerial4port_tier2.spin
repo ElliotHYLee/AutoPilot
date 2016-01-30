@@ -12,9 +12,9 @@ _xinfreq = 5_000_000
   usbTx = 30
 
   xb = 1
-  xbBaud = 9600
-  xbRx = 1
-  xbTx = 0
+  xbBaud = 57600
+  xbRx = 0
+  xbTx = 1
 
   
 OBJ
@@ -29,16 +29,19 @@ PUB main | isReceived, c
   initialize
 
   repeat
-    isReceived :=  rxIsIn(usb)
+    isReceived :=  rxIsIn(xb)
     if isReceived
-      c :=charIn(usb)
-      char(usb, c)
-      newline(usb)
+      c :=charIn(xb)
+      char(xb, c)
+      newline(xb)
 
+PUB rxFlush(port)
+
+  com.rxFlush(port)
 
 PUB rxIsIn(port) : rxbyte
 
-  rxbyte := com.rxIsIn(usb)
+  rxbyte := com.rxIsIn(port)
 
 PUB initialize
 
