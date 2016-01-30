@@ -37,14 +37,14 @@ PUB main | isReceived, c, localCoordinate[3]
 
   communicate
   
- { repeat
+  repeat
    
     isReceived := com.rxIsIn(usb)
     if isReceived
       c := com.charIn(usb)
       com.char(usb, c)
       com.newline(usb)
-   }
+   
 
 PUB initialize
 

@@ -55,11 +55,12 @@ PUB communicate | base , x,y
   base := cnt
   repeat
     if com.rxIsIn(usb)  
-      readCharArray 
+      readCharArray_usb
     else
       com.dec(usb, long[lcPtr][0])
       waitcnt(cnt + clkfreq/10)
-      
+    if com.rxIsIn(xb)
+       readCharArray_xb  
 
 PRI char2ASCII(charVar)  ' currently not used
   result := byte[charVar]
@@ -67,8 +68,11 @@ PRI char2ASCII(charVar)  ' currently not used
 
 PRI ASCII2Dec(ASCII)
   result := ASCII - 48    
-  
-PRI readCharArray  
+
+'=============================================
+'USB communication routine
+'============================================
+PRI readCharArray_usb  
    varChar2 := varchar
    varChar := com.CharIn(usb)
    if (48=<varChar AND varChar=<57) 'btw 0-9
@@ -99,3 +103,34 @@ PRI readCharArray
        type := 0
        newValue := 0
        coord := 0
+
+'=============================================
+'Xbee communication routine
+'============================================
+PRI readCharArray_xb
+   varChar2 := varchar
+   varChar := com.CharIn(xb)
+   if (48=<varChar AND varChar=<57) 'btw 0-9
+     newValue := newValue*10 + ASCII2Dec(varChar)
+   elseif(varChar == 108) ' l -> local coordinate
+     type := 1  'next 4 digits are (axis number & value)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       

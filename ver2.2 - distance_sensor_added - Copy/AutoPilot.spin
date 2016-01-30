@@ -5,8 +5,9 @@ CON
   ULTRASONIC_SENSOR_PIN = 8
                       
 OBJ
-  usb            : "ParallaxSerialTerminal"
-  xbee           : "Communication_XBee"
+  'usb            : "ParallaxSerialTerminal"
+  'xbee           : "Communication_XBee"
+  com            : "fullDuplexSerial4Port_tier3.spin"
   sensor         : "tier3MPUMPL_DCM.spin"
   motors         : "Motors.spin"
   math           : "MyMath.spin"
@@ -19,7 +20,7 @@ VAR
   'systemMode 2 = prepare  (default pwm: 1200)
   'systemMode 3 = hover    (let PID control pwm to maintain current balance)
   'systemMode 4 = navigate (let PID control pwm)  
-  long systemMode, respondType, respondContent
+  'long systemMode, respondType, respondContent
 
   'distance sensor var
   long dist_ground
@@ -32,12 +33,12 @@ VAR
   long gyro[3], acc[3], eAngle[3],mag[3]
 
   'usb variables
-  long newValue, type, comStack[64],comCogId, serialCogId1
-  long varChar, motorNumber
+  long comStack[64],com_listener_CogId, com_loop_CogId
+  'long motorNumber
 
   'Xbee variables
-  long serialCogId_XBee, comCogId_XBee, comStack_XBee[128]
-
+  'long serialCogId_XBee, comCogId_XBee, comStack_XBee[128]
+   
   'pid variables
   long pidStack[128], pidCogId
   long targetEAngle[3], pidUpdateIndex
@@ -62,7 +63,7 @@ PUB startAutoPilot|i
   'newUSB
 
   '2. xbee start (wireless com for Ground Station)      x 2 cogs
-  newXBee
+  newCommunication
   'usb.quickStart
   
   
@@ -94,35 +95,33 @@ USB REGION                                                      |
 -----------------------------------------------------------------
 }}
 
-PUB newXBee
+PUB newCommunication
 
-  ' assume it's xbee
-  serialCogId_Xbee := xbee.init(31,30,0,115200)
-  'serialCogId_Xbee := xbee.init(0,1,0,57600)  
-
-  xbee.setAttPtr(@acc, @gyro, @eAngle)
-  xbee.setMotPtr(@pulse)
-  xbee.setThrottle(@throttle)
-  xbee.setXPidPtr(@xKp, @xKd, @xKi, @xPro, @xDer, @xInt, @xOutput)
-  xbee.setYPidPtr(@yKp, @yKd, @yKi, @yPro, @yDer, @yInt, @yOutput)
-  xbee.setZPidPtr(@zKp, @zKd, @zKi, @zPro, @zDer, @zInt, @zOutput)
-  xbee.setPidOnOffPtr(@pidOnOff)
-  xbee.setTargetAttitude(@targetEAngle)
-  xbee.setDistPtr(@dist_ground)
-  startXBee
-
-PRI stopXBee
-  if comCogId_Xbee
-    cogstop(comCogId_Xbee)
-
-PRI startXBee
-
-  stopXBee
-  comCogId_XBee := cognew(runXBee, @comStack_XBee)
+  com_listener_CogId := com.initialize
   
-PRI runXBee
+  com.setAttPtr(@acc, @gyro, @eAngle)
+  com.setMotPtr(@pulse)
+  com.setThrottle(@throttle)
+  com.setXPidPtr(@xKp, @xKd, @xKi, @xPro, @xDer, @xInt, @xOutput)
+  com.setYPidPtr(@yKp, @yKd, @yKi, @yPro, @yDer, @yInt, @yOutput)
+  com.setZPidPtr(@zKp, @zKd, @zKi, @zPro, @zDer, @zInt, @zOutput)
+  com.setPidOnOffPtr(@pidOnOff)
+  com.setTargetAttitude(@targetEAngle)
+  com.setDistPtr(@dist_ground)
+  startCommunication
 
-  xbee.communicate 
+PRI stopCommunication
+  if com_loop_CogId
+    cogstop(com_loop_CogId)
+
+PRI startCommunication
+
+  stopCommunication
+  com_loop_CogId := cognew(runCommunication, @comStack)
+  
+PRI runCommunication
+
+  com.communicate 
 
 
 
@@ -205,12 +204,13 @@ PRI runPID  |i, prev, dt, delay
   pidOffX
   pidOffY
   pidOffZ
-  
+
+  {
   respondContent := 2
   respondType := 1
   respondContent := 1
   respondType := 1       
-
+   }
   attCtrl.setXaxis(@xKp, @xKd, @xKi)
   attCtrl.setYaxis(@yKp, @yKd, @yKi)
   attCtrl.setZaxis(@zKp, @zKd, @zKi)  
