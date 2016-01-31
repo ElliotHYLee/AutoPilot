@@ -23,6 +23,10 @@ VAR
 
   'distance sensor var
   long dist_ground
+
+  'local cooridinate
+  long localCoord[3]
+  
   
   'motor variables
   long throttle, pulse[6], motorPin[6], motorStack[128], motorCogId 
@@ -93,7 +97,8 @@ USB REGION                                                      |
 PUB newCommunication
 
   com_listener_CogId := com.initialize
-  
+
+  com.setLocalCoordinate(@localCoord)
   com.setAttPtr(@acc, @gyro, @eAngle)
   com.setMotPtr(@pulse)
   com.setThrottle(@throttle)

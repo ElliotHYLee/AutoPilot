@@ -37,10 +37,7 @@ PUB main | isReceived, c, localCoordinate[3]
 
   initialize
 
-  
-  repeat
-    
-    communicate
+  communicate
   
     {if com.rxIsIn(xb)
       c := com.charIn(xb)
@@ -50,6 +47,12 @@ PUB main | isReceived, c, localCoordinate[3]
 PUB initialize
 
   com_listener_CogId := com.initialize
+
+PUB setLocalCoordinate(valuePtr)
+
+  lcPtr[0] := valuePtr[0]  
+  lcPtr[1] := valuePtr[1]
+  lcPtr[2] := valuePtr[2]  
 
 PUB setDistPtr(val)
 
@@ -125,22 +128,21 @@ PUB communicate | base , x,y
     if com.rxIsIn(usb)  
       readCharArray_usb
     else
-      com.dec(usb, long[lcPtr][0])
+      sendLocalCoordinate
       waitcnt(cnt + clkfreq/10)
       
-   ' communication with GCS
+   ' communication with GCS (Xbee)
     if com.rxIsIn(xb)
       readCharArray_xb
     else
-     if (cnt > base + clkfreq/90)
-          sendPidConst
-          sendPidCalc
-          sendAttMsg
-          sendMotorMsg
-          sendThrottleMsg
-          sendDistGrdMsg
-
-          base := cnt 
+      if (cnt > base + clkfreq/90)
+        sendPidConst
+        sendPidCalc
+        sendAttMsg
+        sendMotorMsg
+        sendThrottleMsg
+        sendDistGrdMsg
+        base := cnt 
 '=================================
 ' Auxiliary Loop
 '================================       
@@ -186,6 +188,24 @@ PRI readCharArray_usb
        type := 0
        newValue := 0
        coord := 0
+
+PUB sendLocalCoordinate 
+
+
+  com.str(usb, string("[lx"))
+  com.dec(usb, long[lcPtr][0])
+  com.str(usb, string("]"))
+
+  com.str(usb, string("[ly"))
+  com.dec(usb, long[lcPtr][1])
+  com.str(usb, string("]"))
+
+  com.str(usb, string("[lz"))
+  com.dec(usb, long[lcPtr][2])
+  com.str(usb, string("]"))
+
+
+
 
 '=============================================
 'Xbee communication routine
