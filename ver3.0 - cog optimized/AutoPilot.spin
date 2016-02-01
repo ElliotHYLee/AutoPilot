@@ -6,7 +6,7 @@ CON
                       
 OBJ
 
-  com            : "fullDuplexSerial4Port_tier3.spin"
+  comm           : "fullDuplexSerial4Port_tier3.spin"
   sensor         : "tier3MPUMPL_DCM.spin"
   motors         : "Motors.spin"
   math           : "MyMath.spin"
@@ -36,7 +36,7 @@ VAR
   long gyro[3], acc[3], eAngle[3],mag[3]
 
   'communcation variables
-  long comStack[64],com_listener_CogId, com_loop_CogId
+  long commStack[128],comm_listener_CogId, comm_loop_CogId
 
 
   'pid variables  - attitude control
@@ -96,32 +96,33 @@ USB REGION                                                      |
 
 PUB newCommunication
 
-  com_listener_CogId := com.initialize
+  comm_listener_CogId := comm.initialize
 
-  com.setLocalCoordinate(@localCoord)
-  com.setAttPtr(@acc, @gyro, @eAngle)
-  com.setMotPtr(@pulse)
-  com.setThrottle(@throttle)
-  com.setXPidPtr(@xKp, @xKd, @xKi, @xPro, @xDer, @xInt, @xOutput)
-  com.setYPidPtr(@yKp, @yKd, @yKi, @yPro, @yDer, @yInt, @yOutput)
-  com.setZPidPtr(@zKp, @zKd, @zKi, @zPro, @zDer, @zInt, @zOutput)
-  com.setPidOnOffPtr(@pidOnOff)
-  com.setTargetAttitude(@targetEAngle)
-  com.setDistPtr(@dist_ground)
+  comm.setLocalCoordinate(@localCoord)
+  comm.setAttPtr(@acc, @gyro, @eAngle)
+  comm.setMotPtr(@pulse)
+  comm.setThrottle(@throttle)
+  comm.setXPidPtr(@xKp, @xKd, @xKi, @xPro, @xDer, @xInt, @xOutput)
+  comm.setYPidPtr(@yKp, @yKd, @yKi, @yPro, @yDer, @yInt, @yOutput)
+  comm.setZPidPtr(@zKp, @zKd, @zKi, @zPro, @zDer, @zInt, @zOutput)
+  comm.setPidOnOffPtr(@pidOnOff)
+  comm.setTargetAttitude(@targetEAngle)
+  comm.setDistPtr(@dist_ground)
+
   startCommunication
 
 PRI stopCommunication
-  if com_loop_CogId
-    cogstop(com_loop_CogId)
+  if comm_loop_CogId
+    cogstop(comm_loop_CogId)
 
 PRI startCommunication
 
   stopCommunication
-  com_loop_CogId := cognew(runCommunication, @comStack)
+  comm_loop_CogId := cognew(runCommunication, @commStack)
   
 PRI runCommunication
 
-  com.communicate 
+  comm.communicate 
 
 '===================================================================================================
 '===================== PID PART Location Control===================================================

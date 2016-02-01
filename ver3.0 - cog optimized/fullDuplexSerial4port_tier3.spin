@@ -8,7 +8,7 @@ _xinfreq = 5_000_000
 
 VAR
 
-  byte com_listener_CogId
+  long com_listener_CogId
 
   long accPtr[3], gyroPtr[3], eAnglePtr[3], refAttPtr[3], newValueCounter
   long pulsePtr[6], throttlePtr, dist_ground_ptr
@@ -38,12 +38,13 @@ PUB main | isReceived, c, localCoordinate[3]
   initialize
 
   communicate
-  
-    {if com.rxIsIn(xb)
+{
+  repeat
+    if com.rxIsIn(xb)
       c := com.charIn(xb)
       com.char(xb, c)
       com.newline(xb)
-    }
+}
 PUB initialize
 
   com_listener_CogId := com.initialize
@@ -120,29 +121,28 @@ PUB setZPidPtr(kp, kd, ki, pro, der, int, output)
 '=================================
 ' Main Loop
 '=================================         
-PUB communicate | base , x,y
-
+PUB communicate | base , c
+  base := cnt 
   repeat
-    base := cnt
     ' communication with on board computer
     if com.rxIsIn(usb)  
       readCharArray_usb
-    else
-      sendLocalCoordinate
-      waitcnt(cnt + clkfreq/10)
-      
+
    ' communication with GCS (Xbee)
+
     if com.rxIsIn(xb)
       readCharArray_xb
     else
       if (cnt > base + clkfreq/90)
-        sendPidConst
-        sendPidCalc
+        'sendPidConst
+        'sendPidCalc
         sendAttMsg
         sendMotorMsg
         sendThrottleMsg
         sendDistGrdMsg
+        sendLocalCoordinate(xb)   
         base := cnt 
+        
 '=================================
 ' Auxiliary Loop
 '================================       
@@ -163,7 +163,8 @@ PRI readCharArray_usb
    if (48=<varChar AND varChar=<57) 'btw 0-9
      newValue := newValue*10 + ASCII2Dec(varChar)
    elseif(varChar == 108) ' l -> local coordinate
-     type := 1  'next 4 digits are (axis number & value)
+     type := 1  'next 5 digits are (axis number & value)
+     newValue := 0
    {
    axis number list:
    1 : positive x
@@ -175,9 +176,9 @@ PRI readCharArray_usb
    }
                         
    if (type==1)
-     if 1000 < newValue AND newValue < 7000
-       lcAxisNumber := newValue/1000
-       coord := newValue//1000
+     if 10000 < newValue AND newValue < 70000
+       lcAxisNumber := newValue/10000
+       coord := newValue//10000
        case lcAxisNumber
          1: long[lcPtr][0] := coord
          2: long[lcPtr][0] := -coord  
@@ -189,20 +190,20 @@ PRI readCharArray_usb
        newValue := 0
        coord := 0
 
-PUB sendLocalCoordinate 
+PUB sendLocalCoordinate(port) 
 
 
-  com.str(usb, string("[lx"))
-  com.dec(usb, long[lcPtr][0])
-  com.str(usb, string("]"))
+  com.str(port, string("[lx"))
+  com.dec(port, long[lcPtr][0])
+  com.str(port, string("]"))
 
-  com.str(usb, string("[ly"))
-  com.dec(usb, long[lcPtr][1])
-  com.str(usb, string("]"))
+  com.str(port, string("[ly"))
+  com.dec(port, long[lcPtr][1])
+  com.str(port, string("]"))
 
-  com.str(usb, string("[lz"))
-  com.dec(usb, long[lcPtr][2])
-  com.str(usb, string("]"))
+  com.str(port, string("[lz"))
+  com.dec(port, long[lcPtr][2])
+  com.str(port, string("]"))
 
 
 
