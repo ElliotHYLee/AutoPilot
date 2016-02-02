@@ -11,6 +11,7 @@ OBJ
   motors         : "Motors.spin"
   math           : "MyMath.spin"
   attCtrl        : "PID_Attitude.spin"
+  heightCtrl     : "PID_Height.spin"
   ping           : "ping.spin"
 VAR
   'system variable
@@ -21,12 +22,6 @@ VAR
   'systemMode 4 = navigate (let PID control pwm)  
   'long systemMode, respondType, respondContent
 
-  'distance sensor var
-  long dist_ground
-
-  'local cooridinate
-  long localCoord[3]
-  
   
   'motor variables
   long throttle, pulse[6], motorPin[6], motorStack[128], motorCogId 
@@ -51,6 +46,13 @@ VAR
   long pidOnOff[3]
   long thrustBound_max
 
+
+  'distance sensor var
+  long dist_ground, filtered_dist, raw_dist, target_dist
+
+  'local cooridinate
+  long localCoord[3]
+    
   'pid variables - position control
   long pidStack_pos[128], pidCodId_pos
   
@@ -114,7 +116,7 @@ PRI stopCommunication
   if comm_loop_CogId
     cogstop(comm_loop_CogId)
 
-PRI startCommunication
+PRI startCommunication  
 
   stopCommunication
   comm_loop_CogId := cognew(runCommunication, @commStack)
@@ -143,17 +145,48 @@ PUB startPID_Pos
 
   pidCodId_pos := cognew(runPID_pos, @pidStack_pos) + 1  'start running pid controller
 
-PUB runPID_pos
+PUB runPID_pos | base, temp
 
+  base := cnt
   repeat
     getDistance_Ground
+    if (pidOnOff[0])
+      throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
+      {
+      temp := temp-throttle
+      repeat while (temp > 100)
+        throttle :=  throttle + 100
+        temp := temp - 100
+        waitcnt(cnt + clkfreq*1)
+      if (temp <100)
+        throttle := temp + throttle
+        'waitcnt(cnt + clkfreq*1/100) }
+    base:=cnt
 
 PUB getDistance_Ground
-  'low pass filter
-  dist_ground := ping.Millimeters(ULTRASONIC_SENSOR_PIN)*10/100 + dist_ground *90/100
-  'tilt angle adjustment  
-  dist_ground := acc[1]*dist_ground/acc[2] 
+  if (  (getAbs(eAngle[0]) < 500) AND (getAbs(eAngle[1]) <500) )
+    raw_dist := ping.Millimeters(ULTRASONIC_SENSOR_PIN)
+    if (raw_dist>300)
+      'low pass filter
+      filtered_dist := raw_dist*5/100 + filtered_dist *95/100
+      'tilt angle adjustment + low pass  
+      dist_ground := raw_dist'getAbs(acc[2])*raw_dist / 16800'sqrt(acc[0]*acc[0] + acc[1]*acc[1] + acc[2]*acc[2])
+     
+PUB getAbs(value)
+  if value > 0
+    result := value
+  else
+    result := -value
+'=====================
 
+PUB sqrt(value)| x, i
+
+  x := value
+
+  repeat i from 0 to 20
+    x := (value/x + x) /2
+
+  return x
 
 '===================================================================================================
 '===================== PID PART Attitude Control===================================================
@@ -220,8 +253,8 @@ PRI setZConst  | x
 
   x := throttle
 
-  zKp := 45
-  zKi := 0
+  zKp := 150
+  zKi := 1000
   zKd := 1000
 
 PRI runPID  |i, prev, dt, delay

@@ -66,7 +66,7 @@ PRI inspectPulse | i , j
   repeat i from 0 to 5
     if ((long[pulsePtr][i] < 1100) OR (1950 < long[pulsePtr][i]))
       repeat j from 0 to 5
-        long[pulsePtr][j] := 1200
+        long[pulsePtr][j] := 1100
       return 0
       
 PRI initMotor | i {{initializing the motor connected to this pin}}

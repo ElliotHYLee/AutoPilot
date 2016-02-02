@@ -37,14 +37,14 @@ PUB main | isReceived, c, localCoordinate[3]
 
   initialize
 
-  communicate
-{
+  'communicate
+
   repeat
     if com.rxIsIn(xb)
       c := com.charIn(xb)
       com.char(xb, c)
       com.newline(xb)
-}
+
 PUB initialize
 
   com_listener_CogId := com.initialize
@@ -129,7 +129,6 @@ PUB communicate | base , c
       readCharArray_usb
 
    ' communication with GCS (Xbee)
-
     if com.rxIsIn(xb)
       readCharArray_xb
     else
