@@ -66,7 +66,6 @@ PUB startAutoPilot|i
   newCommunication
   'usb.quickStart
   
-  
   '2. attitude start (MPU9150(+AK8) & MPL11A2)          x 2 cog
   startSensor
   
@@ -150,23 +149,10 @@ PUB runPID_pos
     getDistance_Ground
 
 PUB getDistance_Ground
-    dist_ground := ping.Millimeters(ULTRASONIC_SENSOR_PIN)*10/100    + dist_ground *90/100
-    waitcnt(cnt + clkfreq/100)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  'low pass filter
+  dist_ground := ping.Millimeters(ULTRASONIC_SENSOR_PIN)*10/100 + dist_ground *90/100
+  'tilt angle adjustment  
+  dist_ground := acc[1]*dist_ground/acc[2] 
 
 
 '===================================================================================================
