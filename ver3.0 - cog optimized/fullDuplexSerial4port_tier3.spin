@@ -24,7 +24,7 @@ VAR
   long varchar, varchar2, newValue, type,motorNumber,pidUpdateIndex
   long lcAxisNumber, coord
   long pidAxis
-  long pidOnOffPtr[3]    
+  long pidOnOffPtr[3], navPidOnOffPtr[3] 
   
 OBJ
   com :  "fullDuplexSerial4port_tier2"
@@ -87,6 +87,13 @@ PUB setPidOnOffPtr(val)
   pidOnOffPtr[0] := val[0]
   pidOnOffPtr[1] := val[1]
   pidOnOffPtr[2] := val[2]
+
+
+PUB setNavPidOnOffPtr(val)
+
+  navPidOnOffPtr[0] := val[0]
+  navPidOnOffPtr[1] := val[1]
+  navPidOnOffPtr[2] := val[2]  
 
 PUB setXPidPtr(kp, kd, ki, pro, der, int, output)
 
@@ -369,11 +376,24 @@ PRI systemModeUpdate(mode)
      2: 'prepare
        pidOn
        updateThrottle(1200)
+
+     3: 'pre take off routine
+       updateThrottle(1300)
+       sendMotorMsg
+       waitcnt(cnt + clkfreq/2)
+       updateThrottle(1400)
+       sendMotorMsg
+       waitcnt(cnt + clkfreq/2)
+       updateThrottle(1480)
+       sendMotorMsg
+       waitcnt(cnt + clkfreq/2)       
        
-     3: 'hover
-       pidOn
-     4: 'navigation
-       pidOn
+     4: 'take-off and hover
+       'pidOn
+       navPidOn
+
+     5: 'navigation
+       'pidOn
 
 PRI setPidStatus(val)
 
@@ -421,7 +441,39 @@ PRI pidOffY
 PRI pidOffZ
   long[pidOnOffPtr][2] := 0
 
+'===========
+PRI navPidOn
+  navPidOnX
+  navPidOnY
+  navPidOnZ
   
+PRI navPidOff
+  navPidOffX
+  navPidOffY
+  navPidOffZ
+  
+PRI navPidOnX
+  long[navPidOnOffPtr][0] := 1
+  
+PRI navPidOnY
+  long[navPidOnOffPtr][1] := 1
+
+  
+PRI navPidOnZ
+  long[navPidOnOffPtr][2] := 1
+  
+PRI navPidOffX
+  long[navPidOnOffPtr][0] := 0
+  
+PRI navPidOffY
+  long[navPidOnOffPtr][1] := 0
+
+PRI navPidOffZ
+  long[navPidOnOffPtr][2] := 0
+
+
+
+'=====
 
 PRI sendPidConst
 

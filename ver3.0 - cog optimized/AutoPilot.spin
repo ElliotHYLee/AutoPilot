@@ -47,14 +47,17 @@ VAR
   long thrustBound_max
 
 
-  'distance sensor var
+
+  'navigation pid variables - position control
+  long pidStack_pos[128], pidCodId_pos, navPidOnOff[3]
+  
+  
+    'distance sensor var
   long dist_ground, filtered_dist, raw_dist, target_dist
 
-  'local cooridinate
+    'local cooridinate
   long localCoord[3]
     
-  'pid variables - position control
-  long pidStack_pos[128], pidCodId_pos
   
    
   long prevTime, curTime, tElapse, dummy , dummy2 , sensorElapse
@@ -109,6 +112,7 @@ PUB newCommunication
   comm.setPidOnOffPtr(@pidOnOff)
   comm.setTargetAttitude(@targetEAngle)
   comm.setDistPtr(@dist_ground)
+  comm.setNavPidOnOffPtr(@navPidOnOff)
 
   startCommunication
 
@@ -126,16 +130,45 @@ PRI runCommunication
   comm.communicate 
 
 '===================================================================================================
-'===================== PID PART Location Control===================================================
+'===================== Navigation PID PART       ===================================================
 '===================================================================================================
 {{
 -----------------------------------------------------------------
 PID REGION                                                      |
   Number of cog used : 1                                        |
-  Cog usage          : calculating PID _ Local position         |
+  Cog usage          : calculating PID _ Navigation             |
   Functions:         :                                          |
 -----------------------------------------------------------------
 }}
+
+PRI navPidOnX
+  navPidOnOff[0] := 1
+  
+PRI navPidOffX
+  navPidOnOff[0] := 0
+
+PRI navPidOnY
+  navPidOnOff[1] := 1
+  
+PRI navPidOffY
+  navPidOnOff[1] := 0
+
+PRI navPidOnZ
+  navPidOnOff[2] := 1
+  
+PRI navPidOffZ
+  navPidOnOff[2] := 0  
+
+PRI navPidOn
+  navPidOnX
+  navPidOnY
+  navPidOnZ
+
+PRI navPidOff
+  navPidOffX  
+  navPidOffY
+  navPidOffZ
+    
 PUB stopPID_Pos
   if pidCodId_pos             
     cogstop(pidCodId_pos ~ - 1)
@@ -143,24 +176,46 @@ PUB startPID_Pos
 
   stopPID_pos
 
+  navPidOff
   pidCodId_pos := cognew(runPID_pos, @pidStack_pos) + 1  'start running pid controller
 
-PUB runPID_pos | base, temp
+PUB runPID_pos | base, val, diff, totalInc, timeElapse
 
+  totalInc := 0
   base := cnt
   repeat
     getDistance_Ground
-    if (pidOnOff[0])
-      throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
-      {
-      temp := temp-throttle
-      repeat while (temp > 100)
-        throttle :=  throttle + 100
-        temp := temp - 100
-        waitcnt(cnt + clkfreq*1)
-      if (temp <100)
-        throttle := temp + throttle
-        'waitcnt(cnt + clkfreq*1/100) }
+    if (navPidOnOff[2])
+      val := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
+      diff := val - throttle ' positive difference when need to go up, negetive when need to go down
+      
+      if (diff > 0)
+
+        if(diff >100)
+          throttle :=  throttle + 100
+          waitcnt(cnt + clkfreq)
+        else
+          totalInc += diff
+          timeElapse := cnt - base
+          if (timeElapse < clkfreq)
+            if (totalInc > 100)
+              totalInc := 0                                         
+              waitcnt(cnt + clkfreq)
+          throttle := throttle + diff    
+      elseif (diff < 0)
+
+        if(diff <-100)
+          throttle :=  throttle - 100
+          waitcnt(cnt + clkfreq)
+        else
+          totalInc += diff
+          timeElapse := cnt - base
+          if (timeElapse < clkfreq)
+            if (totalInc < -100)
+              totalInc := 0                                         
+              waitcnt(cnt + clkfreq)
+          throttle := throttle - diff 
+      
     base:=cnt
 
 PUB getDistance_Ground
