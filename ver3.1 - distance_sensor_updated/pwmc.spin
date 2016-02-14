@@ -31,7 +31,7 @@ PUB main
       if counter == phsa  ' if pin is low(phsa stopped increasing)
         ping := phsa ~    ' update ping and clear phsa
   }
-pub pulse_in(pin) | mask
+pub pulse_in(pin) | mask, milimeter
 
   mask := 1 << pin                                              ' mask for pin
 
@@ -43,7 +43,9 @@ pub pulse_in(pin) | mask
   waitpeq(mask, mask, 0)                                        ' wait for pin to go high
   waitpne(mask, mask, 0)                                        ' wait for pin to return low
 
-  return phsa / (clkfreq / 1_000_000)                             ' convert ticks to us
+  milimeter := phsa / (clkfreq / 1_000_000)   ' convert ticks to us
+  
+  return  milimeter                            
 
 
   
