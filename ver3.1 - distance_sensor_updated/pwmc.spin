@@ -15,7 +15,7 @@ PUB main
   cognew(report, @stack) 
 
   repeat
-    ping := pulse_in(9)  ' ping in mm
+    ping := pulse_in(8)  ' ping in mm
   
   {
   dira[8] := 0
@@ -39,9 +39,8 @@ pub pulse_in(pin) | mask, milimeter
 
   ctra := (%01000 << 26) | pin                                  ' set ctra to POS detect on pin   
   waitpne(mask, mask, 0)                                        ' wait for pin to be low
-                                                 ' clear accumulator
-  waitpeq(mask, mask, 0)
-  phsa := 0                                              ' wait for pin to go high
+  phsa := 0                                                     ' clear accumulator
+  waitpeq(mask, mask, 0)                                        ' wait for pin to go high
   waitpne(mask, mask, 0)                                        ' wait for pin to return low
 
   milimeter := phsa / (clkfreq / 1_000_000)   ' convert ticks to us

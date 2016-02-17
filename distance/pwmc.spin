@@ -15,7 +15,7 @@ PUB main
   cognew(report, @stack) 
 
   repeat
-    ping := pulse_in(9)  ' ping in mm
+    ping := pulse_in(8)  ' ping in mm
   
   {
   dira[8] := 0

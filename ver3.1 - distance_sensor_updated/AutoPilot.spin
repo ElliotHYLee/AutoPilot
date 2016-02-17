@@ -2,7 +2,7 @@ CON
   _clkmode = xtal1 + pll16x
   _xinfreq = 5_000_000
 
-ULTRASONIC_SENSOR_PIN = 9
+ULTRASONIC_SENSOR_PIN = 8
 
 OBJ
 
@@ -12,9 +12,7 @@ OBJ
   math           : "MyMath.spin"
   attCtrl        : "PID_Attitude.spin"
   heightCtrl     : "PID_Height.spin"
-  'ping           : "pwmc.spin"
-
-  uart          :"FullDuplexSerial.spin"
+  ping           : "pwmc.spin"
 VAR
   'system variable
     
@@ -24,7 +22,7 @@ VAR
   'systemMode 4 = navigate (let PID control pwm)  
   'long systemMode, respondType, respondContent
 
-   long ping[3]            
+  
   'motor variables
   long throttle, pulse[6], motorPin[6], motorStack[128], motorCogId 
 
@@ -63,30 +61,17 @@ VAR
   
    
   long prevTime, curTime, tElapse, dummy , dummy2 , sensorElapse
-     
 
-  
 PUB startAutoPilot|i
- 
+
   repeat i from 0 to 2
     targetEAngle[i] := 0
     dist_ground :=1
     localCoord[i] :=1 
-  
- ' uart.quickStart
-                       
- ' cognew(report, @pidStack_pos) 
-
- ' repeat
-  '  ping[0] := pulse_in(9)  ' ping in mm
- '
-
     
   '1. xbee start (wireless com for Ground Station)      x 2 cogs
   newCommunication
   'usb.quickStart
-
-  startPID_Pos   {
   
   '2. attitude start (MPU9150(+AK8) & MPL11A2)          x 2 cog
   startSensor
@@ -95,30 +80,14 @@ PUB startAutoPilot|i
   startPID
 
   '5. Position PID                                      x 1 cog
-  
+  startPID_Pos 
 
   '6. motor start                                       x 1 cog
   setMotor(2,3,4,5,6,7)
 
   '7 sd card
   'cogstop(0)                        
-   
-        }
-PUB report | temp
 
-  repeat
-    uart.clear
-    uart.dec(ping[0])
-    uart.newline
-    temp := ping
-    ping[0] := temp'dist*70/100 + temp*30/100
-    uart.dec(ping[0]/10)
-    uart.str(string("."))
-    uart.dec(ping[0]//10)
-    uart.strln(string(" cm"))
-    waitcnt(cnt + clkfreq/10)
-
-   
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
 '===================================================================================================
@@ -256,20 +225,24 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse
     base:=cnt
 
 
-pub pulse_in(pin) | mask, milimeter, counter
-  
+pub pulse_in(pin) | mask, milimeter
+
   mask := 1 << pin                                              ' mask for pin
+
   frqa := 1                                                     ' set for high-resolution measurement
+
   ctra := (%01000 << 26) | pin                                  ' set ctra to POS detect on pin   
-  waitpne(mask, mask, 0)                                        ' wait for pin to be low                                         
+  waitpne(mask, mask, 0)                                        ' wait for pin to be low
+  phsa := 0                                                     ' clear accumulator
   waitpeq(mask, mask, 0)                                        ' wait for pin to go high
-  phsa := 0
   waitpne(mask, mask, 0)                                        ' wait for pin to return low
 
   milimeter := phsa / (clkfreq / 1_000_000)   ' convert ticks to us
-  phsa:=0
+  
   return  milimeter                            
 
+
+    
 PUB getDistance_Ground
 
 
