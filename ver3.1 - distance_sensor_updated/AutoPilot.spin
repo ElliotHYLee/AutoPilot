@@ -2,8 +2,8 @@ CON
   _clkmode = xtal1 + pll16x
   _xinfreq = 5_000_000
 
-  ULTRASONIC_SENSOR_PIN = 8
-                      
+ULTRASONIC_SENSOR_PIN = 8
+
 OBJ
 
   comm           : "fullDuplexSerial4Port_tier3.spin"
