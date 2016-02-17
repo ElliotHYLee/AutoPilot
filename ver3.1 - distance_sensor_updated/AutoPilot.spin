@@ -53,7 +53,7 @@ VAR
   
   
     'distance sensor var
-  long dist_ground, filtered_dist, raw_dist, target_dist, ggDummy
+  long dist_ground, filtered_dist, raw_dist, target_dist
 
     'local cooridinate
   long localCoord[3]
@@ -72,8 +72,7 @@ PUB startAutoPilot|i
   '1. xbee start (wireless com for Ground Station)      x 2 cogs
   newCommunication
   'usb.quickStart
-
-    
+  
   '2. attitude start (MPU9150(+AK8) & MPL11A2)          x 2 cog
   startSensor
   
@@ -89,8 +88,6 @@ PUB startAutoPilot|i
   '7 sd card
   'cogstop(0)                        
 
-         
-  
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
 '===================================================================================================
@@ -190,8 +187,7 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse
   base := cnt
   repeat
     'getDistance_Ground
-    waitcnt(cnt + clkfreq/10)
-    dist_ground := pulse_in(9)
+    dist_ground := pulse_in(ULTRASONIC_SENSOR_PIN)
 
     if (navPidOnOff[1])
        throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
@@ -229,7 +225,7 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse
     base:=cnt
 
 
-pub pulse_in(pin) | mask, milimeter       
+pub pulse_in(pin) | mask, milimeter
 
   mask := 1 << pin                                              ' mask for pin
 
@@ -243,7 +239,7 @@ pub pulse_in(pin) | mask, milimeter
 
   milimeter := phsa / (clkfreq / 1_000_000)   ' convert ticks to us
   
-  return  milimeter                             
+  return  milimeter                            
 
 
     
