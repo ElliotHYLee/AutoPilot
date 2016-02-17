@@ -3,7 +3,7 @@ CON
   _xinfreq = 5_000_000
 
 VAR
-  long  stack[128], ping, gctra, counter, dist
+  long  stack[128], ping, gctra, counter, dist, dummyStack[128]
    
 OBJ
   uart : "FullDuplexSerial.spin"
@@ -11,11 +11,10 @@ OBJ
 PUB main
 
   uart.quickStart
-                       
+
   cognew(report, @stack) 
 
-  repeat
-    ping := pulse_in(8)  ' ping in mm
+
   
   {
   dira[8] := 0
@@ -52,6 +51,7 @@ pub pulse_in(pin) | mask, milimeter
 PUB report | temp
 
   repeat
+    ping := pulse_in(9)  ' ping in mm
     uart.clear
     uart.dec(ping)
     uart.newline
