@@ -2,7 +2,7 @@ CON
   _clkmode = xtal1 + pll16x
   _xinfreq = 5_000_000
 
-ULTRASONIC_SENSOR_PIN = 9
+ULTRASONIC_SENSOR_PIN = 8
 
 OBJ
 
@@ -12,7 +12,7 @@ OBJ
   math           : "MyMath.spin"
   attCtrl        : "PID_Attitude.spin"
   heightCtrl     : "PID_Height.spin"
-  ping           : "Ping.spin"
+  ping           : "pwmc.spin"
 VAR
   'system variable
     
@@ -61,7 +61,7 @@ VAR
   
    
   long prevTime, curTime, tElapse, dummy , dummy2 , sensorElapse
-                     
+
 PUB startAutoPilot|i
 
   repeat i from 0 to 2
@@ -187,31 +187,41 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse
   base := cnt
   repeat
     'getDistance_Ground
-    dist_ground := ping.Millimeters(ULTRASONIC_SENSOR_PIN)
-    
+    dist_ground := pulse_in(ULTRASONIC_SENSOR_PIN)
 
     if (navPidOnOff[1])
-       val := heightCtrl.calculateThrottle(dist_ground, 600, cnt - base)
-
-       diff := val - throttle ' positive difference when need to go up, negetive when need to go down
-                             
+       throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
+    {
+      val := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
+      diff := val - throttle ' positive difference when need to go up, negetive when need to go down
+      
       if (diff > 0)
 
         if(diff >100)
           throttle :=  throttle + 100
           waitcnt(cnt + clkfreq)
         else
-          throttle := val
-          waitcnt(cnt + clkfreq)    
+          totalInc += diff
+          timeElapse := cnt - base
+          if (timeElapse < clkfreq)
+            if (totalInc > 100)
+              totalInc := 0                                         
+              waitcnt(cnt + clkfreq)
+          throttle := throttle + diff    
       elseif (diff < 0)
 
         if(diff <-100)
           throttle :=  throttle - 100
           waitcnt(cnt + clkfreq)
         else
-          throttle := val
-          waitcnt(cnt + clkfreq) 
-          
+          totalInc += diff
+          timeElapse := cnt - base
+          if (timeElapse < clkfreq)
+            if (totalInc < -100)
+              totalInc := 0                                         
+              waitcnt(cnt + clkfreq)
+          throttle := throttle - diff 
+          }
     base:=cnt
 
 
