@@ -12,7 +12,7 @@ OBJ
   math           : "MyMath.spin"
   attCtrl        : "PID_Attitude.spin"
   heightCtrl     : "PID_Height.spin"
-  ping           : "pwmc.spin"
+  ping           : "ping.spin"
 VAR
   'system variable
     
@@ -66,7 +66,7 @@ PUB startAutoPilot|i
 
   repeat i from 0 to 2
     targetEAngle[i] := 0
-    dist_ground :=1
+    dist_ground := -1
     localCoord[i] :=1 
     
   '1. xbee start (wireless com for Ground Station)      x 2 cogs
@@ -86,7 +86,7 @@ PUB startAutoPilot|i
   setMotor(2,3,4,5,6,7)
 
   '7 sd card
-  'cogstop(0)                        
+  cogstop(0)                        
 
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
@@ -187,7 +187,8 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse
   base := cnt
   repeat
     'getDistance_Ground
-    dist_ground := pulse_in(ULTRASONIC_SENSOR_PIN)
+    waitcnt(cnt + clkfreq/100)
+    dist_ground := ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
 
     if (navPidOnOff[1])
        throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
