@@ -186,43 +186,29 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse
   totalInc := 0
   base := cnt
   repeat
-    'getDistance_Ground
-    waitcnt(cnt + clkfreq/100)
     dist_ground := ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
 
     if (navPidOnOff[1])
-       throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
-    {
+       'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
       val := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
       diff := val - throttle ' positive difference when need to go up, negetive when need to go down
       
       if (diff > 0)
-
         if(diff >100)
           throttle :=  throttle + 100
-          waitcnt(cnt + clkfreq)
+          'waitcnt(cnt + clkfreq)
         else
-          totalInc += diff
-          timeElapse := cnt - base
-          if (timeElapse < clkfreq)
-            if (totalInc > 100)
-              totalInc := 0                                         
-              waitcnt(cnt + clkfreq)
-          throttle := throttle + diff    
+          throttle := val
       elseif (diff < 0)
-
         if(diff <-100)
           throttle :=  throttle - 100
-          waitcnt(cnt + clkfreq)
+          'waitcnt(cnt + clkfreq)
         else
-          totalInc += diff
-          timeElapse := cnt - base
-          if (timeElapse < clkfreq)
-            if (totalInc < -100)
-              totalInc := 0                                         
-              waitcnt(cnt + clkfreq)
-          throttle := throttle - diff 
-          }
+          throttle := val 
+
+      'Fix pos_pid by 50 hz at max. faster is no use due to DCM
+      if ((cnt - base) < clkfreq/50) 
+        waitcnt(cnt + (cnt - base))
     base:=cnt
 
 
@@ -248,17 +234,6 @@ PUB getDistance_Ground
 
 
 
-  'dist_ground := ping.pulse_in(ULTRASONIC_SENSOR_PIN)
-
-  
-'  if (  (getAbs(eAngle[0]) < 500) AND (getAbs(eAngle[1]) <500) )
-'    raw_dist := ping.pulse_in(ULTRASONIC_SENSOR_PIN)
-'    dist_ground := raw_dist
-    'if (raw_dist>300)
-      'low pass filter
-      'filtered_dist := raw_dist*5/100 + filtered_dist *95/100
-      'tilt angle adjustment + low pass  
-     ' dist_ground := raw_dist'getAbs(acc[2])*raw_dist / 16800'sqrt(acc[0]*acc[0] + acc[1]*acc[1] + acc[2]*acc[2])
      
 PUB getAbs(value)
   if value > 0
