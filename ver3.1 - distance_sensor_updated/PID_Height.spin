@@ -8,27 +8,37 @@ var
   long kp, kd_up, kd_down, ki
   long error, pro, dir, int, intBound, pwm
 
-PUB calculateThrottle(dist, td, dt)
+PUB calculateThrottle(dist, td, dt)| kd
 
-  kd_down :=  16
-  kd_up := 2
+
+  kd := 100
+  kd_down :=  kd * 10000
+  kd_up := kd
   
 
-  curr_dist_ground := dist
+  curr_dist_ground := dist                                                                   
   target_dist := td
 
   
   error := target_dist - curr_dist_ground
 
+' if (error> 200)
+'    return 1550
+ ' if (error < -200)
+'    return 1490
+  
   'proportional
-  pro := error*1/2
+  if error > 0
+    pro := error*800
+  else
+    pro := error/2
 
   'diravitive
-  vel := (curr_dist_ground - prev_dist_ground)*dt/clkfreq ' milimeter per sec
-  if(vel <=0)
-    dir := vel * kd_down
+  
+  if((curr_dist_ground - prev_dist_ground) <0)
+    dir := kd_down*(curr_dist_ground - prev_dist_ground)'/(dt/clkfreq) ' milimeter per sec   * kd_down
   else
-    dir := vel * kd_up
+    dir := kd_up*(curr_dist_ground - prev_dist_ground)'/(dt/clkfreq) ' milimeter per sec   * kd_down        
 
   'integral
   int := int + error/10
@@ -40,10 +50,10 @@ PUB calculateThrottle(dist, td, dt)
     int := -1*intBound
 
   
-  pwm := pro - dir + int
+  pwm := pro - dir '+ int
 
-  if (pwm >1600)
-    pwm := 1600
+  if (pwm >1700)
+    pwm := 1700
     
   if (pwm < 1100)
     pwm := 1100
@@ -52,4 +62,9 @@ PUB calculateThrottle(dist, td, dt)
 
 
   return pwm
-    
+
+
+pub reSet
+  pro :=0
+  dir :=0
+  int := 0

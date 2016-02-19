@@ -1,7 +1,7 @@
 CON
   _clkmode = xtal1 + pll16x
   _xinfreq = 5_000_000
-
+                   
 ULTRASONIC_SENSOR_PIN = 8
 
 OBJ
@@ -190,7 +190,7 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse
 
     if (navPidOnOff[1])
        'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
-      val := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
+      val := heightCtrl.calculateThrottle(dist_ground, 350, cnt - base)
       diff := val - throttle ' positive difference when need to go up, negetive when need to go down
       
       if (diff > 0)
@@ -205,10 +205,13 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse
           'waitcnt(cnt + clkfreq)
         else
           throttle := val 
+    else
+      heightCtrl.reset
+    'Fix pos_pid by 50 hz at max. faster is no use due to DCM
 
-      'Fix pos_pid by 50 hz at max. faster is no use due to DCM
-      if ((cnt - base) < clkfreq/50) 
-        waitcnt(cnt + (cnt - base))
+    if ((cnt - base) < clkfreq/50) 
+      waitcnt(cnt + clkfreq/50- (cnt - base))
+    'dist_ground := cnt -base
     base:=cnt
 
 
@@ -300,7 +303,7 @@ PRI setXConst  | x   'Roll
 
   x := throttle
 
-  xKp := 500
+  xKp := 550
   xKi := 1500
   xKd := 800     
 
@@ -308,7 +311,7 @@ PRI setYConst  | x    ' pitch
 
   x := throttle
 
-  yKp := 400
+  yKp := 550
   yKi := 1500
   yKd := 600    
 
@@ -316,7 +319,7 @@ PRI setZConst  | x
 
   x := throttle
 
-  zKp := 150
+  zKp := 200
   zKi := 1000
   zKd := 1000
 
