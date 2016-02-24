@@ -11,8 +11,8 @@ var
 PUB calculateThrottle(dist, td, dt)| kd
 
 
-  kd := 100
-  kd_down :=  kd * 10000
+  kd := 50
+  kd_down :=  kd * 4096
   kd_up := kd
   
 
@@ -29,7 +29,7 @@ PUB calculateThrottle(dist, td, dt)| kd
   
   'proportional
   if error > 0
-    pro := error*800
+    pro := error*512
   else
     pro := error/2
 
@@ -50,13 +50,13 @@ PUB calculateThrottle(dist, td, dt)| kd
     int := -1*intBound
 
   
-  pwm := pro - dir '+ int
+  pwm := pro - dir + int
 
-  if (pwm >1700)
-    pwm := 1700
+  if (pwm >1600)
+    pwm := 1600
     
-  if (pwm < 1100)
-    pwm := 1100
+  if (pwm < 1475)
+    pwm := 1475
 
   prev_dist_ground := curr_dist_ground
 

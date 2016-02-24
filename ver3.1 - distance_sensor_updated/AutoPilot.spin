@@ -190,21 +190,22 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse
 
     if (navPidOnOff[1])
        'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
-      val := heightCtrl.calculateThrottle(dist_ground, 350, cnt - base)
+      val := heightCtrl.calculateThrottle(dist_ground, 1000, cnt - base)
       diff := val - throttle ' positive difference when need to go up, negetive when need to go down
-      
+      throttle :=val
+      {
       if (diff > 0)
         if(diff >100)
           throttle :=  throttle + 100
           'waitcnt(cnt + clkfreq)
-        else
+        else  
           throttle := val
       elseif (diff < 0)
         if(diff <-100)
           throttle :=  throttle - 100
           'waitcnt(cnt + clkfreq)
-        else
-          throttle := val 
+        else 
+          throttle := val  }
     else
       heightCtrl.reset
     'Fix pos_pid by 50 hz at max. faster is no use due to DCM
@@ -319,9 +320,9 @@ PRI setZConst  | x
 
   x := throttle
 
-  zKp := 200
-  zKi := 1000
-  zKd := 1000
+  zKp := 0'200
+  zKi := 0'1000
+  zKd := 0'1000
 
 PRI runPID  |i, prev, dt, delay
 
