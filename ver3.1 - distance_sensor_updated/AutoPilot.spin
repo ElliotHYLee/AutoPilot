@@ -53,7 +53,7 @@ VAR
   
   
     'distance sensor var
-  long dist_ground, filtered_dist, raw_dist, target_dist
+  long dist_raw, dist_filtered, target_dist
 
     'local cooridinate
   long localCoord[3]
@@ -66,7 +66,7 @@ PUB startAutoPilot|i
 
   repeat i from 0 to 2
     targetEAngle[i] := 0
-    dist_ground := -1
+    dist_filtered := -1
     localCoord[i] :=1 
     
   '1. xbee start (wireless com for Ground Station)      x 2 cogs
@@ -105,7 +105,7 @@ PUB newCommunication
   comm_listener_CogId := comm.initialize
 
   comm.setLocalCoordinate(@localCoord)
-  comm.setAttPtr(@acc, @gyro, @eAngle)
+  comm.setAttPtr(@acc, @gyro, @eAngle, @mag)
   comm.setMotPtr(@pulse)
   comm.setThrottle(@throttle)
   comm.setXPidPtr(@xKp, @xKd, @xKi, @xPro, @xDer, @xInt, @xOutput)
@@ -113,7 +113,7 @@ PUB newCommunication
   comm.setZPidPtr(@zKp, @zKd, @zKi, @zPro, @zDer, @zInt, @zOutput)
   comm.setPidOnOffPtr(@pidOnOff)
   comm.setTargetAttitude(@targetEAngle)
-  comm.setDistPtr(@dist_ground)
+  comm.setDistPtr(@dist_filtered)
   comm.setNavPidOnOffPtr(@navPidOnOff)
 
   startCommunication
@@ -181,31 +181,18 @@ PUB startPID_Pos
   navPidOff
   pidCodId_pos := cognew(runPID_pos, @pidStack_pos) + 1  'start running pid controller
 
-PUB runPID_pos | base, val, diff, totalInc, timeElapse
+PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
 
   totalInc := 0
   base := cnt
   repeat
-    dist_ground := ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
+    dist_ground := getDistance_Ground 'ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
 
     if (navPidOnOff[1])
        'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
       val := heightCtrl.calculateThrottle(dist_ground, 1000, cnt - base)
       diff := val - throttle ' positive difference when need to go up, negetive when need to go down
       throttle :=val
-      {
-      if (diff > 0)
-        if(diff >100)
-          throttle :=  throttle + 100
-          'waitcnt(cnt + clkfreq)
-        else  
-          throttle := val
-      elseif (diff < 0)
-        if(diff <-100)
-          throttle :=  throttle - 100
-          'waitcnt(cnt + clkfreq)
-        else 
-          throttle := val  }
     else
       heightCtrl.reset
     'Fix pos_pid by 50 hz at max. faster is no use due to DCM
@@ -236,7 +223,9 @@ pub pulse_in(pin) | mask, milimeter
     
 PUB getDistance_Ground
 
+  dist_filtered := dist_filtered*80/100 + ping.Millimeters(ULTRASONIC_SENSOR_PIN)  *20/100
 
+  return dist_filtered
 
      
 PUB getAbs(value)
@@ -304,25 +293,25 @@ PRI setXConst  | x   'Roll
 
   x := throttle
 
-  xKp := 550
-  xKi := 1500
+  xKp := 700
+  xKi := 5000
   xKd := 800     
 
 PRI setYConst  | x    ' pitch
 
   x := throttle
 
-  yKp := 550
-  yKi := 1500
+  yKp := 700
+  yKi := 5000
   yKd := 600    
 
 PRI setZConst  | x
 
   x := throttle
 
-  zKp := 0'200
-  zKi := 0'1000
-  zKd := 0'1000
+  zKp := 200
+  zKi := 1000
+  zKd := 1000
 
 PRI runPID  |i, prev, dt, delay
 

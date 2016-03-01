@@ -10,7 +10,7 @@ VAR
 
   long com_listener_CogId
 
-  long accPtr[3], gyroPtr[3], eAnglePtr[3], refAttPtr[3], newValueCounter
+  long magPtr[3], accPtr[3], gyroPtr[3], eAnglePtr[3], refAttPtr[3], newValueCounter
   long pulsePtr[6], throttlePtr, dist_ground_ptr
 
   long xOnPtr, xOffPtr, yOnPtr, yOffPtr, zOnPtr, zOffPtr
@@ -59,11 +59,12 @@ PUB setDistPtr(val)
 
   dist_ground_ptr := val
  
-PUB setAttPtr(val1, val2, val3)
+PUB setAttPtr(val1, val2, val3, val4)
 
   accPtr := val1
   gyroPtr := val2
   eAnglePtr := val3
+  magPtr := val4
 
 PUB setMotPtr(pwmPtr) | i
 
@@ -142,6 +143,7 @@ PUB communicate | base , c
       if (cnt > base + clkfreq/90)
         'sendPidConst
         'sendPidCalc
+        sendMagMsg
         sendAttMsg
         sendMotorMsg
         sendThrottleMsg
@@ -196,6 +198,20 @@ PRI readCharArray_usb
        newValue := 0
        coord := 0
 
+PUB sendMagMsg
+
+  com.str(xb, string("[qx"))           
+  com.dec(xb, long[magPtr][0])
+  com.str(xb, string("]"))
+
+  com.str(xb, string("[qy"))           
+  com.dec(xb, long[magPtr][1])
+  com.str(xb, string("]"))
+
+  com.str(xb, string("[qz"))           
+  com.dec(xb, long[magPtr][2])
+  com.str(xb, string("]"))    
+  
 PUB sendLocalCoordinate(port) 
 
 
