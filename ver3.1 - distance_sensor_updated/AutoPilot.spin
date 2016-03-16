@@ -175,7 +175,6 @@ PUB stopPID_Pos
   if pidCodId_pos             
     cogstop(pidCodId_pos ~ - 1)
 PUB startPID_Pos
-
   stopPID_pos
 
   navPidOff
@@ -293,16 +292,16 @@ PRI setXConst  | x   'Roll
 
   x := throttle
 
-  xKp := 700
-  xKi := 5000
+  xKp := 550
+  xKi := 1500
   xKd := 800     
 
 PRI setYConst  | x    ' pitch
 
   x := throttle
 
-  yKp := 700
-  yKi := 5000
+  yKp := 550
+  yKi := 1500
   yKd := 600    
 
 PRI setZConst  | x

@@ -96,7 +96,9 @@ PUB main
 PUB stopPlay
   if playID
     cogstop(playID ~ -1)
-    
+
+
+'this is NOT called from tier 3. Dubugging purpose
 PUB startPlay
  stopPlay
  playID := cognew(playSensor, @runStack) + 1
