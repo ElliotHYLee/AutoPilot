@@ -53,8 +53,6 @@ PUB main
  ' startDcm
 
   'turnOnMPU
-
-
   
   repeat
 
@@ -163,7 +161,7 @@ PUB runMpu | goCompensation
     t2_sensor.runGyro                ' read from MPU chip
     t2_sensor.getGyro(@t3_gyro)      ' udpates the variable
 
-    goCompensation ++                ' compensation once a ten iterations 
+    goCompensation++                ' compensation once a ten iterations 
 
     if goCompensation => 9           ' compensate at 10th iteration
       t2_sensor.runAccMag            ' read acc and mag from MPU
@@ -201,12 +199,15 @@ PUB setUpDCM | counter
   t3_first_mag[1] := (t3_dcm[3]*t3_first_mag[0] + t3_dcm[4]*t3_first_mag[1] + t3_dcm[5]*t3_first_mag[2])/CMNSCALE
   t3_first_mag[2] := (t3_dcm[6]*t3_first_mag[0] + t3_dcm[7]*t3_first_mag[1] + t3_dcm[8]*t3_first_mag[2])/CMNSCALE
 
-  
+
+  't3_dcm and t3_euler are used through out the algorithm
+  ' below assignments are for debugging purpose
   repeat counter from 0 to 8
-    t3_first_dcm[counter] := t3_dcm[counter]
+    t3_first_dcm[counter] := t3_dcm[counter]             
     if counter < 3
       t3_first_euler_out[counter] := t3_euler[counter] 
 
+  
 PUB acc2ang | x, y, temp
 
   temp := t3_avgAcc[2] * t3_avgAcc[2]+t3_avgAcc[1] * t3_avgAcc[1]
@@ -216,17 +217,6 @@ PUB acc2ang | x, y, temp
   t3_first_euler_in[0] := tr.atan2(x, y)  ' theta
   t3_first_euler_in[1] := tr.atan2(-t3_avgAcc[2], -t3_avgAcc[1])
   t3_first_euler_in[2] := 0
-
-PUB acc2ang_runTime | x, y, temp
-
-  temp := t3_acc[2] * t3_acc[2]+t3_acc[1] * t3_acc[1]
-  x := sqrt(temp)
-  y := t3_acc[0] 
-
-  t3_first_euler_in[0] := tr.atan2(x, y)  ' theta
-  t3_first_euler_in[1] := tr.atan2(-t3_acc[2], -t3_acc[1])
-  t3_first_euler_in[2] := 0
-
 
 PUB sqrt(value)| x, i
 
@@ -243,19 +233,6 @@ PUB getSign(value)
   else
     result := -1
 
-PUB getOmega |ki 
-
-  'ki := 500
-  'ki := 50
-  
-  ki := 100
-  
-  repeat t3_counter from 0 to 2
-    t3_omega[t3_counter] := t3_gyro[t3_counter]*CMNSCALE/131*314/100/180   '10_000 rad/s
-    'if (t3_omega[t3_counter] < 70 AND t3_omega[t3_counter] > -70)  ' for now eliminate gyro noise
-    '  t3_omega[t3_counter] := 0 
-  t3_omega[t3_counter] += t3_I[t3_counter]* ki/10000 /CMNSCALE
-    
 PUB getEye
   t3_eye[0] := 10000
   t3_eye[1] := 0
@@ -302,16 +279,7 @@ PUB runDcm | err0, err1, err2
         t3_accMagIsUpdated := 0
        
       d2a
-      {
-      acc2ang_runTime
 
-      err0 := t3_first_euler_in[0] - t3_euler[0]
-      err1 := t3_first_euler_in[1] - t3_euler[1]
-      err2 := t3_first_euler_in[2] - t3_euler[2]
-
-      if (math.getAbs(err0) > 500) OR (math.getAbs(err1)> 500) OR (math.getAbs(err2)> 500) 
-        math.a2d(@t3_dcm,@t3_first_euler_in)  
-      }
       t3_gyroIsUpdated := 0
       t3_dcmIsUpdated := 1  ' to report to upper level object
       t3_dt_dcm := cnt - t3_prev_dcm
@@ -343,13 +311,24 @@ PUB calcCompensation
   ' Note1 : spin DCM representation is in 10^4 of the value; for ex) 0.9 is 9000 in spin
   ' Note2 : if two elements in 10^4 scale are multiplied, the result should be divided by 10^4
  
-
-
-
-
 'Step1: Skew and integration
-PUB dcmStep1
 
+PUB getOmega  |ki
+
+  'ki := 500
+  'ki := 50
+  
+ ki := 200  ' ki is actually 0.001; ki will be divided by 10_000
+
+ ki:=0
+  repeat t3_counter from 0 to 2
+    t3_omega[t3_counter] := t3_gyro[t3_counter]*CMNSCALE/131*314/100/180   '10_000 rad/s
+    'if (t3_omega[t3_counter] < 70 AND t3_omega[t3_counter] > -70)  ' for now eliminate gyro noise
+    '  t3_omega[t3_counter] := 0 
+    t3_omega[t3_counter] += t3_I[t3_counter]* (ki/1000) 
+
+  
+PUB dcmStep1
 
   
   getOmega
@@ -382,18 +361,18 @@ PUB dcmStep1
 
 
   ' DCM*(I + omega*dt)
-  t3_imdt2[0] := t3_dcm[0]*t3_imdt[0]/CMNSCALE + t3_dcm[1]*t3_imdt[3]/CMNSCALE + t3_dcm[2]*t3_imdt[6]/CMNSCALE
-  t3_imdt2[1] := t3_dcm[0]*t3_imdt[1]/CMNSCALE + t3_dcm[1]*t3_imdt[4]/CMNSCALE + t3_dcm[2]*t3_imdt[7]/CMNSCALE
-  t3_imdt2[2] := t3_dcm[0]*t3_imdt[2]/CMNSCALE + t3_dcm[1]*t3_imdt[5]/CMNSCALE + t3_dcm[2]*t3_imdt[8]/CMNSCALE
-  t3_imdt2[3] := t3_dcm[3]*t3_imdt[0]/CMNSCALE + t3_dcm[4]*t3_imdt[3]/CMNSCALE + t3_dcm[5]*t3_imdt[6]/CMNSCALE
-  t3_imdt2[4] := t3_dcm[3]*t3_imdt[1]/CMNSCALE + t3_dcm[4]*t3_imdt[4]/CMNSCALE + t3_dcm[5]*t3_imdt[7]/CMNSCALE
-  t3_imdt2[5] := t3_dcm[3]*t3_imdt[2]/CMNSCALE + t3_dcm[4]*t3_imdt[5]/CMNSCALE + t3_dcm[5]*t3_imdt[8]/CMNSCALE
-  t3_imdt2[6] := t3_dcm[6]*t3_imdt[0]/CMNSCALE + t3_dcm[7]*t3_imdt[3]/CMNSCALE + t3_dcm[8]*t3_imdt[6]/CMNSCALE
-  t3_imdt2[7] := t3_dcm[6]*t3_imdt[1]/CMNSCALE + t3_dcm[7]*t3_imdt[4]/CMNSCALE + t3_dcm[8]*t3_imdt[7]/CMNSCALE
-  t3_imdt2[8] := t3_dcm[6]*t3_imdt[2]/CMNSCALE + t3_dcm[7]*t3_imdt[5]/CMNSCALE + t3_dcm[8]*t3_imdt[8]/CMNSCALE
+  t3_imdt2[0] := t3_dcm[0]*t3_imdt[0] + t3_dcm[1]*t3_imdt[3] + t3_dcm[2]*t3_imdt[6]
+  t3_imdt2[1] := t3_dcm[0]*t3_imdt[1] + t3_dcm[1]*t3_imdt[4] + t3_dcm[2]*t3_imdt[7]
+  t3_imdt2[2] := t3_dcm[0]*t3_imdt[2] + t3_dcm[1]*t3_imdt[5] + t3_dcm[2]*t3_imdt[8]
+  t3_imdt2[3] := t3_dcm[3]*t3_imdt[0] + t3_dcm[4]*t3_imdt[3] + t3_dcm[5]*t3_imdt[6]
+  t3_imdt2[4] := t3_dcm[3]*t3_imdt[1] + t3_dcm[4]*t3_imdt[4] + t3_dcm[5]*t3_imdt[7]
+  t3_imdt2[5] := t3_dcm[3]*t3_imdt[2] + t3_dcm[4]*t3_imdt[5] + t3_dcm[5]*t3_imdt[8]
+  t3_imdt2[6] := t3_dcm[6]*t3_imdt[0] + t3_dcm[7]*t3_imdt[3] + t3_dcm[8]*t3_imdt[6]
+  t3_imdt2[7] := t3_dcm[6]*t3_imdt[1] + t3_dcm[7]*t3_imdt[4] + t3_dcm[8]*t3_imdt[7]
+  t3_imdt2[8] := t3_dcm[6]*t3_imdt[2] + t3_dcm[7]*t3_imdt[5] + t3_dcm[8]*t3_imdt[8]
 
   repeat t3_counter from 0 to 8
-   ' t3_imdt2[t3_counter] := t3_imdt2[t3_counter]/CMNSCALE   
+    t3_imdt2[t3_counter] := t3_imdt2[t3_counter]/CMNSCALE   
     t3_dcm[t3_counter] := t3_imdt2[t3_counter]
 
  ' repeat t3_counter from 0 to 8
@@ -402,9 +381,6 @@ PUB dcmStep1
 
 'Step 2: orthogonalization 
 PUB dcmStep2| il , temp1[9],  col1[3], col2[3], col3[3], err_orth, x_orth[3], y_orth[3], z_orth[3], x_norm[3], y_norm[3], z_norm[3], magnitude[3]
-
-
-
 
   ' make column vectors
   't3_DCM (i,j) from left to right
@@ -457,7 +433,9 @@ PUB dcmStep2| il , temp1[9],  col1[3], col2[3], col3[3], err_orth, x_orth[3], y_
 PUB dcmStep3
 
   ' Accelerometer: convert units in body frame
-  t3_acc_body[0] := t3_acc[0] * CMNSCALE /100 * 981 /16384
+  '9.81 m/s^2 is representedas 98100
+  'mpu setting is 2g -> max g can occur is 98100*2 = 196200 -> no overflow
+  t3_acc_body[0] := t3_acc[0] * CMNSCALE /100 * 981 /16384  
   t3_acc_body[1] := t3_acc[1] * CMNSCALE /100 * 981 /16384
   t3_acc_body[2] := t3_acc[2] * CMNSCALE /100 * 981 /16384
 
@@ -472,13 +450,17 @@ PUB dcmStep3
   t3_mag_earth[2] := (t3_dcm[6]*t3_mag[0] + t3_dcm[7]*t3_mag[1] + t3_dcm[8]*t3_mag[2])/CMNSCALE 
 
   
-' Step 4: Calculate Error
+' Step 4: Calculate Error in earth frame
 PUB dcmStep4  | g[3], magSize[2], norm_mag_earth[3], norm_first_mag_earth[3] 
 
   ' Ground frame gravity vector g[]
   g[0] := 0
   g[1] := 0
-  g[2] := -98100                        
+  g[2] := -98100
+
+  'commented outs: g[0] and g[1] are zero
+  ' divided by CMNSCALE because DMC is in 10^4 and g is in 10^4 -> needs to keep in 10^4 scale
+            
   t3_err_acc_earth[0] := t3_acc_earth[1]*g[2] /CMNSCALE '- acc_earth[2]*g[1])/CMNSCALE
   t3_err_acc_earth[1] := -t3_acc_earth[0]*g[2]/CMNSCALE   'acc_earth[2]*g[0]/CMNSCALE - acc_earth[0]*g[2]/CMNSCALE
   t3_err_acc_earth[2] := 0'acc_earth[0]*g[1]/CMNSCALE - acc_earth[1]*g[0]/CMNSCALE  
@@ -506,9 +488,10 @@ PUB dcmStep4  | g[3], magSize[2], norm_mag_earth[3], norm_first_mag_earth[3]
   t3_err_earth[2] := t3_err_mag_earth[2] 
 
 
-
+' calcualte error in body frame
 PUB dcmStep5 | DCMTrans[9]
 
+  'Transpose of DCM
   DCMTrans[0] := t3_dcm[0]
   DCMTrans[1] := t3_dcm[3]
   DCMTrans[2] := t3_dcm[6]
@@ -522,9 +505,13 @@ PUB dcmStep5 | DCMTrans[9]
   t3_err_body[0] := (DCMTrans[0]*t3_err_earth[0] + DCMTrans[1]*t3_err_earth[1] + DCMTrans[2]*t3_err_earth[2])/CMNSCALE
   t3_err_body[1] := (DCMTrans[3]*t3_err_earth[0] + DCMTrans[4]*t3_err_earth[1] + DCMTrans[5]*t3_err_earth[2])/CMNSCALE
   t3_err_body[2] := (DCMTrans[6]*t3_err_earth[0] + DCMTrans[7]*t3_err_earth[1] + DCMTrans[8]*t3_err_earth[2])/CMNSCALE
-  t3_err_body[2] /= 9000
-  't3_err_body[2] *= 0 'quick fix of that magnetometer err is too big  
+  t3_err_body[2] /= 9000 ' without this, error in z is too big compared to errors from acc
 
+ 't3_err_body[2] *= 0 'quick fix of that magnetometer err is too big  
+
+
+
+ ' for terminal window -> debugging purpose
   repeat t3_counter from 0 to 2
    ' t3_matrix_monitor1[t3_counter*3] := t3_acc_body[t3_counter]
    ' t3_matrix_monitor1[t3_counter*3+1] := t3_acc_earth[t3_counter]
@@ -539,12 +526,15 @@ PUB dcmStep5 | DCMTrans[9]
     't3_matrix_monitor3[t3_counter*3+2] := t3_err_mag_earth[t3_counter]
 
   't3_err_body[2] :=   0
+
+
+' proportional compensation
 PUB dcmStep6 | kp
 
-  'kp := 5000 'kp = 0.001
+  'kp := 5000
  ' kp := 500
-   kp := 1000
-  
+ '   kp := 1000
+ kp:=0 
   'skew(Err_body(i,:))*kp
   t3_imdt[0] := 0
   t3_imdt[1] := -t3_err_body[2] * kp / CMNSCALE
@@ -569,9 +559,9 @@ PUB dcmStep6 | kp
     t3_imdt[t3_counter] := t3_imdt[t3_counter] / t3_freq_mpu
     t3_imdt[t3_counter] := t3_eye[t3_counter] + t3_imdt[t3_counter]
 
+    
 '  repeat t3_counter from 0 to 8
 '    t3_matrix_monitor2[t3_counter] :=  t3_imdt[t3_counter]
-
 
   'R*(eye(3) + skew(Err_body(i,:))*kp*dt(i))
   t3_imdt2[0] := t3_dcm[0]*t3_imdt[0] + t3_dcm[1]*t3_imdt[3] + t3_dcm[2]*t3_imdt[6]
@@ -588,6 +578,8 @@ PUB dcmStep6 | kp
     t3_imdt2[t3_counter] := t3_imdt2[t3_counter]/CMNSCALE   
     t3_dcm[t3_counter] := t3_imdt2[t3_counter]
 
+
+' integrate error
 PUB dcmStep7
 
   repeat t3_counter from 0 to 2
@@ -601,12 +593,15 @@ PUB dcmStep7
       
   repeat t3_counter from 0 to 2
     t3_matrix_monitor2[t3_counter*3] := t3_I[t3_counter]
-
+  repeat t3_counter from 0 to 8
+    t3_matrix_monitor1[t3_counter] := t3_dcm[t3_counter]  
 PUB dcmStep8
    
   ' done in 'getOmega
 
-  
+
+
+' this methods is for debugging purpose  
 PUB freezResult | local_c
 
  ' long t3_dcm_d[9], t3_eye_d[9], t3_imdt_d[9]
@@ -717,7 +712,7 @@ PRI printDCM | iter, digit, counter
 
 PRI printMatrixMonitor | iter, digit, counter
   
-  fds.str(String("Monitor1 : "))
+  fds.str(String("Monitor1 : DCM"))
   fds.newline
   
   repeat iter from 0 to 8
@@ -732,7 +727,7 @@ PRI printMatrixMonitor | iter, digit, counter
       fds.str(string(" "))
 
   fds.newline 
-  fds.str(String("Monitor2 : "))
+  fds.str(String("Monitor2 : Error Integral"))
   fds.newline
   
   repeat iter from 0 to 8
@@ -747,7 +742,7 @@ PRI printMatrixMonitor | iter, digit, counter
       fds.str(string(" "))  
             
   fds.newline 
-  fds.str(String("Monitor3: Normalized Error * 10_000, err_earth, err_body, empty "))
+  fds.str(String("Monitor3: Error * 10_000, err_earth, err_body, empty "))
   fds.newline
   
   repeat iter from 0 to 8
