@@ -141,14 +141,14 @@ PUB communicate | base , c
       readCharArray_xb
     else
       if (cnt > base + clkfreq/90)
-        'sendPidConst
-        'sendPidCalc
-        sendMagMsg
+        sendPidConst
+        sendPidCalc
+        'sendMagMsg
         sendAttMsg
         sendMotorMsg
         sendThrottleMsg
-        sendDistGrdMsg
-        sendLocalCoordinate(xb)   
+        'sendDistGrdMsg
+        'sendLocalCoordinate(xb)   
         base := cnt 
         
 '=================================

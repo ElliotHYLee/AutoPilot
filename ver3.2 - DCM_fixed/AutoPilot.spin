@@ -300,7 +300,7 @@ PRI setYConst  | x    ' pitch
 
   x := throttle
 
-  yKp := 550
+  yKp := 700
   yKi := 1500
   yKd := 600    
 
@@ -308,7 +308,7 @@ PRI setZConst  | x
 
   x := throttle
 
-  zKp := 200
+  zKp := 300
   zKi := 1000
   zKd := 1000
 
