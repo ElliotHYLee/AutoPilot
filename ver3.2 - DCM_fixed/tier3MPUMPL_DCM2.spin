@@ -333,9 +333,10 @@ PUB getOmega  |ki
   
  'ki := 200  
 
- ki:= 0'30
+  ki:= 0'30
   repeat t3_counter from 0 to 2
     t3_omega[t3_counter] := t3_gyro[t3_counter]*CMNSCALE/131*314/100/180   '10_000 rad/s
+
     t3_omega[t3_counter] += t3_I[t3_counter]* ki/100 
 
   
@@ -450,6 +451,8 @@ PUB dcmStep3  | mag_norm, mag_earth[3]
   t3_acc_body[1] := t3_acc[1]*CMNSCALE/16384  * 981 /100  
   t3_acc_body[2] := t3_acc[2]*CMNSCALE/16384  * 981 /100  
 
+ 
+
   
   ' Accelerometer: acc in ground frame -> t3_acc_earth in CMNSCALE
   t3_acc_earth[0] := (t3_dcm[0]/10*t3_acc_body[0]/10 + t3_dcm[1]/10*t3_acc_body[1]/10 + t3_dcm[2]/10*t3_acc_body[2]/10) /100
@@ -463,32 +466,23 @@ PUB dcmStep3  | mag_norm, mag_earth[3]
     t3_matrix_monitor1[t3_counter*3 + 2] := 0  ' t3_err_earth[t3_counter]
 
   ' Magnetometer: mag in ground frame = ||mag_earth|| = 10_000
-  mag_earth[0] := ( (t3_dcm[0]/1000)*t3_mag[0]/10 + (t3_dcm[1]/1000)*t3_mag[1]/10 + (t3_dcm[2]/1000)*t3_mag[2]/10) ' in non CMNSCALE
-  mag_earth[1] := ( (t3_dcm[3]/1000)*t3_mag[0]/10 + (t3_dcm[4]/1000)*t3_mag[1]/10 + (t3_dcm[5]/1000)*t3_mag[2]/10)
+  mag_earth[0] := (t3_dcm[0]*t3_mag[0] + t3_dcm[1]*t3_mag[1] + t3_dcm[2]*t3_mag[2])/10_000  ' in non CMNSCALE
+  mag_earth[1] := (t3_dcm[3]*t3_mag[0] + t3_dcm[4]*t3_mag[1] + t3_dcm[5]*t3_mag[2])/10_000
   mag_earth[2] :=  0
 
-  'mag_earth[0] := t3_mag[0]
-  'mag_earth[1] := t3_mag[1]
-  'mag_earth[2] :=  0
-
-  
  
-  mag_norm := 172'^^(mag_earth[0]*mag_earth[0] + mag_earth[1]*mag_earth[1])
-  't3_mag_earth[0] := (CMNSCALE*mag_earth[0])/mag_norm 
-  't3_mag_earth[1] := (CMNSCALE*mag_earth[1])/mag_norm
-  't3_mag_earth[2] := 0
-  '||mag_earth|| = 10_000  
-  t3_mag_earth[0] := (mag_earth[0])'/mag_norm 
-  t3_mag_earth[1] := (mag_earth[1])'/mag_norm
+  mag_norm := ^^(mag_earth[0]*mag_earth[0] + mag_earth[1]*mag_earth[1])
+  t3_mag_earth[0] := (CMNSCALE*mag_earth[0])/mag_norm 
+  t3_mag_earth[1] := (CMNSCALE*mag_earth[1])/mag_norm
   t3_mag_earth[2] := 0
-  
-  
+  '||mag_earth|| = 10_000  
+
  ' repeat t3_counter from 0 to 2
  '   t3_matrix_monitor2[t3_counter*3+0] := t3_acc_earth[t3_counter] 
  '   t3_matrix_monitor2[t3_counter*3+1] := t3_mag_earth[t3_counter]
   
   mag_norm := ^^(t3_mag_earth[0]*t3_mag_earth[0] + t3_mag_earth[1]*t3_mag_earth[1])       
-  't3_matrix_monitor3[3] := mag_norm
+  t3_matrix_monitor3[3] := mag_norm
   
 ' Step 4: Calculate Error in earth frame
 PUB dcmStep4  | g[3], magSize[2], norm_mag_earth[3], norm_first_mag_earth[3], norm_acc 
@@ -519,7 +513,7 @@ PUB dcmStep4  | g[3], magSize[2], norm_mag_earth[3], norm_first_mag_earth[3], no
   'Err_earth(i,:) = err_acc_earth + err_mag_earth;
   t3_err_earth[0] := t3_err_acc_earth[0]
   t3_err_earth[1] := t3_err_acc_earth[1]
-  t3_err_earth[2] := t3_err_mag_earth[2]
+  t3_err_earth[2] := t3_err_mag_earth[2]     '=============================================
 
 
   repeat t3_counter from 0 to 2
@@ -551,14 +545,13 @@ PUB dcmStep5 | DCMTrans[9]
     t3_matrix_monitor3[t3_counter*3+2] := t3_err_body[t3_counter]    
   
 ' proportional compensation
-PUB dcmStep6 | kp , kp_mag
+PUB dcmStep6 | kp, kp_mag
 
   'kp := 5000
  ' kp := 500
  '   kp := 1000
   kp:= 80000
-  kp_mag := kp* 8
-
+  kp_mag := 0'40
   'skew(Err_body(i,:))*kp
   t3_imdt[0] := 0
   t3_imdt[1] := t3_err_body[2] * kp_mag / CMNSCALE

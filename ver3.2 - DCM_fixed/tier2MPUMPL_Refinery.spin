@@ -5,7 +5,7 @@ CON
 PERCENT_CONST = 1000
 
 OBJ
-  sensor    : "Tier1MPUMPL_Raw.spin"
+  sensor    : "Tier1MPUMPL_Raw_old.spin"
   FDS    : "FullDuplexSerial.spin"
  'math   : "MyMath.spin"  'no cog
 Var
@@ -96,9 +96,7 @@ PUB main
 PUB stopPlay
   if playID
     cogstop(playID ~ -1)
-
-
-'this is NOT called from tier 3. Dubugging purpose
+    
 PUB startPlay
  stopPlay
  playID := cognew(playSensor, @runStack) + 1
