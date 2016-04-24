@@ -11,10 +11,10 @@ var
 PUB calculateThrottle(dist, td, dt)| kd
 
 
-  kd := 50
+  kd := 90
   kd_down :=  kd * 4096
   kd_up := kd
-  
+  ki := 15
 
   curr_dist_ground := dist                                                                   
   target_dist := td
@@ -29,7 +29,7 @@ PUB calculateThrottle(dist, td, dt)| kd
   
   'proportional
   if error > 0
-    pro := error*512
+    pro := error*20
   else
     pro := error/2
 
@@ -41,7 +41,7 @@ PUB calculateThrottle(dist, td, dt)| kd
     dir := kd_up*(curr_dist_ground - prev_dist_ground)'/(dt/clkfreq) ' milimeter per sec   * kd_down        
 
   'integral
-  int := int + error/10
+  int := int + ki*error/100
 
   intBound := 1500
   if (int > intBound)

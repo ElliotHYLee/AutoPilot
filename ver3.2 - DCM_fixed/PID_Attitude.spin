@@ -66,7 +66,7 @@ PUB setZaxis(kpPtr, kdPtr, kiPtr)
   zKdPtr := kdPtr
   zKiPtr := kiPtr
 
-PUB calcPIDRoll(targetVal): output| alpha, angVel ' controlling motor pulse 0 and 2
+PUB calcPIDRoll(targetVal): output| alpha, angVel ' controlling motor pulse 0 1 2
 
   
   xErr := (targetVal- long[eAngle][1])  'eAngle[1] = roll
@@ -88,7 +88,7 @@ PUB calcPIDRoll(targetVal): output| alpha, angVel ' controlling motor pulse 0 an
       output :=  xPro - xDer
       xInt := 0
 
-PUB calcPIDPitch(targetVal): output| alpha, angVel  ' controlling motor pulse 0 and 2  - pitch control
+PUB calcPIDPitch(targetVal): output| alpha, angVel  ' controlling motor pulse 0 and 5  - pitch control
 
   yErr := (targetVal- long[eAngle][0]) 'eAngle[0] = pitch
   yPro := (yErr * long[yKpPtr] )/10000    
@@ -109,25 +109,30 @@ PUB calcPIDPitch(targetVal): output| alpha, angVel  ' controlling motor pulse 0 
 
 PUB calcPIDYaw(targetVal): output   | alpha, angVel
 
-  zErr := (targetVal- long[eAngle][2]) 
-  zPro := (zErr * long[zKpPtr])/10000
-  'zDer := (long[gyro][2]/131 * long[zKdPtr] )/100
+  zErr := (targetVal- long[eAngle][2])
 
-  angVel := long[gyro][2]/131  
-  alpha := 1000'long[zKdPtr]
-  
-  oldDer_yaw := (angVel*alpha )/1000 + (oldDer_yaw*(1000 - alpha))/1000
-  zDer := oldDer_yaw *long[zKdPtr]/1000
-  
-  zIntInt := (zIntInt + (zErr*long[zKiPtr])/100_000)
-
-  zInt := -50 #> (zIntInt)/1000  <# 50   
-
-  if -5000 < zErr AND zErr < 5000 
-    output := zPro - zDer + zInt
+  if (||(zErr) > 6000)
+    output := 200
   else
-    output :=  zPro - zDer
-    zInt := 0
+   
+    zPro := (zErr * long[zKpPtr])/10000
+    'zDer := (long[gyro][2]/131 * long[zKdPtr] )/100
+     
+    angVel := long[gyro][2]/131  
+    alpha := 1000'long[zKdPtr]
+     
+    oldDer_yaw := (angVel*alpha )/1000 + (oldDer_yaw*(1000 - alpha))/1000
+    zDer := oldDer_yaw *long[zKdPtr]/1000
+     
+    zIntInt := (zIntInt + (zErr*long[zKiPtr])/100_000)
+     
+    zInt := -50 #> (zIntInt)/1000  <# 50   
+     
+    if -5000 < zErr AND zErr < 5000 
+      output := zPro - zDer + zInt
+    else
+      output :=  zPro - zDer
+      zInt := 0
   
 
 PUB resetY

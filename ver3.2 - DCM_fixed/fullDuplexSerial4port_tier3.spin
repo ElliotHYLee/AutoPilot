@@ -147,7 +147,7 @@ PUB communicate | base , c
         sendAttMsg
         sendMotorMsg
         sendThrottleMsg
-        'sendDistGrdMsg
+        sendDistGrdMsg
         'sendLocalCoordinate(xb)   
         base := cnt 
         

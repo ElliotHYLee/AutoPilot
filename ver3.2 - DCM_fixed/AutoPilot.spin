@@ -189,14 +189,14 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
 
     if (navPidOnOff[1])
        'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
-      val := heightCtrl.calculateThrottle(dist_ground, 1000, cnt - base)
+      val := heightCtrl.calculateThrottle(dist_ground, 900, cnt - base)
       diff := val - throttle ' positive difference when need to go up, negetive when need to go down
       throttle :=val
     else
       heightCtrl.reset
     'Fix pos_pid by 50 hz at max. faster is no use due to DCM
 
-    if ((cnt - base) < clkfreq/50) 
+    if ((cnt - base) < clkfreq/70) 
       waitcnt(cnt + clkfreq/50- (cnt - base))
     'dist_ground := cnt -base
     base:=cnt
@@ -222,7 +222,7 @@ pub pulse_in(pin) | mask, milimeter
     
 PUB getDistance_Ground
 
-  dist_filtered := dist_filtered*80/100 + ping.Millimeters(ULTRASONIC_SENSOR_PIN)  *20/100
+  dist_filtered := dist_filtered*80/100 + ping.Millimeters(ULTRASONIC_SENSOR_PIN)*20/100
 
   return dist_filtered
 
@@ -292,24 +292,24 @@ PRI setXConst  | x   'Roll
 
   x := throttle
 
-  xKp := 550
-  xKi := 1500
+  xKp := 700
+  xKi := 30000
   xKd := 800     
 
 PRI setYConst  | x    ' pitch
 
   x := throttle
 
-  yKp := 700
-  yKi := 1500
-  yKd := 600    
+  yKp := 800
+  yKi := 30000
+  yKd := 700    
 
 PRI setZConst  | x
 
   x := throttle
 
-  zKp := 300
-  zKi := 1000
+  zKp := 400
+  zKi := 0
   zKd := 1000
 
 PRI runPID  |i, prev, dt, delay
