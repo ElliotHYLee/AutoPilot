@@ -18,6 +18,7 @@ VAR
   long t3_dt_mpu, t3_prev_mpu, t3_freq_mpu
 
   'DCM variables
+  long isFirstRound
   long t3_dcmCogId, t3_dcmStack[128]
   long t3_dcm[9], t3_eye[9], t3_imdt[9], t3_imdt2[9], t3_imdt3[9]
   long t3_omega[3], t3_euler[3], t3_acc_body[3], t3_acc_earth[3], t3_mag_earth[3]
@@ -46,7 +47,7 @@ VAR
   long t3_avg_acc_d[3], t3_first_mag_d[3], t3_first_euler_in_d[3],t3_first_euler_out_d[3] 
   
 PUB main
-
+  isFirstRound := 1
   fds.quickStart  
   
   masterKey_tier3
@@ -190,7 +191,8 @@ PUB runMpu | goCompensation
 PUB setUpDCM | counter
 
   repeat 100                     ' 100 interations for getting avergage value
-    t2_sensor.runAccMag    
+    t2_sensor.runAccMag
+    
   t2_sensor.getAcc(@t3_acc)      ' updates acc variable
   t2_sensor.getHeading(@t3_mag)  ' updates mag variable
   
@@ -202,7 +204,7 @@ PUB setUpDCM | counter
     t3_euler[counter] := 0                      ' initialize eular angles => all zeros for now
     t3_first_mag[counter] := t3_mag[counter]    ' initialize heading
 
-  'math.acc2ang(@t3_avgAcc, @t3_first_euler_in)
+  
   acc2ang                                       ' based on first accelerometer, get first eular angles
   math.a2d(@t3_dcm,@t3_first_euler_in)          ' based on the first eular angles, set up a initial DCM
   d2a                                           ' based on the DCM, calculate euler;this result should be same as first euler
@@ -212,7 +214,10 @@ PUB setUpDCM | counter
   t3_first_mag[1] := (t3_dcm[3]*t3_first_mag[0] + t3_dcm[4]*t3_first_mag[1] + t3_dcm[5]*t3_first_mag[2])/CMNSCALE
   t3_first_mag[2] := (t3_dcm[6]*t3_first_mag[0] + t3_dcm[7]*t3_first_mag[1] + t3_dcm[8]*t3_first_mag[2])/CMNSCALE
 
-
+  acc2ang_with_heading                  ' based on first accelerometer, get first eular angles
+  math.a2d(@t3_dcm,@t3_first_euler_in)          ' based on the first eular angles, set up a initial DCM
+  d2a  
+ 
   't3_dcm and t3_euler are used through out the algorithm
   ' below assignments are for debugging purpose
   repeat counter from 0 to 8
@@ -220,7 +225,27 @@ PUB setUpDCM | counter
     if counter < 3
       t3_first_euler_out[counter] := t3_euler[counter] 
 
-  
+PUB acc2ang_with_heading | x, y, temp
+
+  'temp := t3_avgAcc[2] * t3_avgAcc[2]+t3_avgAcc[1] * t3_avgAcc[1]
+ 'x := sqrt(temp)
+  'y := t3_acc[0] 
+
+  't3_first_euler_in[0] := tr.atan2(x, y)  ' theta
+  't3_first_euler_in[1] := tr.atan2(-t3_avgAcc[2], -t3_avgAcc[1])
+
+  if (t3_first_mag[0] =>0 AND t3_first_mag[1] =>0)   'btw +90 to +180 degree
+    t3_first_euler_in[2] :=  180 - t3_first_mag[1]*9/7
+  elseif (t3_first_mag[0] => 0 AND t3_first_mag[1] < 0)  'btw -90 to -180 degree  
+    t3_first_euler_in[2] := -(180 + t3_first_mag[1]*9/7) 
+  elseif (t3_first_mag[0] < 0 AND t3_first_mag[1] => 0)  'btw 0 to +90 degree 
+    t3_first_euler_in[2] :=  t3_first_mag[1]*9/7 
+  elseif (t3_first_mag[0] < 0 AND t3_first_mag[1] < 0)  'btw -0 to -90 degree 
+    t3_first_euler_in[2] :=  t3_first_mag[1]*9/7 
+
+  't3_first_euler_in[2] := getSign(t3_first_euler_in[2])*((||t3_first_euler_in[2])-30) 
+  t3_first_euler_in[2] *=100
+
 PUB acc2ang | x, y, temp
 
   temp := t3_avgAcc[2] * t3_avgAcc[2]+t3_avgAcc[1] * t3_avgAcc[1]
@@ -229,8 +254,10 @@ PUB acc2ang | x, y, temp
 
   t3_first_euler_in[0] := tr.atan2(x, y)  ' theta
   t3_first_euler_in[1] := tr.atan2(-t3_avgAcc[2], -t3_avgAcc[1])
-  t3_first_euler_in[2] := 0
+  t3_first_euler_in[2] :=0
+ 
 
+  
 PUB sqrt(value)| x, i
 
   x := value
@@ -266,7 +293,7 @@ PUB d2a | counter, temp1[9]
   t3_euler[0] := -tr.asin(temp1[6]*2)           ' q, pitch, theta
   t3_euler[1] := tr.atan2(temp1[8], temp1[7]) ' p, roll, psi  
   t3_euler[2] := tr.atan2(temp1[0], temp1[3]) ' r, yaw, phi
-  t3_euler[2] := getSign( t3_euler[2])*((||t3_euler[2])-30)
+  t3_euler[2] := getSign(t3_euler[2])*((||t3_euler[2])-30)
   
 
 PUB stopDcm
@@ -277,7 +304,7 @@ PUB startDcm
   stopDcm
   t3_dcmCogId := cognew(runDcm, @t3_dcmStack) + 1
 
-PUB runDcm | err0, err1, err2
+PUB runDcm 
   
   repeat
     if t3_gyroIsUpdated
@@ -291,14 +318,18 @@ PUB runDcm | err0, err1, err2
       'compensate only when it is available
       if t3_accMagIsUpdated
         calcCompensation
-        t3_accMagIsUpdated := 0
-       
+        t3_accMagIsUpdated := 0        
       d2a
 
       t3_gyroIsUpdated := 0
       t3_dcmIsUpdated := 1  ' to report to upper level object
       t3_dt_dcm := cnt - t3_prev_dcm
      ' t3_prev_dcm := cnt         uncomment this to measure synched frequency  of DCM w/o compensation
+
+
+
+
+  
       
 PUB calcDcm
   
@@ -538,6 +569,10 @@ PUB dcmStep5 | DCMTrans[9]
   t3_err_body[0] := (DCMTrans[0]/100*t3_err_earth[0] + DCMTrans[1]/100*t3_err_earth[1] + DCMTrans[2]/100*t3_err_earth[2])/100 '/CMNSCALE 
   t3_err_body[1] := (DCMTrans[3]/100*t3_err_earth[0] + DCMTrans[4]/100*t3_err_earth[1] + DCMTrans[5]/100*t3_err_earth[2])/100 '/CMNSCALE
   t3_err_body[2] := (DCMTrans[6]/100*t3_err_earth[0] + DCMTrans[7]/100*t3_err_earth[1] + DCMTrans[8]/100*t3_err_earth[2])/100 '/CMNSCALE
+
+  if ||t3_err_body[2]  < 300
+    t3_err_body[2] := 0
+  
   't3_err_body[2] := t3_err_body[2]/1000000 
 
   repeat t3_counter from 0 to 2
