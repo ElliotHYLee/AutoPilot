@@ -91,6 +91,10 @@ PUB main
     waitcnt(cnt + clkfreq/60)
     t3_dt_fds := cnt - t3_prev_fds
 
+PUB getFirstHeading
+
+  result := t3_first_euler_in[2]  
+
     
 PUB getDcmStatus 
 

@@ -189,7 +189,7 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
 
     if (navPidOnOff[1])
        'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
-      val := heightCtrl.calculateThrottle(dist_ground, 900, cnt - base)
+      val := heightCtrl.calculateThrottle(dist_ground, 600, cnt - base)
       diff := val - throttle ' positive difference when need to go up, negetive when need to go down
       throttle :=val
     else
@@ -334,8 +334,10 @@ PRI runPID  |i, prev, dt, delay
   attCtrl.setZaxis(@zKp, @zKd, @zKi)  
   
   attCtrl.setAttVal(@eAngle, @gyro)
-
   thrustBound_max := 1950
+
+  targetEAngle[2] := sensor.getFirstHeading
+  
   repeat
     prev := cnt
     
