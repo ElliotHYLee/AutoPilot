@@ -65,7 +65,7 @@ VAR
 PUB startAutoPilot|i
 
   repeat i from 0 to 2
-    targetEAngle[i] := 0
+    targetEAngle[i] := 1   ' 0.01 deg <- why not zero? just convention..
     dist_filtered := -1
     localCoord[i] :=1 
     

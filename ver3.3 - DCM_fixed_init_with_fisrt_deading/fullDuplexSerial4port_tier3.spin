@@ -141,14 +141,15 @@ PUB communicate | base , c
       readCharArray_xb
     else
       if (cnt > base + clkfreq/90)
-        sendPidConst
-        sendPidCalc
+        'sendPidConst
+        'sendPidCalc
         'sendMagMsg
         sendAttMsg
         sendMotorMsg
         sendThrottleMsg
         sendDistGrdMsg
-        'sendLocalCoordinate(xb)   
+        sendLocalCoordinate(xb)
+        sendCtrlRef  
         base := cnt 
         
 '=================================
@@ -197,6 +198,23 @@ PRI readCharArray_usb
        type := 0
        newValue := 0
        coord := 0
+
+PUB sendCtrlRef
+
+  com.str(xb, string("[sx"))           
+  com.dec(xb, long[refAttPtr][0])
+  com.str(xb, string("]"))
+
+  com.str(xb, string("[sy"))           
+  com.dec(xb, long[refAttPtr][1])
+  com.str(xb, string("]"))
+
+  com.str(xb, string("[sz"))           
+  com.dec(xb, long[refAttPtr][2])
+  com.str(xb, string("]"))  
+
+
+
 
 PUB sendMagMsg
 
@@ -609,7 +627,7 @@ PRI sendAttMsg | i
       0: com.str(xb, String("x"))
       1: com.str(xb, String("y"))
       2: com.str(xb, String("z"))
-    com.dec(xb, long[refAttPtr][i])
+    com.dec(xb, long[accPtr][i])
     com.str(xb, String("]"))
     {
     serial.str(String("[g"))
