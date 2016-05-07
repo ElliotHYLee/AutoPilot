@@ -18,6 +18,7 @@ VAR
   long t3_dt_mpu, t3_prev_mpu, t3_freq_mpu
 
   'DCM variables
+  long isFirstRound
   long t3_dcmCogId, t3_dcmStack[128]
   long t3_dcm[9], t3_eye[9], t3_imdt[9], t3_imdt2[9], t3_imdt3[9]
   long t3_omega[3], t3_euler[3], t3_acc_body[3], t3_acc_earth[3], t3_mag_earth[3]
@@ -46,7 +47,7 @@ VAR
   long t3_avg_acc_d[3], t3_first_mag_d[3], t3_first_euler_in_d[3],t3_first_euler_out_d[3] 
   
 PUB main
-
+  isFirstRound := 1
   fds.quickStart  
   
   masterKey_tier3
@@ -89,6 +90,10 @@ PUB main
     printAnomalyMonitor
     waitcnt(cnt + clkfreq/60)
     t3_dt_fds := cnt - t3_prev_fds
+
+PUB getFirstHeading
+
+  result := t3_first_euler_in[2]  
 
     
 PUB getDcmStatus 
@@ -161,12 +166,25 @@ PUB runMpu | goCompensation
     t2_sensor.runGyro                ' read from MPU chip
     t2_sensor.getGyro(@t3_gyro)      ' udpates the variable
 
+    't3_gyro[0]:= 0
+    't3_gyro[1]:= 0
+    't3_gyro[2]:= 0
+
+
     goCompensation++                ' compensation once a ten iterations 
 
     if goCompensation => 9           ' compensate at 10th iteration
       t2_sensor.runAccMag            ' read acc and mag from MPU
       t2_sensor.getAcc(@t3_acc)      ' udpates acc variable
+      't3_acc[0] := 0
+      't3_acc[1] := 0
+      't3_acc[2] := 16384      
+      
       t2_sensor.getHeading(@t3_mag)  ' updates mag variable
+      't3_mag[0] :=1
+      't3_mag[1] :=0
+      't3_mag[2] :=0            
+      
       t3_accMagIsUpdated := 1        ' compensation flag is on for DCM cog
       goCompensation := 0            ' set the counter to zero 
       
@@ -177,7 +195,8 @@ PUB runMpu | goCompensation
 PUB setUpDCM | counter
 
   repeat 100                     ' 100 interations for getting avergage value
-    t2_sensor.runAccMag    
+    t2_sensor.runAccMag
+    
   t2_sensor.getAcc(@t3_acc)      ' updates acc variable
   t2_sensor.getHeading(@t3_mag)  ' updates mag variable
   
@@ -189,7 +208,7 @@ PUB setUpDCM | counter
     t3_euler[counter] := 0                      ' initialize eular angles => all zeros for now
     t3_first_mag[counter] := t3_mag[counter]    ' initialize heading
 
-  'math.acc2ang(@t3_avgAcc, @t3_first_euler_in)
+  
   acc2ang                                       ' based on first accelerometer, get first eular angles
   math.a2d(@t3_dcm,@t3_first_euler_in)          ' based on the first eular angles, set up a initial DCM
   d2a                                           ' based on the DCM, calculate euler;this result should be same as first euler
@@ -199,7 +218,10 @@ PUB setUpDCM | counter
   t3_first_mag[1] := (t3_dcm[3]*t3_first_mag[0] + t3_dcm[4]*t3_first_mag[1] + t3_dcm[5]*t3_first_mag[2])/CMNSCALE
   t3_first_mag[2] := (t3_dcm[6]*t3_first_mag[0] + t3_dcm[7]*t3_first_mag[1] + t3_dcm[8]*t3_first_mag[2])/CMNSCALE
 
-
+  acc2ang_with_heading                  ' based on first accelerometer, get first eular angles
+  math.a2d(@t3_dcm,@t3_first_euler_in)          ' based on the first eular angles, set up a initial DCM
+  d2a  
+ 
   't3_dcm and t3_euler are used through out the algorithm
   ' below assignments are for debugging purpose
   repeat counter from 0 to 8
@@ -207,7 +229,27 @@ PUB setUpDCM | counter
     if counter < 3
       t3_first_euler_out[counter] := t3_euler[counter] 
 
-  
+PUB acc2ang_with_heading | x, y, temp
+
+  'temp := t3_avgAcc[2] * t3_avgAcc[2]+t3_avgAcc[1] * t3_avgAcc[1]
+ 'x := sqrt(temp)
+  'y := t3_acc[0] 
+
+  't3_first_euler_in[0] := tr.atan2(x, y)  ' theta
+  't3_first_euler_in[1] := tr.atan2(-t3_avgAcc[2], -t3_avgAcc[1])
+
+  if (t3_first_mag[0] =>0 AND t3_first_mag[1] =>0)   'btw +90 to +180 degree
+    t3_first_euler_in[2] :=  180 - t3_first_mag[1]*9/7
+  elseif (t3_first_mag[0] => 0 AND t3_first_mag[1] < 0)  'btw -90 to -180 degree  
+    t3_first_euler_in[2] := -(180 + t3_first_mag[1]*9/7) 
+  elseif (t3_first_mag[0] < 0 AND t3_first_mag[1] => 0)  'btw 0 to +90 degree 
+    t3_first_euler_in[2] :=  t3_first_mag[1]*9/7 
+  elseif (t3_first_mag[0] < 0 AND t3_first_mag[1] < 0)  'btw -0 to -90 degree 
+    t3_first_euler_in[2] :=  t3_first_mag[1]*9/7 
+
+  't3_first_euler_in[2] := getSign(t3_first_euler_in[2])*((||t3_first_euler_in[2])-30) 
+  t3_first_euler_in[2] *=100
+
 PUB acc2ang | x, y, temp
 
   temp := t3_avgAcc[2] * t3_avgAcc[2]+t3_avgAcc[1] * t3_avgAcc[1]
@@ -216,8 +258,10 @@ PUB acc2ang | x, y, temp
 
   t3_first_euler_in[0] := tr.atan2(x, y)  ' theta
   t3_first_euler_in[1] := tr.atan2(-t3_avgAcc[2], -t3_avgAcc[1])
-  t3_first_euler_in[2] := 0
+  t3_first_euler_in[2] :=0
+ 
 
+  
 PUB sqrt(value)| x, i
 
   x := value
@@ -253,6 +297,8 @@ PUB d2a | counter, temp1[9]
   t3_euler[0] := -tr.asin(temp1[6]*2)           ' q, pitch, theta
   t3_euler[1] := tr.atan2(temp1[8], temp1[7]) ' p, roll, psi  
   t3_euler[2] := tr.atan2(temp1[0], temp1[3]) ' r, yaw, phi
+  t3_euler[2] := getSign(t3_euler[2])*((||t3_euler[2])-30)
+  
 
 PUB stopDcm
   if t3_dcmCogId
@@ -262,7 +308,7 @@ PUB startDcm
   stopDcm
   t3_dcmCogId := cognew(runDcm, @t3_dcmStack) + 1
 
-PUB runDcm | err0, err1, err2
+PUB runDcm 
   
   repeat
     if t3_gyroIsUpdated
@@ -276,14 +322,18 @@ PUB runDcm | err0, err1, err2
       'compensate only when it is available
       if t3_accMagIsUpdated
         calcCompensation
-        t3_accMagIsUpdated := 0
-       
+        t3_accMagIsUpdated := 0        
       d2a
 
       t3_gyroIsUpdated := 0
       t3_dcmIsUpdated := 1  ' to report to upper level object
       t3_dt_dcm := cnt - t3_prev_dcm
      ' t3_prev_dcm := cnt         uncomment this to measure synched frequency  of DCM w/o compensation
+
+
+
+
+  
       
 PUB calcDcm
   
@@ -318,14 +368,13 @@ PUB getOmega  |ki
   'ki := 500
   'ki := 50
   
- 'ki := 200  ' ki is actually 0.001; ki will be divided by 10_000
+ 'ki := 200  
 
- ki:=0
+  ki:= 0'30
   repeat t3_counter from 0 to 2
-    t3_omega[t3_counter] := t3_gyro[t3_counter]*CMNSCALE/131*314/100/180   '10_000 rad/s
-    'if (t3_omega[t3_counter] < 70 AND t3_omega[t3_counter] > -70)  ' for now eliminate gyro noise
-    '  t3_omega[t3_counter] := 0 
-    t3_omega[t3_counter] += t3_I[t3_counter]* (ki/1000) 
+    t3_omega[t3_counter] := t3_gyro[t3_counter]*CMNSCALE/131*314/100/180 + t3_I[t3_counter]* ki/100    '10_000 rad/s
+
+   ' t3_omega[t3_counter] += t3_I[t3_counter]* ki/100 
 
   
 PUB dcmStep1
@@ -430,64 +479,82 @@ PUB dcmStep2| il , temp1[9],  col1[3], col2[3], col3[3], err_orth, x_orth[3], y_
 
 
 ' Step 3: get acc and mag in ground frames
-PUB dcmStep3
+PUB dcmStep3  | mag_norm, mag_earth[3]
 
   ' Accelerometer: convert units in body frame
   '9.81 m/s^2 is representedas 98100
   'mpu setting is 2g -> max g can occur is 98100*2 = 196200 -> no overflow
-  t3_acc_body[0] := t3_acc[0] * CMNSCALE /100 * 981 /16384  
-  t3_acc_body[1] := t3_acc[1] * CMNSCALE /100 * 981 /16384
-  t3_acc_body[2] := t3_acc[2] * CMNSCALE /100 * 981 /16384
-
-  ' Accelerometer: acc in ground frame
-  t3_acc_earth[0] := (t3_dcm[0]*t3_acc_body[0] + t3_dcm[1]*t3_acc_body[1] + t3_dcm[2]*t3_acc_body[2])/CMNSCALE
-  t3_acc_earth[1] := (t3_dcm[3]*t3_acc_body[0] + t3_dcm[4]*t3_acc_body[1] + t3_dcm[5]*t3_acc_body[2])/CMNSCALE
-  t3_acc_earth[2] := (t3_dcm[6]*t3_acc_body[0] + t3_dcm[7]*t3_acc_body[1] + t3_dcm[8]*t3_acc_body[2])/CMNSCALE
-
-  ' Magnetometer: mag in ground frame
-  t3_mag_earth[0] := (t3_dcm[0]*t3_mag[0] + t3_dcm[1]*t3_mag[1] + t3_dcm[2]*t3_mag[2])/CMNSCALE 
-  t3_mag_earth[1] := (t3_dcm[3]*t3_mag[0] + t3_dcm[4]*t3_mag[1] + t3_dcm[5]*t3_mag[2])/CMNSCALE 
-  t3_mag_earth[2] := (t3_dcm[6]*t3_mag[0] + t3_dcm[7]*t3_mag[1] + t3_dcm[8]*t3_mag[2])/CMNSCALE 
+  t3_acc_body[0] := t3_acc[0]*CMNSCALE/16384  * 981 /100 
+  t3_acc_body[1] := t3_acc[1]*CMNSCALE/16384  * 981 /100  
+  t3_acc_body[2] := t3_acc[2]*CMNSCALE/16384  * 981 /100  
 
   
+  ' Accelerometer: acc in ground frame -> t3_acc_earth in CMNSCALE
+  t3_acc_earth[0] := (t3_dcm[0]/10*t3_acc_body[0]/10 + t3_dcm[1]/10*t3_acc_body[1]/10 + t3_dcm[2]/10*t3_acc_body[2]/10) /100
+  t3_acc_earth[1] := (t3_dcm[3]/10*t3_acc_body[0]/10 + t3_dcm[4]/10*t3_acc_body[1]/10 + t3_dcm[5]/10*t3_acc_body[2]/10) /100
+  t3_acc_earth[2] := (t3_dcm[6]/10*t3_acc_body[0]/10 + t3_dcm[7]/10*t3_acc_body[1]/10 + t3_dcm[8]/10*t3_acc_body[2]/10) /100
+
+
+   repeat t3_counter from 0 to 2
+     t3_matrix_monitor1[t3_counter*3] := t3_acc_body[t3_counter]
+     t3_matrix_monitor1[t3_counter*3 + 1] := t3_mag[t3_counter]    
+     t3_matrix_monitor1[t3_counter*3 + 2] := 0  ' t3_err_earth[t3_counter]
+
+  ' Magnetometer: mag in ground frame = ||mag_earth|| = 10_000
+  mag_earth[0] := (t3_dcm[0]/100*t3_mag[0] + t3_dcm[1]/100*t3_mag[1] + t3_dcm[2]/100*t3_mag[2])/100'/10_000  ' in non CMNSCALE
+  mag_earth[1] := (t3_dcm[3]/100*t3_mag[0] + t3_dcm[4]/100*t3_mag[1] + t3_dcm[5]/100*t3_mag[2])/100'/10_000
+  mag_earth[2] :=  0
+
+ 
+  mag_norm := ^^(mag_earth[0]*mag_earth[0] + mag_earth[1]*mag_earth[1])
+  t3_mag_earth[0] := (1000*mag_earth[0])/mag_norm 
+  t3_mag_earth[1] := (1000*mag_earth[1])/mag_norm
+  t3_mag_earth[2] := 0
+  '||mag_earth|| = 10_000  
+
+  repeat t3_counter from 0 to 2
+ '   t3_matrix_monitor2[t3_counter*3+0] := t3_acc_earth[t3_counter] 
+    t3_matrix_monitor2[t3_counter*3+1] := t3_mag_earth[t3_counter]
+  
+  mag_norm := ^^(t3_mag_earth[0]*t3_mag_earth[0] + t3_mag_earth[1]*t3_mag_earth[1])       
+  t3_matrix_monitor3[3] := mag_norm
+  
 ' Step 4: Calculate Error in earth frame
-PUB dcmStep4  | g[3], magSize[2], norm_mag_earth[3], norm_first_mag_earth[3] 
+PUB dcmStep4  | g[3], magSize[2], norm_mag_earth[3], norm_first_mag_earth[3], norm_acc 
 
   ' Ground frame gravity vector g[]
   g[0] := 0
   g[1] := 0
   g[2] := -98100
 
-  'commented outs: g[0] and g[1] are zero
+  ' commented outs: g[0] and g[1] are zero
   ' divided by CMNSCALE because DMC is in 10^4 and g is in 10^4 -> needs to keep in 10^4 scale
-            
-  t3_err_acc_earth[0] := t3_acc_earth[1]*g[2] /CMNSCALE '- acc_earth[2]*g[1])/CMNSCALE
-  t3_err_acc_earth[1] := -t3_acc_earth[0]*g[2]/CMNSCALE   'acc_earth[2]*g[0]/CMNSCALE - acc_earth[0]*g[2]/CMNSCALE
-  t3_err_acc_earth[2] := 0'acc_earth[0]*g[1]/CMNSCALE - acc_earth[1]*g[0]/CMNSCALE  
+   
+
+  norm_acc :=  ^^(t3_acc_earth[0]/100*t3_acc_earth[0]/100 + t3_acc_earth[1]/100*t3_acc_earth[1]/100 + t3_acc_earth[2]/100*t3_acc_earth[2]/100) * ^^(CMNSCALE)
+  t3_matrix_monitor3[0] := norm_acc
+  
+  t3_err_acc_earth[0] := CMNSCALE*t3_acc_earth[1]  / norm_acc  'in CMNSCALE
+  t3_err_acc_earth[1] := CMNSCALE*(-t3_acc_earth[0]) / norm_acc  'in CMNSCALE 
+  t3_err_acc_earth[2] := 0
 
 
-  'Mag_earth(i,:) = [Mag_earth(i,1) Mag_earth(i,2) 0] /norm(Mag_earth(i,:)); 
-  magSize[0] := math.sqrt(t3_mag_earth[0]*t3_mag_earth[0] + t3_mag_earth[1]*t3_mag_earth[1] )'+mag_earth[2]*mag_earth[2])
-  norm_mag_earth[0] := t3_mag_earth[1] * CMNSCALE / magSize[0]
-  norm_mag_earth[1] := t3_mag_earth[2] * CMNSCALE / magSize[0]
-  norm_mag_earth[2] := 0
-
-  'err_mag_earth = cross(Mag_earth(i,:),  Mag_earth(1,:)); 
-  magSize[1] := math.sqrt(t3_first_mag[0]*t3_first_mag[0] +t3_first_mag[1]*t3_first_mag[1]) ' +first_mag_earth[2]*first_mag_earth[2]/CMNSCALE)
-  norm_first_mag_earth[0] := t3_first_mag[0] * CMNSCALE / magSize[1]
-  norm_first_mag_earth[1] := t3_first_mag[1] * CMNSCALE / magSize[1]
-  norm_first_mag_earth[2] := t3_first_mag[2] * CMNSCALE / magSize[1] 
-
+   'err_mag_earth = cross(Mag_earth(i,:),  Mag_earth(1,:)); 
   t3_err_mag_earth[0] := 0'(norm_mag_earth[1]*norm_first_mag_earth[2] - norm_mag_earth[2]*norm_first_mag_earth[1])/CMNSCALE
   t3_err_mag_earth[1] := 0'(norm_mag_earth[2]*norm_first_mag_earth[0] - norm_mag_earth[0]*norm_first_mag_earth[2])/CMNSCALE
-  t3_err_mag_earth[2] := (norm_mag_earth[0]*norm_first_mag_earth[1] - norm_mag_earth[1]*norm_first_mag_earth[0])/CMNSCALE 
+  t3_err_mag_earth[2] := -t3_mag_earth[1] 
+
 
   'Err_earth(i,:) = err_acc_earth + err_mag_earth;
   t3_err_earth[0] := t3_err_acc_earth[0]
   t3_err_earth[1] := t3_err_acc_earth[1]
-  t3_err_earth[2] := t3_err_mag_earth[2] 
+  t3_err_earth[2] := t3_err_mag_earth[2]     '=============================================
 
 
+  repeat t3_counter from 0 to 2
+    t3_matrix_monitor2[t3_counter*3] := t3_acc_earth[t3_counter]
+    't3_matrix_monitor2[t3_counter*3 + 1] := t3_mag_earth[t3_counter]    
+    't3_matrix_monitor2[t3_counter*3 + 2] := 0' t3_err_earth[t3_counter]
 ' calcualte error in body frame
 PUB dcmStep5 | DCMTrans[9]
 
@@ -502,48 +569,37 @@ PUB dcmStep5 | DCMTrans[9]
   DCMTrans[7] := t3_dcm[5]
   DCMTrans[8] := t3_dcm[8]
 
-  t3_err_body[0] := (DCMTrans[0]*t3_err_earth[0] + DCMTrans[1]*t3_err_earth[1] + DCMTrans[2]*t3_err_earth[2])/CMNSCALE
-  t3_err_body[1] := (DCMTrans[3]*t3_err_earth[0] + DCMTrans[4]*t3_err_earth[1] + DCMTrans[5]*t3_err_earth[2])/CMNSCALE
-  t3_err_body[2] := (DCMTrans[6]*t3_err_earth[0] + DCMTrans[7]*t3_err_earth[1] + DCMTrans[8]*t3_err_earth[2])/CMNSCALE
-  t3_err_body[2] /= 9000 ' without this, error in z is too big compared to errors from acc
+  ' err body is  in NON CMNSCALE
+  t3_err_body[0] := (DCMTrans[0]/100*t3_err_earth[0] + DCMTrans[1]/100*t3_err_earth[1] + DCMTrans[2]/100*t3_err_earth[2])/100 '/CMNSCALE 
+  t3_err_body[1] := (DCMTrans[3]/100*t3_err_earth[0] + DCMTrans[4]/100*t3_err_earth[1] + DCMTrans[5]/100*t3_err_earth[2])/100 '/CMNSCALE
+  t3_err_body[2] := (DCMTrans[6]/100*t3_err_earth[0] + DCMTrans[7]/100*t3_err_earth[1] + DCMTrans[8]/100*t3_err_earth[2])/100 '/CMNSCALE
 
- 't3_err_body[2] *= 0 'quick fix of that magnetometer err is too big  
+  if ||t3_err_body[2]  < 300
+    t3_err_body[2] := 0
+  
+  't3_err_body[2] := t3_err_body[2]/1000000 
 
-
-
- ' for terminal window -> debugging purpose
   repeat t3_counter from 0 to 2
-   ' t3_matrix_monitor1[t3_counter*3] := t3_acc_body[t3_counter]
-   ' t3_matrix_monitor1[t3_counter*3+1] := t3_acc_earth[t3_counter]
-   ' t3_matrix_monitor1[t3_counter*3+2] := t3_err_acc_earth[t3_counter]
-
-   ' t3_matrix_monitor2[t3_counter*3] := t3_mag[t3_counter]
-   ' t3_matrix_monitor2[t3_counter*3+1] := t3_mag_earth[t3_counter]
-   ' t3_matrix_monitor2[t3_counter*3+2] := t3_err_mag_earth[t3_counter]
-
-    t3_matrix_monitor3[t3_counter*3] := t3_err_earth[t3_counter]
-    t3_matrix_monitor3[t3_counter*3+1] := t3_err_body[t3_counter]
-    't3_matrix_monitor3[t3_counter*3+2] := t3_err_mag_earth[t3_counter]
-
-  't3_err_body[2] :=   0
-
-
+    t3_matrix_monitor3[t3_counter*3+1] := t3_err_earth[t3_counter] 
+    t3_matrix_monitor3[t3_counter*3+2] := t3_err_body[t3_counter]    
+  
 ' proportional compensation
-PUB dcmStep6 | kp
+PUB dcmStep6 | kp, kp_mag
 
   'kp := 5000
  ' kp := 500
  '   kp := 1000
- kp:=2500 
+  kp:= 40000
+  kp_mag := kp/2
   'skew(Err_body(i,:))*kp
   t3_imdt[0] := 0
-  t3_imdt[1] := -t3_err_body[2] * kp / CMNSCALE
-  t3_imdt[2] := t3_err_body[1]  * kp / CMNSCALE
-  t3_imdt[3] := t3_err_body[2]  * kp / CMNSCALE
+  t3_imdt[1] := t3_err_body[2] * kp_mag / CMNSCALE
+  t3_imdt[2] := -t3_err_body[1]  * kp / CMNSCALE
+  t3_imdt[3] := -t3_err_body[2]  * kp_mag / CMNSCALE
   t3_imdt[4] := 0
-  t3_imdt[5] := -t3_err_body[0] * kp / CMNSCALE
-  t3_imdt[6] := -t3_err_body[1] * kp / CMNSCALE 
-  t3_imdt[7] := t3_err_body[0]  * kp / CMNSCALE
+  t3_imdt[5] := t3_err_body[0] * kp / CMNSCALE
+  t3_imdt[6] := t3_err_body[1] * kp / CMNSCALE 
+  t3_imdt[7] := -t3_err_body[0]  * kp / CMNSCALE
   t3_imdt[8] := 0
 
 '  repeat t3_counter from 0 to 8
@@ -590,11 +646,10 @@ PUB dcmStep7
      elseif(t3_intrmdtI[t3_counter] <-100)
       t3_intrmdtI[t3_counter] := -100
     t3_I[t3_counter] :=  t3_intrmdtI[t3_counter] 
-      
+
   repeat t3_counter from 0 to 2
-    t3_matrix_monitor2[t3_counter*3] := t3_I[t3_counter]
-  repeat t3_counter from 0 to 8
-    t3_matrix_monitor1[t3_counter] := t3_dcm[t3_counter]  
+    t3_matrix_monitor2[t3_counter*3+2] := t3_I[t3_counter] 
+     
 PUB dcmStep8
    
   ' done in 'getOmega
@@ -712,7 +767,8 @@ PRI printDCM | iter, digit, counter
 
 PRI printMatrixMonitor | iter, digit, counter
   
-  fds.str(String("Monitor1 : DCM"))
+  fds.strln(String("Monitor1 :"))
+  fds.str(String("acc_body        mag_body"))
   fds.newline
   
   repeat iter from 0 to 8
@@ -727,7 +783,8 @@ PRI printMatrixMonitor | iter, digit, counter
       fds.str(string(" "))
 
   fds.newline 
-  fds.str(String("Monitor2 : Error Integral"))
+  fds.strln(String("Monitor2 :"))
+  fds.str(String("Acc_earth      Mag_Earth      err_integral "))
   fds.newline
   
   repeat iter from 0 to 8
@@ -742,7 +799,8 @@ PRI printMatrixMonitor | iter, digit, counter
       fds.str(string(" "))  
             
   fds.newline 
-  fds.str(String("Monitor3: Error * 10_000, err_earth, err_body, empty "))
+  fds.strln(String("Monitor3:"))
+  fds.str(String("Norm(acc, mag),    err_earth,    err_body "))
   fds.newline
   
   repeat iter from 0 to 8

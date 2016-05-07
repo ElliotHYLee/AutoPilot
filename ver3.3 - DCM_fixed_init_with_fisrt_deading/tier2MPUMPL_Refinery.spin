@@ -5,7 +5,7 @@ CON
 PERCENT_CONST = 1000
 
 OBJ
-  sensor    : "Tier1MPUMPL_Raw_old.spin"
+  sensor    : "Tier1MPUMPL_Raw.spin"
   FDS    : "FullDuplexSerial.spin"
  'math   : "MyMath.spin"  'no cog
 Var
@@ -198,9 +198,9 @@ PUB getAvgMag | i, avgCoef
     prevMagX[i] := prevMagX[i+1]
     prevMagY[i] := prevMagY[i+1]
     prevMagZ[i] := prevMagZ[i+1] 
-  prevMagX[avgCoef-1] := Mag[0]
-  prevMagY[avgCoef-1] := Mag[1]
-  prevMagZ[avgCoef-1] := Mag[2]
+  prevMagX[avgCoef-1] := mag[0]
+  prevMagY[avgCoef-1] := mag[1]
+  prevMagZ[avgCoef-1] := mag[2]
     
   avgMag[0] := 0
   avgMag[1] := 0
