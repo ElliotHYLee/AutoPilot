@@ -65,7 +65,7 @@ VAR
 PUB startAutoPilot|i
 
   repeat i from 0 to 2
-    targetEAngle[i] := 1   ' 0.01 deg <- why not zero? just convention..
+    targetEAngle[i] := 0   ' 0.01 deg <- why not zero? just convention..
     dist_filtered := -1
     localCoord[i] :=1 
     
@@ -189,7 +189,7 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
 
     if (navPidOnOff[1])
        'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
-      val := heightCtrl.calculateThrottle(dist_ground, 600, cnt - base)
+      val := heightCtrl.calculateThrottle(dist_ground, 900, cnt - base)
       diff := val - throttle ' positive difference when need to go up, negetive when need to go down
       throttle :=val
     else
@@ -300,7 +300,7 @@ PRI setYConst  | x    ' pitch
 
   x := throttle
 
-  yKp := 800
+  yKp := 700
   yKi := 30000
   yKd := 700    
 
@@ -308,9 +308,9 @@ PRI setZConst  | x
 
   x := throttle
 
-  zKp := 400
-  zKi := 0
-  zKd := 1000
+  zKp := 500
+  zKi := 0'30000
+  zKd := 1200
 
 PRI runPID  |i, prev, dt, delay
 

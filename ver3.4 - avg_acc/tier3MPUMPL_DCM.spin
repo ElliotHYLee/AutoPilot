@@ -93,7 +93,7 @@ PUB main
 
 PUB getFirstHeading
 
-  result := t3_first_euler_in[2]  
+  result :=  t3_first_euler_in[2]  
 
     
 PUB getDcmStatus 

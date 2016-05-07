@@ -168,7 +168,7 @@ PUB runAccMag
 
 PUB getAvgAcc | i, avgCoef
 
-  avgCoef:= 5
+  avgCoef:= 20
 
   repeat i from 0 to (avgCoef-2)
     prevAccX[i] := prevAccX[i+1]
@@ -193,7 +193,7 @@ PUB getAvgAcc | i, avgCoef
 
 PUB getAvgMag | i, avgCoef
 
-  avgCoef:= 5
+  avgCoef:= 20
 
   repeat i from 0 to (avgCoef-2)
     prevMagX[i] := prevMagX[i+1]
