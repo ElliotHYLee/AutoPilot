@@ -67,7 +67,7 @@ PUB startAutoPilot|i
   repeat i from 0 to 2
     targetEAngle[i] := 0   ' 0.01 deg <- why not zero? just convention..
     dist_filtered := -1
-    localCoord[i] :=0  
+    localCoord[i] :=1 
     
   '1. xbee start (wireless com for Ground Station)      x 2 cogs
   newCommunication
@@ -76,8 +76,8 @@ PUB startAutoPilot|i
   '2. attitude start (MPU9150(+AK8) & MPL11A2)          x 2 cog
   startSensor
   
-  '4. attitude pid start                                x 1 cog
- ' startPID
+  '4. attitude pid start                                x 0 cog
+  'startPID
 
   '5. Position PID                                      x 1 cog
   startPID_Pos 
@@ -92,10 +92,10 @@ PUB startAutoPilot|i
 '===================== COMMUNICATION PART ==================================================================
 '===================================================================================================
 {{
------------------------------------------------------------------
-USB REGION                                                      |
+----------------------------                                   |
   Number of cog used : 2                                        |
-  Cog usage          : sending/reading data via usb & xbee      |
+  Cog usage          : sendin-------------------------------------
+USB REGION                   g/reading data via usb & xbee      |
   Functions:         :                                          |
 -----------------------------------------------------------------
 }}
@@ -184,8 +184,7 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
 
   totalInc := 0
   base := cnt
-  setPIDAtt
-  
+  setPidAtt
   repeat
     dist_ground := getDistance_Ground 'ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
 
@@ -201,8 +200,8 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
     if ((cnt - base) < clkfreq/70) 
       waitcnt(cnt + clkfreq/50- (cnt - base))
     'dist_ground := cnt -base
-    runPIDAtt
 
+    runPidAtt
     base:=cnt
 
 
@@ -230,6 +229,7 @@ PUB getDistance_Ground
 
   return dist_filtered
 
+     
 
 
 '===================================================================================================
@@ -238,7 +238,7 @@ PUB getDistance_Ground
 {{
 -----------------------------------------------------------------
 PID REGION                                                      |
-  Number of cog used : 1                                        |
+  Number of cog used : 0 merged into posPID                     |
   Cog usage          : calculating PID                          |
   Functions:         : pidOn                                    |
                        pidOff                                   |
@@ -267,22 +267,23 @@ PRI pidOnZ
 PRI pidOffZ
   pidOnOff[2] := 0  
 
-'PRI stopPID
-'  if pidCogId             
-'    cogstop(pidCogId ~ - 1)
+PRI stopPID
+  if pidCogId             
+    cogstop(pidCogId ~ - 1)
 
-'PRI startPID
+PRI startPID
 
-  'stopPID
+  stopPID
 
-  'pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
+  pidCogId := cognew(managePID, @pidStack) + 1  'start running pid controller
+
 
 PRI setXConst  | x   'Roll
 
   x := throttle
 
   xKp := 650
-  xKi := 200000
+  xKi := 500_000
   xKd := 800     
 
 PRI setYConst  | x    ' pitch
@@ -290,7 +291,7 @@ PRI setYConst  | x    ' pitch
   x := throttle
 
   yKp := 700
-  yKi := 150000
+  yKi := 350_000
   yKd := 700    
 
 PRI setZConst  | x
@@ -301,12 +302,9 @@ PRI setZConst  | x
   zKi := 0'30000
   zKd := 1200
 
-PRI managePID
-   setPIDAtt
-   runPIDAtt
+PRI setPidAtt
 
-PRI setPIDAtt
-  setXConst
+ setXConst
   setYConst
   setZConst
 
@@ -328,7 +326,13 @@ PRI setPIDAtt
   thrustBound_max := 1950
 
   targetEAngle[2] := sensor.getFirstHeading
-PRI runPIDAtt  |i, prev, dt, delay
+
+PRI managePID  
+  setPidAtt
+  repeat
+    runPidAtt
+  
+PRI runPidAtt  |i, prev, dt, delay
 
   
   
