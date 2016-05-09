@@ -141,8 +141,8 @@ PUB communicate | base , c
       readCharArray_xb
     else
       if (cnt > base + clkfreq/90)
-        sendPidConst
-        sendPidCalc
+        'sendPidConst
+        'sendPidCalc
         sendMagMsg
         sendAttMsg
         sendMotorMsg

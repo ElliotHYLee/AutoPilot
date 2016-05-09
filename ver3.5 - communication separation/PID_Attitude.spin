@@ -134,7 +134,6 @@ PUB calcPIDYaw(targetVal): output   | alpha, angVel
       output :=  zPro - zDer
       zInt := 0
   
-
 PUB resetY
   yPro := 0
   yDer := 0

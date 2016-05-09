@@ -67,7 +67,7 @@ PUB startAutoPilot|i
   repeat i from 0 to 2
     targetEAngle[i] := 0   ' 0.01 deg <- why not zero? just convention..
     dist_filtered := -1
-    localCoord[i] :=1 
+    localCoord[i] :=0  
     
   '1. xbee start (wireless com for Ground Station)      x 2 cogs
   newCommunication
@@ -77,7 +77,7 @@ PUB startAutoPilot|i
   startSensor
   
   '4. attitude pid start                                x 1 cog
-  startPID
+ ' startPID
 
   '5. Position PID                                      x 1 cog
   startPID_Pos 
@@ -184,6 +184,8 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
 
   totalInc := 0
   base := cnt
+  setPIDAtt
+  
   repeat
     dist_ground := getDistance_Ground 'ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
 
@@ -199,6 +201,8 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
     if ((cnt - base) < clkfreq/70) 
       waitcnt(cnt + clkfreq/50- (cnt - base))
     'dist_ground := cnt -base
+    runPIDAtt
+
     base:=cnt
 
 
@@ -226,22 +230,7 @@ PUB getDistance_Ground
 
   return dist_filtered
 
-     
-PUB getAbs(value)
-  if value > 0
-    result := value
-  else
-    result := -value
-'=====================
 
-PUB sqrt(value)| x, i
-
-  x := value
-
-  repeat i from 0 to 20
-    x := (value/x + x) /2
-
-  return x
 
 '===================================================================================================
 '===================== PID PART Attitude Control===================================================
@@ -278,22 +267,22 @@ PRI pidOnZ
 PRI pidOffZ
   pidOnOff[2] := 0  
 
-PRI stopPID
-  if pidCogId             
-    cogstop(pidCogId ~ - 1)
+'PRI stopPID
+'  if pidCogId             
+'    cogstop(pidCogId ~ - 1)
 
-PRI startPID
+'PRI startPID
 
-  stopPID
+  'stopPID
 
-  pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
+  'pidCogId := cognew(runPID, @pidStack) + 1  'start running pid controller
 
 PRI setXConst  | x   'Roll
 
   x := throttle
 
-  xKp := 700
-  xKi := 30000
+  xKp := 650
+  xKi := 200000
   xKd := 800     
 
 PRI setYConst  | x    ' pitch
@@ -301,7 +290,7 @@ PRI setYConst  | x    ' pitch
   x := throttle
 
   yKp := 700
-  yKi := 30000
+  yKi := 150000
   yKd := 700    
 
 PRI setZConst  | x
@@ -312,9 +301,11 @@ PRI setZConst  | x
   zKi := 0'30000
   zKd := 1200
 
-PRI runPID  |i, prev, dt, delay
+PRI managePID
+   setPIDAtt
+   runPIDAtt
 
-  
+PRI setPIDAtt
   setXConst
   setYConst
   setZConst
@@ -337,8 +328,12 @@ PRI runPID  |i, prev, dt, delay
   thrustBound_max := 1950
 
   targetEAngle[2] := sensor.getFirstHeading
+PRI runPIDAtt  |i, prev, dt, delay
+
   
-  repeat
+  
+  
+  'repeat
     prev := cnt
     
     updateAttitude   
