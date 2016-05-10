@@ -25,24 +25,34 @@ VAR
   
 OBJ
 
+  debug  : "ParallaxSerialTerminal.spin"
   kinect : "CommKinect.spin"
   xbee   : "CommXbee.spin"
   prop   : "CommProp2.spin"
 
-PUB secondaryPropMain
+PUB secondaryPropMain | i
 '===============================================
 ' This code is for secondary propeller   
 '===============================================
 
 
-  startKinect          ' 2 cogs for Kinect receiving
-
+  'startKinect          ' 2 cogs for Kinect receiving
+  debug.quickStart
+  
   startXbee            ' 2 cogs for Xbee communication
 
   startProp2Prop       ' 2 cogs for prop to prop communication
-                 
+          
 
-
+  repeat
+    debug.clear
+    repeat i from 0 to 5
+      debug.str(String("M"))
+      debug.dec(i+1)
+      debug.dec(pulse[i])
+      debug.newline
+    waitcnt(cnt + clkfreq/10)
+      
 PRI startProp2Prop
 
   prop.initialize 

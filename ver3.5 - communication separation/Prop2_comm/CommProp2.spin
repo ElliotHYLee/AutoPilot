@@ -120,6 +120,7 @@ PUB communicate
   repeat
     if com.RxCount  
       readCharArray_prop
+      com.RxFlush
     else
       sendCtrlRef  
  
@@ -186,8 +187,7 @@ PRI readCharArray_prop  | newPWM, newPidProperty, newRequest, newMode
    elseif(varChar2 ==  84 AND varchar == 72) ' TH -> throttle
      type := 6
    elseif(varChar2 ==  82 AND varchar == 65) ' RA -> Reference AttitudeR
-     type := 7      
-
+     type := 7
     
    if (type==1)
      if 11099 < newValue AND newValue < 63000
@@ -279,6 +279,7 @@ PRI readCharArray_prop  | newPWM, newPidProperty, newRequest, newMode
           
           type := 0
           newValue := 0
+
 
 
 PRI updateRefAtt(x) | axis, targetAtt

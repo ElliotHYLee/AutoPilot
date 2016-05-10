@@ -121,12 +121,12 @@ PUB communicate
     if com.RxCount  
       readCharArray_xb
     else
-      sendMagMsg
-      sendAttMsg
+      'sendMagMsg
+      'sendAttMsg
       sendMotorMsg
-      sendThrottleMsg
-      sendDistGrdMsg
-      sendCtrlRef  
+      'sendThrottleMsg
+      'sendDistGrdMsg
+      'sendCtrlRef  
  
         
 '=================================
@@ -523,10 +523,10 @@ PRI sendMotorMsg | i
 
   repeat i from 0 to 5
     'motor write
-    com.str(  String("[m"))
-    com.Dec(  i+1)
-    com.Dec(  long[pulsePtr][i])
-    com.str(  String("]"))
+    com.str(String("[m"))
+    com.Dec(i+1)
+    com.Dec(long[pulsePtr][i])
+    com.str(String("]"))
 
 PRI sendDistGrdMsg
 
@@ -537,21 +537,21 @@ PRI sendDistGrdMsg
 PRI sendAttMsg | i
 
   repeat i from 0 to 2
-    com.str(  String("[c"))
+    com.str(String("[c"))
     case i
-      0: com.str(  String("x"))
-      1: com.str(  String("y"))
-      2: com.str(  String("z"))
-    com.dec(  long[eAnglePtr][i])
-    com.str(  String("]"))
+      0: com.str(String("x"))
+      1: com.str(String("y"))
+      2: com.str(String("z"))
+    com.dec(long[eAnglePtr][i])
+    com.str(String("]"))
 
-    com.str(  String("[a"))
+    com.str(String("[a"))
     case i
-      0: com.str(  String("x"))
-      1: com.str(  String("y"))
-      2: com.str(  String("z"))
-    com.dec(  long[accPtr][i])
-    com.str(  String("]"))
+      0: com.str(String("x"))
+      1: com.str(String("y"))
+      2: com.str(String("z"))
+    com.dec(long[accPtr][i])
+    com.str(String("]"))
     {
     serial.str(String("[g"))
     case i
@@ -575,15 +575,15 @@ PRI respondBack(x)
 
 PRI sendPidOnOffStatus
 
-  com.str(  String("[o0"))
-  com.dec(  long[pidOnOffPtr][0])
-  com.str(  String("]"))  
-  com.str(  String("[o1"))
-  com.dec(  long[pidOnOffPtr][1])
-  com.str(  String("]"))
-  com.str(  String("[o2"))
-  com.dec(  long[pidOnOffPtr][2])
-  com.str(  String("]"))
+  com.str(String("[o0"))
+  com.dec(long[pidOnOffPtr][0])
+  com.str(String("]"))  
+  com.str(String("[o1"))
+  com.dec(long[pidOnOffPtr][1])
+  com.str(String("]"))
+  com.str(String("[o2"))
+  com.dec(long[pidOnOffPtr][2])
+  com.str(String("]"))
         
 
 
