@@ -132,14 +132,10 @@ PUB setZPidPtr(kp, kd, ki, pro, der, int, output)
 PUB communicate | base , c
   base := cnt 
   repeat
-    ' communication with on board computer
-    if com.rxIsIn(usb)  
-      readCharArray_usb
-
    ' communication with GCS (Xbee)
-    if com.rxIsIn(xb)
-      readCharArray_xb
-    else
+    'if com.rxIsIn(xb)
+    '  readCharArray_xb
+    'else
       if (cnt > base + clkfreq/90)
         'sendPidConst
         'sendPidCalc
