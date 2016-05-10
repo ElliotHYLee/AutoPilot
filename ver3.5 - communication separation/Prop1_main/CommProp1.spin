@@ -34,7 +34,7 @@ PUB main
 
 PUB initialize
 
-  com_listener_CogId := com.quickStartXbee
+  com_listener_CogId := com.quickStartMain
 
 PUB setLocalCoordinate(valuePtr)
 
@@ -118,15 +118,19 @@ PUB setZPidPtr(kp, kd, ki, pro, der, int, output)
 '=================================         
 PUB communicate 
   repeat
-    if com.RxCount  
-      readCharArray_xb
-    else
-      sendMagMsg
-      sendAttMsg
+    'if com.RxCount  
+    '  readCharArray_xb
+    'else
       sendMotorMsg
-      sendThrottleMsg
-      sendDistGrdMsg
-      sendCtrlRef  
+      'sendThrottleMsg
+      'sendCtrlRef
+      'sendDistGrdMsg
+      
+      'sendMagMsg
+     sendAttMsg
+      
+      
+        
  
         
 '=================================
@@ -523,10 +527,10 @@ PRI sendMotorMsg | i
 
   repeat i from 0 to 5
     'motor write
-    com.str(  String("[m"))
+    com.str(  String("M"))
     com.Dec(  i+1)
     com.Dec(  long[pulsePtr][i])
-    com.str(  String("]"))
+    'com.str(  String(""))
 
 PRI sendDistGrdMsg
 
@@ -537,21 +541,21 @@ PRI sendDistGrdMsg
 PRI sendAttMsg | i
 
   repeat i from 0 to 2
-    com.str(  String("[c"))
+    com.str(  String("c"))
     case i
       0: com.str(  String("x"))
       1: com.str(  String("y"))
       2: com.str(  String("z"))
     com.dec(  long[eAnglePtr][i])
-    com.str(  String("]"))
+    'com.str(  String("]"))
 
-    com.str(  String("[a"))
+    com.str(  String("a"))
     case i
       0: com.str(  String("x"))
       1: com.str(  String("y"))
       2: com.str(  String("z"))
     com.dec(  long[accPtr][i])
-    com.str(  String("]"))
+    'com.str(  String("]"))
     {
     serial.str(String("[g"))
     case i

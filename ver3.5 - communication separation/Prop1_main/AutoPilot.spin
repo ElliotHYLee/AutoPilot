@@ -6,7 +6,7 @@ ULTRASONIC_SENSOR_PIN = 8
 
 OBJ
 
-  comm           : "fullDuplexSerial4Port_tier3.spin"
+  comm           : "CommProp1.spin"
   sensor         : "tier3MPUMPL_DCM.spin"
   motors         : "Motors.spin"
   math           : "MyMath.spin"
@@ -91,11 +91,10 @@ PUB startAutoPilot|i
 '===================================================================================================
 '===================== COMMUNICATION PART ==================================================================
 '===================================================================================================
-{{
-----------------------------                                   |
+{{  USB REGION   
+----------------------------------------------------------------|                                   |
   Number of cog used : 2                                        |
-  Cog usage          : sendin-------------------------------------
-USB REGION                   g/reading data via usb & xbee      |
+  Cog usage          : sending/reading data via usb & xbee      |
   Functions:         :                                          |
 -----------------------------------------------------------------
 }}
