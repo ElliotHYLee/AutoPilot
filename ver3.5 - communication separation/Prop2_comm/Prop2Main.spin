@@ -27,7 +27,7 @@ OBJ
 
   kinect : "CommKinect.spin"
   xbee   : "CommXbee.spin"
-  prop   : "CommProp.spin"
+  prop   : "CommProp2.spin"
 
 PUB secondaryPropMain
 '===============================================
