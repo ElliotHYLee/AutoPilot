@@ -51,7 +51,16 @@ PUB secondaryPropMain | i
       debug.dec(i+1)
       debug.dec(pulse[i])
       debug.newline
-    waitcnt(cnt + clkfreq/10)
+      debug.newline 
+    repeat i from 0 to 2
+      debug.str(String("C"))
+      case i
+        0: debug.str(String("x"))
+        1: debug.str(String("y"))
+        2: debug.str(String("z"))
+      debug.dec(eAngle[i])
+      debug.newline
+    waitcnt(cnt + clkfreq/5)
       
 PRI startProp2Prop
 

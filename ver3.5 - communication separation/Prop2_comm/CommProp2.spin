@@ -21,6 +21,9 @@ VAR
   long lcAxisNumber, coord
   long pidAxis
   long pidOnOffPtr[3], navPidOnOffPtr[3] 
+
+
+  long axisNumber, value
   
 OBJ
   com :  "ParallaxSerialTerminal.spin"
@@ -120,7 +123,7 @@ PUB communicate
   repeat
     if com.RxCount  
       readCharArray_prop
-      com.RxFlush
+      'com.RxFlush
     else
       sendCtrlRef  
  
@@ -174,21 +177,13 @@ PRI readCharArray_prop  | newPWM, newPidProperty, newRequest, newMode
    varChar := com.CharIn
    if (48=<varChar AND varChar=<57) 'btw 0-9
      newValue := newValue*10 + ASCII2Dec(varChar)
+
    elseif(varChar == 77) ' M -> motor
      type := 1  'next 5 digits are (motornumber & pwm)
-   elseif(varChar == 80) ' P -> PID constant change
-     type := 2  'next 5 digits are (PID type and info)
-   elseif(varChar == 82) ' R -> request of specific info
-     type := 3  ' next 2 digits are request types
-   elseif(varChar == 68) ' D -> system mode update
-     type := 4  ' next 5 digits are mode types
-   elseif(varChar == 79) ' O -> PID on/off
-     type := 5  ' next 5 digits are mode types
-   elseif(varChar2 ==  84 AND varchar == 72) ' TH -> throttle
-     type := 6
-   elseif(varChar2 ==  82 AND varchar == 65) ' RA -> Reference AttitudeR
-     type := 7
-    
+   elseif(varChar == 99) ' c -> comp filter
+     type := 2  ' next 5 digits are mode types
+
+      
    if (type==1)
      if 11099 < newValue AND newValue < 63000
        motorNumber := newValue/10000
@@ -202,85 +197,22 @@ PRI readCharArray_prop  | newPWM, newPidProperty, newRequest, newMode
          6: long[pulsePtr][5] := newPWM
        type := 0
        newValue := 0
-   {elseif (type == 2)   ' PID constant update
-     if 9_999_999 < newValue
-       pidUpdateIndex := newValue/10_000_000
-       newPidProperty := newValue//10_000_000
-       case pidUpdateIndex
-         1: long[xKpPtr] := newPidProperty
-         2: long[xKiPtr] := newPidProperty
-         3: long[xKdPtr] := newPidProperty
-         4: long[yKpPtr] := newPidProperty
-         5: long[yKiPtr] := newPidProperty
-         6: long[yKdPtr] := newPidProperty
-         7: long[zKpPtr] := newPidProperty
-         8: long[zKiPtr] := newPidProperty
-         9: long[zKdPtr] := newPidProperty                  
-       type := 0
-       newValue := 0
-       respondContent := 1   ' respond content 1 = pid constants
-       respondBack(1)         'repond type 1 = all pid types
-       respondContent := 2   ' respond content 2 = pid on/off
-       respondBack(1)         'repond type 1 = all pid types
-      }
-   elseif (type == 3)  ' Request system information
-     if 10 < newValue
-       respondType := newValue/10
-       newRequest := newValue//10
-       case respondType
-         1: respondContent := newRequest
-       respondContent := newRequest   ' respond content 2 = pid on/off
-       respondBack(respondType)
-       if (newValue == 12)
-         sendPidOnOffStatus   
-       'waitcnt(cnt + clkfreq*2)
-       type := 0
-       newValue := 0
-       'serial.RxFlush
-   {    
-   elseif (type == 4)    ' systemMode update
-     if 10000 < newValue
-       newMode := newValue//10000
-       systemModeUpdate(newMode)
-       com.RxFlush
-       newValue := 0
-       respondContent := 2 'respond content 2 = pid on/off
-       respondBack(1)      'repond type 1 = all pid types
-     }
-   elseif (type == 5)   ' pid on/off status
-     if 9 < newValue  AND newValue < 50  'pif on off msg: o10 -> x axis off
-       pidAxis := newValue/10
-       setPidStatus(newValue)
-      ' serial.str(String("pid on off request :"))
-      ' serial.decLn(newValue)
-       'waitcnt(cnt + clkfreq*2)
-       type := 0
-       newValue := 0
-       sendPidOnOffStatus
-
-   elseif (type == 6)   ' Throttle value
-     if 1099 < newValue AND newValue < 2500 
-       updateThrottle(newValue)
-       'serial.str(String("throttle request :"))
-       'serial.decLn(newValue)
-       type := 0
-       newValue := 0
        
-   elseif (type == 7)   ' Reference attitude
-     'newValueCounter++
-     'if 5 < newValueCounter
-        if 10000 =< newValue AND newValue =< 69000
-          'x axis: -90 deg = 19000,+90 deg = 9000
-          'y axis: -90 deg = 39000,+90 deg = 29000
-          'z axis: -90 deg = 59000,+90 deg = 49000
-          
-          
-          updateRefAtt(newValue)
-          
-          type := 0
-          newValue := 0
-
-
+   elseif (type == 2)
+     if 1_00000 =< newValue AND newValue =< 6_18100
+       axisNumber := newValue/100_000
+       value := newValue//100_000                                    
+       case axisNumber
+         1: long[eAnglePtr][0] := value
+         2: long[eAnglePtr][0] := -value  
+         3: long[eAnglePtr][1] := value  
+         4: long[eAnglePtr][1] := -value
+         5: long[eAnglePtr][2] := value
+         6: long[eAnglePtr][2] := -value
+       type := 0
+       newValue := 0
+       value := 0 
+       axisNumber := 0
 
 PRI updateRefAtt(x) | axis, targetAtt
 
