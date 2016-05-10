@@ -538,17 +538,20 @@ PRI sendDistGrdMsg
   com.dec(long[dist_ground_ptr])
   com.str(String("]"))         
 
-PRI sendAttMsg | i
+PRI sendAttMsg | i, axis
 
   repeat i from 0 to 2
-    com.str(  String("c"))
-    case i
-      0: com.str(  String("x"))
-      1: com.str(  String("y"))
-      2: com.str(  String("z"))
-    com.dec(  long[eAnglePtr][i])
-    'com.str(  String("]"))
+    com.str(String("c"))
+    if (long[eAnglePtr][i] =>0)
+      axis := 2*i + 1
+    else
+      axis := 2*i + 2
 
+    com.dec(axis)
+    com.dec(long[eAnglePtr][i])
+
+
+{
     com.str(  String("a"))
     case i
       0: com.str(  String("x"))
@@ -556,7 +559,7 @@ PRI sendAttMsg | i
       2: com.str(  String("z"))
     com.dec(  long[accPtr][i])
     'com.str(  String("]"))
-    {
+   
     serial.str(String("[g"))
     case i
       0: serial.str(String("x"))
