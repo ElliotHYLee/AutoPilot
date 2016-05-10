@@ -65,7 +65,7 @@ VAR
 PUB startAutoPilot|i
 
   repeat i from 0 to 2
-    targetEAngle[i] := 0   ' 0.01 deg <- why not zero? just convention..
+    targetEAngle[i] := 0
     dist_filtered := -1
     localCoord[i] :=1 
     
@@ -77,7 +77,7 @@ PUB startAutoPilot|i
   startSensor
   
   '4. attitude pid start                                x 0 cog
-  'startPID
+  startPID
 
   '5. Position PID                                      x 1 cog
   startPID_Pos 
@@ -183,7 +183,7 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
 
   totalInc := 0
   base := cnt
-  setPidAtt
+  'setPidAtt
   repeat
     dist_ground := getDistance_Ground 'ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
 
@@ -200,7 +200,7 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
       waitcnt(cnt + clkfreq/50- (cnt - base))
     'dist_ground := cnt -base
 
-    runPidAtt
+    'runPidAtt
     base:=cnt
 
 
