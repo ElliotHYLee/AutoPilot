@@ -136,7 +136,7 @@ PRI sendMotorMsg | i
     com.str(String("M"))
     com.Dec(i+1)
     com.Dec(long[pulsePtr][i])
-
+    com.str(String(";"))
         
 PRI sendAttMsg | i, axis
 
@@ -159,7 +159,7 @@ PRI sendAttMsg | i, axis
     elseif (||(long[eAnglePtr][i]) < 10_000)
       com.str(String("0"))
     com.dec(||(long[eAnglePtr][i]))
-
+    com.str(String(";"))
      
 {
     com.str(  String("a"))
