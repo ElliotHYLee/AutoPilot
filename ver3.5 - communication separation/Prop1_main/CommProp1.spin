@@ -35,6 +35,7 @@ PUB main
 PUB initialize
 
   com_listener_CogId := com.quickStartMain
+  'com_listener_CogId := com.quickStart
 
 PUB setLocalCoordinate(valuePtr)
 
@@ -121,7 +122,7 @@ PUB communicate
     'if com.RxCount  
     '  readCharArray_xb
     'else
-      sendMotorMsg
+     sendMotorMsg
       'sendThrottleMsg
       'sendCtrlRef
       'sendDistGrdMsg
@@ -129,9 +130,44 @@ PUB communicate
       'sendMagMsg
      sendAttMsg
       
-      
-        
- 
+PRI sendAttMsg | i, axis
+
+  repeat i from 0 to 2
+    com.str(String("c"))
+    if (long[eAnglePtr][i] =>0)
+      axis := 2*i + 1
+    else
+      axis := 2*i + 2
+
+    com.dec(axis)
+    if (||(long[eAnglePtr][i]) < 10)
+      com.str(String("0000"))
+    elseif (||(long[eAnglePtr][i]) < 100)
+      com.str(String("000"))
+    elseif (||(long[eAnglePtr][i]) < 1_000)
+      com.str(String("00"))
+    elseif (||(long[eAnglePtr][i]) < 10_000)
+      com.str(String("0"))
+    com.dec(||(long[eAnglePtr][i]))
+
+
+{
+    com.str(  String("a"))
+    case i
+      0: com.str(  String("x"))
+      1: com.str(  String("y"))
+      2: com.str(  String("z"))
+    com.dec(  long[accPtr][i])
+    'com.str(  String("]"))
+   
+    serial.str(String("[g"))
+    case i
+      0: serial.str(String("x"))
+      1: serial.str(String("y"))
+      2: serial.str(String("z")) 
+    serial.dec(long[gyroPtr][i])
+    serial.str(String("]"))
+    }
         
 '=================================
 ' Auxiliary Loop
@@ -538,36 +574,7 @@ PRI sendDistGrdMsg
   com.dec(long[dist_ground_ptr])
   com.str(String("]"))         
 
-PRI sendAttMsg | i, axis
 
-  repeat i from 0 to 2
-    com.str(String("c"))
-    if (long[eAnglePtr][i] =>0)
-      axis := 2*i + 1
-    else
-      axis := 2*i + 2
-
-    com.dec(axis)
-    com.dec(long[eAnglePtr][i])
-
-
-{
-    com.str(  String("a"))
-    case i
-      0: com.str(  String("x"))
-      1: com.str(  String("y"))
-      2: com.str(  String("z"))
-    com.dec(  long[accPtr][i])
-    'com.str(  String("]"))
-   
-    serial.str(String("[g"))
-    case i
-      0: serial.str(String("x"))
-      1: serial.str(String("y"))
-      2: serial.str(String("z")) 
-    serial.dec(long[gyroPtr][i])
-    serial.str(String("]"))
-    }
                 
 PRI respondBack(x)
   case x
