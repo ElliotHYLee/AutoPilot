@@ -116,18 +116,19 @@ PUB setZPidPtr(kp, kd, ki, pro, der, int, output)
 '=================================
 ' Main Loop
 '=================================         
-PUB communicate 
+PUB communicate | base
   repeat
     if com.RxCount  
       readCharArray_xb
     else
-      'sendMagMsg
-      'sendAttMsg
-      sendMotorMsg
-      'sendThrottleMsg
-      'sendDistGrdMsg
-      'sendCtrlRef  
- 
+      if (cnt- base) > clkfreq/100
+        'sendMagMsg
+        sendAttMsg
+        sendMotorMsg
+        'sendThrottleMsg
+        'sendDistGrdMsg
+        'sendCtrlRef  
+         base := cnt
         
 '=================================
 ' Auxiliary Loop

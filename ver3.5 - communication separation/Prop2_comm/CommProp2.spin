@@ -39,12 +39,6 @@ PUB initialize
 
   com_listener_CogId := com.quickStartSecondary
 
-PUB setLocalCoordinate(valuePtr)
-
-  lcPtr[0] := valuePtr[0]  
-  lcPtr[1] := valuePtr[1]
-  lcPtr[2] := valuePtr[2]  
-
 PUB setDistPtr(val)
 
   dist_ground_ptr := val
@@ -125,7 +119,7 @@ PUB communicate
       readCharArray_prop
       'com.RxFlush
     else
-      sendCtrlRef  
+      'sendCtrlRef  
  
 '=================================
 ' Auxiliary Loop
@@ -179,24 +173,24 @@ PRI readCharArray_prop  | newPWM, newPidProperty, newRequest, newMode
      newValue := newValue*10 + ASCII2Dec(varChar)
 
    elseif(varChar == 77) ' M -> motor
-     type := 1  'next 5 digits are (motornumber & pwm)
-   elseif(varChar == 99) ' c -> comp filter
+     type := 1 'next 5 digits are (motornumber & pwm)
+   elseif(varChar == 67) ' c -> comp filter
      type := 2  ' next 5 digits are mode types
 
       
    if (type==1)
      if 11099 < newValue AND newValue < 63000
-       motorNumber := newValue/10000
-       newPWM := newValue//10000
-       case motorNumber
-         1: long[pulsePtr][0] := newPWM
-         2: long[pulsePtr][1] := newPWM  
-         3: long[pulsePtr][2] := newPWM  
-         4: long[pulsePtr][3] := newPWM
-         5: long[pulsePtr][4] := newPWM
-         6: long[pulsePtr][5] := newPWM
-       type := 0
-       newValue := 0
+        motorNumber := newValue/10000
+        newPWM := newValue//10000
+        case motorNumber
+          1: long[pulsePtr][0] := newPWM
+          2: long[pulsePtr][1] := newPWM  
+          3: long[pulsePtr][2] := newPWM  
+          4: long[pulsePtr][3] := newPWM
+          5: long[pulsePtr][4] := newPWM
+          6: long[pulsePtr][5] := newPWM
+        type := 0
+        newValue := 0
        
    elseif (type == 2)
      if 1_00000 =< newValue AND newValue =< 6_18100
@@ -213,6 +207,11 @@ PRI readCharArray_prop  | newPWM, newPidProperty, newRequest, newMode
        newValue := 0
        value := 0 
        axisNumber := 0
+   
+       
+PRI parseMotor |newPWM
+  
+
 
 PRI updateRefAtt(x) | axis, targetAtt
 
