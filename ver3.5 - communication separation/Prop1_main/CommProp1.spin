@@ -129,11 +129,21 @@ PUB communicate
       
       'sendMagMsg
      sendAttMsg
-      
+     waitcnt(cnt + clkfreq/10)
+PRI sendMotorMsg | i
+
+  repeat i from 0 to 5
+    com.str(String("M"))
+    com.Dec(i+1)
+    com.Dec(long[pulsePtr][i])
+
+        
 PRI sendAttMsg | i, axis
 
   repeat i from 0 to 2
-    com.str(String("c"))
+    com.str(String("C"))
+    'com.dec((long[eAnglePtr][i]))
+    
     if (long[eAnglePtr][i] =>0)
       axis := 2*i + 1
     else
@@ -150,7 +160,7 @@ PRI sendAttMsg | i, axis
       com.str(String("0"))
     com.dec(||(long[eAnglePtr][i]))
 
-
+     
 {
     com.str(  String("a"))
     case i
@@ -559,14 +569,7 @@ PRI sendThrottleMsg
   com.dec(  long[throttlePtr])
   com.str(  String("]"))
 
-PRI sendMotorMsg | i
 
-  repeat i from 0 to 5
-    'motor write
-    com.str(  String("M"))
-    com.Dec(  i+1)
-    com.Dec(  long[pulsePtr][i])
-    'com.str(  String(""))
 
 PRI sendDistGrdMsg
 
