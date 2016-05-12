@@ -11,7 +11,7 @@ OBJ
   motors         : "Motors.spin"
   math           : "MyMath.spin"
   attCtrl        : "PID_Attitude.spin"
-  heightCtrl     : "PID_Height.spin"
+  navCtrl     : "PID_Nav.spin"
   ping           : "ping.spin"
 VAR
   'system variable
@@ -36,7 +36,6 @@ VAR
 
   'pid variables  - attitude control
   long pidStack[128], pidCogId
-  long targetEAngle[3], pidUpdateIndex
   long xKp, xKd, xKi 
   long yKp, yKd, yKi
   long zKp, zKd, zKi  
@@ -50,9 +49,10 @@ VAR
 
   'navigation pid variables - position control
   long pidStack_pos[128], pidCodId_pos, navPidOnOff[3]
+  long targetEAngle[3], pidUpdateIndex
   
   
-    'distance sensor var
+  'distance sensor var
   long dist_raw, dist_filtered, target_dist
 
     'local cooridinate
@@ -174,6 +174,7 @@ PRI navPidOff
 PUB stopPID_Pos
   if pidCodId_pos             
     cogstop(pidCodId_pos ~ - 1)
+
 PUB startPID_Pos
   stopPID_pos
 
@@ -187,15 +188,27 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
   repeat
     dist_ground := getDistance_Ground 'ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
 
-    if (navPidOnOff[1])
-       'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
-      val := heightCtrl.calculateThrottle(dist_ground, 900, cnt - base)
-      diff := val - throttle ' positive difference when need to go up, negetive when need to go down
-      throttle :=val
-    else
-      heightCtrl.reset
-    'Fix pos_pid by 50 hz at max. faster is no use due to DCM
 
+    if (navPidOnOff[0]) ' pitch x axis (distance Kinect - object)
+      targetEAngle[0] := navCtrl.calculatePitchAngle(localCoord[0], 2000) ' 2 meters from kincet    
+
+    if (navPidOnOff[1]) ' pitch x axis (distance Kinect - object)
+      targetEAngle[1] := navCtrl.calculateRollAngle(localCoord[1], 0)
+
+    
+    {
+    if (navPidOnOff[2])     ' z axis ( altitude) 
+       'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
+      val := heightCtrl.calculateThrottle(localCoord[2], 0, cnt - base)
+      'diff := val - throttle ' positive difference when need to go up, negetive when need to go down
+      throttle :=val      
+    else
+      heightCtrl.resetZ
+    'Fix pos_pid by 50 hz at max. faster is no use due to DCM
+   }
+
+
+    
     if ((cnt - base) < clkfreq/70) 
       waitcnt(cnt + clkfreq/50- (cnt - base))
     'dist_ground := cnt -base
@@ -309,8 +322,8 @@ PRI setZConst  | x
   x := throttle
 
   zKp := 500
-  zKi := 0'30000
-  zKd := 1200
+  zKi := 0'100
+  zKd := 800
 
 PRI runPID  |i, prev, dt, delay
 

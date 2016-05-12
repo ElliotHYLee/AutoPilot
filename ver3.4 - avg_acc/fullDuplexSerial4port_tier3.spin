@@ -129,29 +129,54 @@ PUB setZPidPtr(kp, kd, ki, pro, der, int, output)
 '=================================
 ' Main Loop
 '=================================         
-PUB communicate | base , c
+PUB communicate | base , counter, isUsbTurn
+
+  counter := 0
+  isUsbTurn := 1
   base := cnt 
   repeat
-    ' communication with on board computer
-    if com.rxIsIn(usb)  
-      readCharArray_usb
 
-   ' communication with GCS (Xbee)
-    if com.rxIsIn(xb)
-      readCharArray_xb
+    if isUsbTurn
+      'com.RxFlush(xb)
+      
+      ' communication with on board computer
+      if com.rxIsIn(usb)   
+        readCharArray_usb
+
+      if (counter>100)
+          isUsbTurn := 0
+          counter := 0
+      counter++
+
     else
-      if (cnt > base + clkfreq/90)
-        sendPidConst
-        sendPidCalc
-        sendMagMsg
-        sendAttMsg
-        sendMotorMsg
-        sendThrottleMsg
-        sendDistGrdMsg
-        sendLocalCoordinate(xb)
-        sendCtrlRef  
-        base := cnt 
-        
+       'com.RxFlush(usb)
+
+      ' communication with GCS (Xbee)
+      if com.rxIsIn(xb)
+        readCharArray_xb
+      if (counter>100)
+          isUsbTurn := 1
+          counter := 0
+      else
+        if (cnt > base + clkfreq/10)
+          sendPidConst
+          sendPidCalc
+          sendMagMsg
+          sendAttMsg
+          sendMotorMsg
+          sendThrottleMsg
+          sendDistGrdMsg
+          sendLocalCoordinate(xb)
+          sendCtrlRef
+           
+          base := cnt 
+
+      counter++
+
+
+
+
+       
 '=================================
 ' Auxiliary Loop
 '================================       
@@ -352,7 +377,7 @@ PRI readCharArray_xb  | newPWM, newPidProperty, newRequest, newMode
    elseif (type == 7)   ' Reference attitude
      'newValueCounter++
      'if 5 < newValueCounter
-        if 10000 =< newValue AND newValue =< 69000
+        if 100000 =< newValue AND newValue =< 618000
           'x axis: -90 deg = 19000,+90 deg = 9000
           'y axis: -90 deg = 39000,+90 deg = 29000
           'z axis: -90 deg = 59000,+90 deg = 49000
@@ -366,8 +391,8 @@ PRI readCharArray_xb  | newPWM, newPidProperty, newRequest, newMode
 
 PRI updateRefAtt(x) | axis, targetAtt
 
-  axis := x/10_000 
-  targetAtt := x//10_000
+  axis := x/100_000 
+  targetAtt := x//100_000
           
 
   case axis
@@ -493,7 +518,6 @@ PRI navPidOnX
 PRI navPidOnY
   long[navPidOnOffPtr][1] := 1
 
-  
 PRI navPidOnZ
   long[navPidOnOffPtr][2] := 1
   
@@ -629,15 +653,15 @@ PRI sendAttMsg | i
       2: com.str(xb, String("z"))
     com.dec(xb, long[accPtr][i])
     com.str(xb, String("]"))
-    {
-    serial.str(String("[g"))
+    
+    com.str(xb, String("[g"))
     case i
-      0: serial.str(String("x"))
-      1: serial.str(String("y"))
-      2: serial.str(String("z")) 
-    serial.dec(long[gyroPtr][i])
-    serial.str(String("]"))
-    }
+      0: com.str(xb,String("x"))
+      1: com.str(xb,String("y"))
+      2: com.str(xb,String("z")) 
+    com.dec(xb,long[gyroPtr][i])
+    com.str(xb,String("]"))
+    
                 
 PRI respondBack(x)
   case x

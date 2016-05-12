@@ -111,8 +111,16 @@ PUB calcPIDYaw(targetVal): output   | alpha, angVel
 
   zErr := (targetVal- long[eAngle][2])
 
-  if (||(zErr) > 6000)
-    output := 200
+  if (zErr>180)
+    zErr := zErr - 360
+  elseif(zErr < -180)
+    zErr := zErr + 360
+
+  
+  if (zErr > 6000) 'if Error is greater than 60 deg, need to rotate CW
+    output := -30
+  elseif (zErr < -6000)
+    output := 30  
   else
    
     zPro := (zErr * long[zKpPtr])/10000
