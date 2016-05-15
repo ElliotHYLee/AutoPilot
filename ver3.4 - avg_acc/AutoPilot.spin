@@ -11,7 +11,7 @@ OBJ
   motors         : "Motors.spin"
   math           : "MyMath.spin"
   attCtrl        : "PID_Attitude.spin"
-  navCtrl     : "PID_Nav.spin"
+  navCtrl        : "PID_Nav.spin"
   ping           : "ping.spin"
 VAR
   'system variable
@@ -192,8 +192,8 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
     if (navPidOnOff[0]) ' pitch x axis (distance Kinect - object)
       targetEAngle[0] := navCtrl.calculatePitchAngle(localCoord[0], 2000) ' 2 meters from kincet    
 
-    if (navPidOnOff[1]) ' pitch x axis (distance Kinect - object)
-      targetEAngle[1] := navCtrl.calculateRollAngle(localCoord[1], 0)
+    'if (navPidOnOff[1]) ' pitch x axis (distance Kinect - object)
+    '  targetEAngle[1] := navCtrl.calculateRollAngle(localCoord[1], 0)
 
     
     {
@@ -305,9 +305,9 @@ PRI setXConst  | x   'Roll
 
   x := throttle
 
-  xKp := 700
-  xKi := 30000
-  xKd := 800     
+  xKp := 700        ' kp = 0.02
+  xKi := 30000      ' ki = 0.3
+  xKd := 1000       ' kd = 1
 
 PRI setYConst  | x    ' pitch
 
@@ -315,14 +315,14 @@ PRI setYConst  | x    ' pitch
 
   yKp := 700
   yKi := 30000
-  yKd := 700    
+  yKd := 1000    
 
 PRI setZConst  | x
 
   x := throttle
 
   zKp := 500
-  zKi := 0'100
+  zKi := 30000
   zKd := 800
 
 PRI runPID  |i, prev, dt, delay

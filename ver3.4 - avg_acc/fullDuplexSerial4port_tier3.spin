@@ -132,16 +132,16 @@ PUB setZPidPtr(kp, kd, ki, pro, der, int, output)
 PUB communicate | base , counter, isUsbTurn
 
   counter := 0
-  isUsbTurn := 1
+  isUsbTurn := -1
   base := cnt 
   repeat
 
-    if isUsbTurn
+    if isUsbTurn AND com.rxIsIn(usb)
       'com.RxFlush(xb)
       
       ' communication with on board computer
-      if com.rxIsIn(usb)   
-        readCharArray_usb
+      'if com.rxIsIn(usb)   
+      readCharArray_usb
 
       if (counter>100)
           isUsbTurn := 0
@@ -155,7 +155,7 @@ PUB communicate | base , counter, isUsbTurn
       if com.rxIsIn(xb)
         readCharArray_xb
       if (counter>100)
-          isUsbTurn := 1
+          isUsbTurn := -1
           counter := 0
       else
         if (cnt > base + clkfreq/10)

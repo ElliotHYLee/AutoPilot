@@ -93,7 +93,8 @@ PUB main
 
 PUB getFirstHeading
 
-  result :=  t3_first_euler_in[2]  
+  waitcnt(cnt + clkfreq*3) ' wait until dcm stabilizes
+  result := t3_euler[2] + 300
 
     
 PUB getDcmStatus 
@@ -185,7 +186,7 @@ PUB runMpu | goCompensation
       't3_mag[1] :=0
       't3_mag[2] :=0            
       
-      t3_accMagIsUpdated := 1        ' compensation flag is on for DCM cog
+      t3_accMagIsUpdated := -1        ' compensation flag is on for DCM cog
       goCompensation := 0            ' set the counter to zero 
       
     t3_gyroIsUpdated := 1            ' gyro updated flag is on for DCM cog
@@ -220,7 +221,8 @@ PUB setUpDCM | counter
 
   acc2ang_with_heading                  ' based on first accelerometer, get first eular angles
   math.a2d(@t3_dcm,@t3_first_euler_in)          ' based on the first eular angles, set up a initial DCM
-  d2a  
+  d2a
+  
  
   't3_dcm and t3_euler are used through out the algorithm
   ' below assignments are for debugging purpose
@@ -247,8 +249,8 @@ PUB acc2ang_with_heading | x, y, temp
   elseif (t3_first_mag[0] < 0 AND t3_first_mag[1] < 0)  'btw -0 to -90 degree 
     t3_first_euler_in[2] :=  t3_first_mag[1]*9/7 
 
-  't3_first_euler_in[2] := getSign(t3_first_euler_in[2])*((||t3_first_euler_in[2])-30) 
-  t3_first_euler_in[2] *=100
+  t3_first_euler_in[2] := getSign(t3_first_euler_in[2])*((||t3_first_euler_in[2])) 
+  t3_first_euler_in[2] *=100  
 
 PUB acc2ang | x, y, temp
 
@@ -297,7 +299,7 @@ PUB d2a | counter, temp1[9]
   t3_euler[0] := -tr.asin(temp1[6]*2)           ' q, pitch, theta
   t3_euler[1] := tr.atan2(temp1[8], temp1[7]) ' p, roll, psi  
   t3_euler[2] := tr.atan2(temp1[0], temp1[3]) ' r, yaw, phi
-  t3_euler[2] := getSign(t3_euler[2])*((||t3_euler[2])-30)
+  t3_euler[2] := getSign(t3_euler[2])*((||t3_euler[2])-2300)
   
 
 PUB stopDcm
@@ -574,7 +576,7 @@ PUB dcmStep5 | DCMTrans[9]
   t3_err_body[1] := (DCMTrans[3]/100*t3_err_earth[0] + DCMTrans[4]/100*t3_err_earth[1] + DCMTrans[5]/100*t3_err_earth[2])/100 '/CMNSCALE
   t3_err_body[2] := (DCMTrans[6]/100*t3_err_earth[0] + DCMTrans[7]/100*t3_err_earth[1] + DCMTrans[8]/100*t3_err_earth[2])/100 '/CMNSCALE
 
-  if ||t3_err_body[2]  < 300
+  if ||t3_err_body[2]  < 200
     t3_err_body[2] := 0
   
   't3_err_body[2] := t3_err_body[2]/1000000 
@@ -590,7 +592,7 @@ PUB dcmStep6 | kp, kp_mag
  ' kp := 500
  '   kp := 1000
   kp:= 40000
-  kp_mag := kp/2
+  kp_mag := kp*3'/2
   'skew(Err_body(i,:))*kp
   t3_imdt[0] := 0
   t3_imdt[1] := t3_err_body[2] * kp_mag / CMNSCALE

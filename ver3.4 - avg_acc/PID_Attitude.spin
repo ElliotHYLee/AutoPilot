@@ -80,7 +80,7 @@ PUB calcPIDRoll(targetVal): output| alpha, angVel ' controlling motor pulse 0 1 
 
     xDer := oldDer_roll*long[xKdPtr]/1000    '(angVel*long[xKdPtr]/1000)
     xIntInt := (xIntInt + (xErr*long[xKiPtr])/100_000)
-    xInt := -500 #> (xIntInt)/1000  <# 500   
+    xInt := -1000 #> (xIntInt)/1000  <# 1000   
      
     if -5000 < xErr AND xErr < 5000 
       output := (xPro - xDer + xInt)
