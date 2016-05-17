@@ -136,12 +136,12 @@ PUB communicate | base , counter, isUsbTurn
   base := cnt 
   repeat
 
-    if isUsbTurn AND com.rxIsIn(usb)
+    if isUsbTurn 
       'com.RxFlush(xb)
       
       ' communication with on board computer
-      'if com.rxIsIn(usb)   
-      readCharArray_usb
+      if com.rxIsIn(usb)   
+        readCharArray_usb
 
       if (counter>100)
           isUsbTurn := 0
@@ -157,15 +157,15 @@ PUB communicate | base , counter, isUsbTurn
       if (counter>100)
           isUsbTurn := -1
           counter := 0
-      else
-        if (cnt > base + clkfreq/10)
+      
+        'if (cnt > base + clkfreq/10)
           sendPidConst
           sendPidCalc
-          sendMagMsg
+          'sendMagMsg
           sendAttMsg
           sendMotorMsg
           sendThrottleMsg
-          sendDistGrdMsg
+          'sendDistGrdMsg
           sendLocalCoordinate(xb)
           sendCtrlRef
            
@@ -482,24 +482,24 @@ PRI pidOff
   pidOffZ
   
 PRI pidOnX
-  long[pidOnOffPtr][0] := 1
+  long[pidOnOffPtr][0] := true
   
 PRI pidOnY
-  long[pidOnOffPtr][1] := 1
+  long[pidOnOffPtr][1] := true
    ' serial.str(String("pidY is on"))
   'waitcnt(cnt + clkfreq)
   
 PRI pidOnZ
-  long[pidOnOffPtr][2] := 1
+  long[pidOnOffPtr][2] := true
   
 PRI pidOffX
-  long[pidOnOffPtr][0] := 0
+  long[pidOnOffPtr][0] := false
   
 PRI pidOffY
-  long[pidOnOffPtr][1] := 0
+  long[pidOnOffPtr][1] := false
 
 PRI pidOffZ
-  long[pidOnOffPtr][2] := 0
+  long[pidOnOffPtr][2] := false
 
 '===========
 PRI navPidOn
@@ -513,22 +513,22 @@ PRI navPidOff
   navPidOffZ
   
 PRI navPidOnX
-  long[navPidOnOffPtr][0] := 1
+  long[navPidOnOffPtr][0] := true
   
 PRI navPidOnY
-  long[navPidOnOffPtr][1] := 1
+  long[navPidOnOffPtr][1] := true
 
 PRI navPidOnZ
-  long[navPidOnOffPtr][2] := 1
+  long[navPidOnOffPtr][2] := true
   
 PRI navPidOffX
-  long[navPidOnOffPtr][0] := 0
+  long[navPidOnOffPtr][0] := false
   
 PRI navPidOffY
-  long[navPidOnOffPtr][1] := 0
+  long[navPidOnOffPtr][1] := false
 
 PRI navPidOffZ
-  long[navPidOnOffPtr][2] := 0
+  long[navPidOnOffPtr][2] := false
 
 
 
@@ -645,7 +645,7 @@ PRI sendAttMsg | i
       2: com.str(xb, String("z"))
     com.dec(xb, long[eAnglePtr][i])
     com.str(xb, String("]"))
-
+    
     com.str(xb, String("[a"))
     case i
       0: com.str(xb, String("x"))
@@ -661,7 +661,7 @@ PRI sendAttMsg | i
       2: com.str(xb,String("z")) 
     com.dec(xb,long[gyroPtr][i])
     com.str(xb,String("]"))
-    
+      
                 
 PRI respondBack(x)
   case x
@@ -673,6 +673,9 @@ PRI respondBack(x)
                 
   respondType := 0
   respondContent := 0
+
+
+
 
 PRI sendPidOnOffStatus
 
@@ -687,9 +690,17 @@ PRI sendPidOnOffStatus
   com.str(xb, String("]"))
         
 
+PRI sendNavPidOnOffStatus
 
-
-
+  com.str(xb, String("[o0"))
+  com.dec(xb, long[navPidOnOffPtr][0])
+  com.str(xb, String("]"))  
+  com.str(xb, String("[o1"))
+  com.dec(xb, long[navPidOnOffPtr][1])
+  com.str(xb, String("]"))
+  com.str(xb, String("[o2"))
+  com.dec(xb, long[navPidOnOffPtr][2])
+  com.str(xb, String("]"))
 
 
 

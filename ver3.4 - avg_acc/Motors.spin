@@ -64,7 +64,7 @@ PUB runMotor | check, baseTime, totalElapse, i , array[6]             {{generati
 PRI inspectPulse | i , j
 
   repeat i from 0 to 5
-    if ((long[pulsePtr][i] < 1100) OR (1950 < long[pulsePtr][i]))
+    if ((long[pulsePtr][i] < 1100) OR (1800 < long[pulsePtr][i])) '(2050 < long[pulsePtr][i]))
       repeat j from 0 to 5
         long[pulsePtr][j] := 1100
       return 0

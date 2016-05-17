@@ -71,22 +71,21 @@ PUB calcPIDRoll(targetVal): output| alpha, angVel ' controlling motor pulse 0 1 
   
   xErr := (targetVal- long[eAngle][1])  'eAngle[1] = roll
  ' if (-100 > xErr) OR (xErr>100)
-    xPro :=  (xErr * long[xKpPtr])/10000
+  xPro :=  (xErr * long[xKpPtr])/10000
 
-    angVel := long[gyro][0]/131   '  deg/s
+  angVel := long[gyro][0]/131   '  deg/s
+  alpha := 1000'long[xKdPtr]
+  oldDer_roll := (angVel*alpha )/1000 + (oldDer_roll*(1000 - alpha))/1000
 
-    alpha := 1000'long[xKdPtr]
-    oldDer_roll := (angVel*alpha )/1000 + (oldDer_roll*(1000 - alpha))/1000
-
-    xDer := oldDer_roll*long[xKdPtr]/1000    '(angVel*long[xKdPtr]/1000)
-    xIntInt := (xIntInt + (xErr*long[xKiPtr])/100_000)
-    xInt := -1000 #> (xIntInt)/1000  <# 1000   
+  xDer := oldDer_roll*long[xKdPtr]/10000    '(angVel*long[xKdPtr]/1000)
+  xIntInt := (xIntInt + (xErr*long[xKiPtr])/100_000)
+  xInt := -50 #> (xIntInt)/1000  <# 50   
      
-    if -5000 < xErr AND xErr < 5000 
-      output := (xPro - xDer + xInt)
-    else
-      output :=  xPro - xDer
-      xInt := 0
+  if -5000 < xErr AND xErr < 5000 
+    output := (xPro - xDer + xInt)
+  else
+    output :=  xPro - xDer
+    xInt := 0
 
 PUB calcPIDPitch(targetVal): output| alpha, angVel  ' controlling motor pulse 0 and 5  - pitch control
 
@@ -96,51 +95,62 @@ PUB calcPIDPitch(targetVal): output| alpha, angVel  ' controlling motor pulse 0 
   angVel := long[gyro][1]/131  
   alpha := 1000'long[yKdPtr]
   oldDer_pitch := (angVel*alpha )/1000 + (oldDer_pitch*(1000 - alpha))/1000
-  yDer := oldDer_pitch*long[yKdPtr]/1000
+  yDer := oldDer_pitch*long[yKdPtr]/10000
 
   yIntInt := (yIntInt + (yErr*long[yKiPtr])/100_000)
          
-  yInt := -500 #> (yIntInt)/1000  <# 500   
+  yInt := -50 #> (yIntInt)/1000  <# 50   
   if -5000 < yErr AND yErr < 5000 
     output := yPro - yDer + yInt
   else
     output :=  yPro - yDer
     yInt := 0
 
-PUB calcPIDYaw(targetVal): output   | alpha, angVel
+PUB calcPIDYaw(targetVal): output   | alpha, angVel, angLim, zIntLim
 
-  zErr := (targetVal- long[eAngle][2])
+  angLim := 1000    ' 10 deg
+  zIntLim := 20
+  zErr := (targetVal- long[eAngle][2])  'positive err = need to rotate cw -> up ccw motors
 
-  if (zErr>180)
-    zErr := zErr - 360
-  elseif(zErr < -180)
-    zErr := zErr + 360
+  if (zErr>18000)
+    zErr := zErr - 36000
+  elseif(zErr < -18000)
+    zErr := zErr + 36000
 
   
-  if (zErr > 6000) 'if Error is greater than 60 deg, need to rotate CW
-    output := -30
-  elseif (zErr < -6000)
-    output := 30  
-  else
+  if (zErr > angLim) 'if Error is greater than 10 deg, need to rotate CW
+    zErr := angLim
+    'long[zKdPtr] /=10
+    'long[zKiPtr] :=0
+  elseif (zErr < -angLim)
+    zErr := -angLim
+    'long[zKdPtr] /=10 
+    'long[zKiPtr] :=0  
+  
    
-    zPro := (zErr * long[zKpPtr])/10000
+  zPro := (zErr * long[zKpPtr])/10000
     'zDer := (long[gyro][2]/131 * long[zKdPtr] )/100
      
-    angVel := long[gyro][2]/131  
-    alpha := 1000'long[zKdPtr]
+  angVel := long[gyro][2]/131  
+  alpha := 1000'long[zKdPtr]
      
-    oldDer_yaw := (angVel*alpha )/1000 + (oldDer_yaw*(1000 - alpha))/1000
-    zDer := oldDer_yaw *long[zKdPtr]/1000
+  oldDer_yaw := (angVel*alpha )/1000 + (oldDer_yaw*(1000 - alpha))/1000
+  zDer := oldDer_yaw *long[zKdPtr]/1000
      
-    zIntInt := (zIntInt + (zErr*long[zKiPtr])/100_000)
+  zIntInt := (zIntInt + (zErr*long[zKiPtr])/100_000)
+
+  if (zIntInt > zIntLim)
+    zInt := zIntLim
+  elseif(zIntInt < -zIntLim)
+    zInt := -zIntLim 
+
+  output := zPro - zDer + zInt 
      
-    zInt := -50 #> (zIntInt)/1000  <# 50   
-     
-    if -5000 < zErr AND zErr < 5000 
-      output := zPro - zDer + zInt
-    else
-      output :=  zPro - zDer
-      zInt := 0
+  'if -5000 < zErr AND zErr < 5000 
+  '  output := zPro - zDer + zInt
+  'else
+  '  output :=  zPro - zDer
+  '  zInt := 0
   
 
 PUB resetY

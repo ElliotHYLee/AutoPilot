@@ -10,18 +10,18 @@ var
   'longitudinal nav (x axis)
   long prev_dist_x, curr_dist_x, target_dist_x, velX
   long xkp, xkd, xki
-  long xerror, xpro, xdir, xint, xintBound, xOutput
+  long xerror, xpro, xder, xint, xintBound, xOutput
 
   'translational nav (y axis)
   long prev_dist_y, curr_dist_y, target_dist_y, velY
   long ykp, ykd, yki
-  long yerror, ypro, ydir, yint, yintBound, yOutput
+  long yerror, ypro, yder, yint, yintBound, yOutput
   
   
   
   'altitude nav
   long zkp, zkd_up, zkd_down, zki
-  long zerror, zpro, zdir, zint, zintBound, pwm
+  long zerror, zpro, zder, zint, zintBound, pwm
 
   
 
@@ -29,8 +29,8 @@ PUB calculatePitchAngle(distX, td) | maxOutput
 
   maxOutput:= 600
 
-  xKp := 1
-  xKd := 16
+  xKp := 2
+  xKd := 0
   xKi := 0
 
   prev_dist_x := curr_dist_x
@@ -45,19 +45,12 @@ PUB calculatePitchAngle(distX, td) | maxOutput
   
   xPro := xError*xKp
 
-  xDir := (curr_dist_x - prev_dist_x)*xkd
+  xDer := (curr_dist_x - prev_dist_x)*xkd
 
   xInt := 0
   
-  xOutput := xPro - xDir + xInt
+  xOutput := xPro - xDer + xInt
 
-
-  
-  'if (xOutput > maxOutput)  'larger than 6 degree
-  '  xOutput := maxOutput
-  'elseif(xOutput < -maxOutput)
-  '  xOutput := -maxOutput
-   
   
   return xOutput
 
@@ -81,18 +74,11 @@ PUB calculateRollAngle(distY, td) | maxOutput
   
   yPro := yError*yKp
 
-  yDir := (curr_dist_y - prev_dist_y)*xkd
+  yDer := (curr_dist_y - prev_dist_y)*xkd
 
   yInt := 0
   
-  yOutput := yPro - yDir + yInt
-
-
-  
-  'if (xOutput > maxOutput)  'larger than 6 degree
-  '  xOutput := maxOutput
-  'elseif(xOutput < -maxOutput)
-  '  xOutput := -maxOutput
+  yOutput := yPro - yDer + yInt
    
   
   return yOutput
@@ -120,12 +106,12 @@ PUB calculateThrottle(dist, td, dt)| zkd
   else
     zpro := zerror/2
 
-  'diravitive
+  'derivitive
   
   if((curr_dist_ground - prev_dist_ground) <0)
-    zdir := zkd_down*(curr_dist_ground - prev_dist_ground)'/(dt/clkfreq) ' milimeter per sec   * kd_down
+    zder := zkd_down*(curr_dist_ground - prev_dist_ground)'/(dt/clkfreq) ' milimeter per sec   * kd_down
   else
-    zdir := zkd_up*(curr_dist_ground - prev_dist_ground)'/(dt/clkfreq) ' milimeter per sec   * kd_down        
+    zder := zkd_up*(curr_dist_ground - prev_dist_ground)'/(dt/clkfreq) ' milimeter per sec   * kd_down        
 
   'integral
   zint := zint + zki*zerror/100
@@ -137,7 +123,7 @@ PUB calculateThrottle(dist, td, dt)| zkd
     zint := -1*zintBound
 
   
-  pwm := zpro - zdir + zint
+  pwm := zpro - zder + zint
 
   if (pwm >1600)
     pwm := 1600
@@ -153,5 +139,46 @@ PUB calculateThrottle(dist, td, dt)| zkd
 
 pub reSetZ
   zpro :=0
-  zdir :=0
+  zder :=0
   zint := 0
+
+
+pub reSetX
+  xpro :=0
+  xder :=0
+  xint := 0
+
+
+pub reSetY
+  ypro :=0
+  yder :=0
+  yint := 0
+
+
+
+PUB getErrX
+  return xError
+PUB getProX
+  return xPro
+PUB getDerX
+  return xDer
+PUB getIntX
+  return xInt
+
+PUB getErrY
+  return yError
+PUB getProY
+  return yPro
+PUB getDerY
+  return yDer
+PUB getIntY
+  return yInt
+
+PUB getErrZ
+  return zError
+PUB getProZ
+  return zPro
+PUB getDerZ
+  return zDer
+PUB getIntZ
+  return zInt  

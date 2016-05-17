@@ -18,7 +18,7 @@ VAR
   long t3_dt_mpu, t3_prev_mpu, t3_freq_mpu
 
   'DCM variables
-  long isFirstRound
+  long isStabilized
   long t3_dcmCogId, t3_dcmStack[128]
   long t3_dcm[9], t3_eye[9], t3_imdt[9], t3_imdt2[9], t3_imdt3[9]
   long t3_omega[3], t3_euler[3], t3_acc_body[3], t3_acc_earth[3], t3_mag_earth[3]
@@ -47,7 +47,7 @@ VAR
   long t3_avg_acc_d[3], t3_first_mag_d[3], t3_first_euler_in_d[3],t3_first_euler_out_d[3] 
   
 PUB main
-  isFirstRound := 1
+  isStabilized := false
   fds.quickStart  
   
   masterKey_tier3
@@ -91,10 +91,14 @@ PUB main
     waitcnt(cnt + clkfreq/60)
     t3_dt_fds := cnt - t3_prev_fds
 
-PUB getFirstHeading
+PUB getFirstHeading | counter
+  counter := 0
+  repeat while  (isStabilized == false AND counter < 500 )
+    waitcnt(cnt + clkfreq/10)
+    counter++
 
-  waitcnt(cnt + clkfreq*3) ' wait until dcm stabilizes
-  result := t3_euler[2] + 300
+
+  result := t3_euler[2] '+ 300
 
     
 PUB getDcmStatus 
@@ -195,7 +199,7 @@ PUB runMpu | goCompensation
     
 PUB setUpDCM | counter
 
-  repeat 100                     ' 100 interations for getting avergage value
+  repeat 500                     ' 100 interations for getting avergage value
     t2_sensor.runAccMag
     
   t2_sensor.getAcc(@t3_acc)      ' updates acc variable
@@ -299,7 +303,8 @@ PUB d2a | counter, temp1[9]
   t3_euler[0] := -tr.asin(temp1[6]*2)           ' q, pitch, theta
   t3_euler[1] := tr.atan2(temp1[8], temp1[7]) ' p, roll, psi  
   t3_euler[2] := tr.atan2(temp1[0], temp1[3]) ' r, yaw, phi
-  t3_euler[2] := getSign(t3_euler[2])*((||t3_euler[2])-2300)
+  'if (t3_euler[2] > 0)
+    't3_euler[2] := (t3_euler[2]-2300)
   
 
 PUB stopDcm
@@ -557,6 +562,7 @@ PUB dcmStep4  | g[3], magSize[2], norm_mag_earth[3], norm_first_mag_earth[3], no
     t3_matrix_monitor2[t3_counter*3] := t3_acc_earth[t3_counter]
     't3_matrix_monitor2[t3_counter*3 + 1] := t3_mag_earth[t3_counter]    
     't3_matrix_monitor2[t3_counter*3 + 2] := 0' t3_err_earth[t3_counter]
+    
 ' calcualte error in body frame
 PUB dcmStep5 | DCMTrans[9]
 
@@ -576,8 +582,9 @@ PUB dcmStep5 | DCMTrans[9]
   t3_err_body[1] := (DCMTrans[3]/100*t3_err_earth[0] + DCMTrans[4]/100*t3_err_earth[1] + DCMTrans[5]/100*t3_err_earth[2])/100 '/CMNSCALE
   t3_err_body[2] := (DCMTrans[6]/100*t3_err_earth[0] + DCMTrans[7]/100*t3_err_earth[1] + DCMTrans[8]/100*t3_err_earth[2])/100 '/CMNSCALE
 
-  if ||t3_err_body[2]  < 200
+  if ||t3_err_body[2]  < 50
     t3_err_body[2] := 0
+    isStabilized := true
   
   't3_err_body[2] := t3_err_body[2]/1000000 
 
@@ -592,7 +599,7 @@ PUB dcmStep6 | kp, kp_mag
  ' kp := 500
  '   kp := 1000
   kp:= 40000
-  kp_mag := kp*3'/2
+  kp_mag := kp*10'/2
   'skew(Err_body(i,:))*kp
   t3_imdt[0] := 0
   t3_imdt[1] := t3_err_body[2] * kp_mag / CMNSCALE

@@ -6,7 +6,7 @@ PERCENT_CONST = 1000
 
 OBJ
   sensor    : "Tier1MPUMPL_Raw.spin"
-  FDS    : "FullDuplexSerial.spin"
+  'FDS    : "FullDuplexSerial.spin"
  'math   : "MyMath.spin"  'no cog
 Var
   '2nd-level analized data
@@ -26,7 +26,7 @@ Var
   long before, elapse, base1, base2, base3, flag
 
   long dt, prev, dt2, prev2
-  
+{
 PUB main
 
   FDS.quickStart  
@@ -90,7 +90,7 @@ PUB main
       fds.decLn(clkfreq)
      } 
     
-
+}
 
 
 PUB stopPlay
@@ -260,7 +260,7 @@ PUB magZ
   return heading[2]  
 
 
-
+{
 PRI printDt
 
   fds.str(String("dt = "))
@@ -467,3 +467,5 @@ PRI printAll | i, j
   FDS.decLn(temperature)
   FDS.Str(String("gForce = "))
   FDS.decLn(gForce)
+
+  }

@@ -35,7 +35,7 @@ VAR
 
 
   'pid variables  - attitude control
-  long pidStack[128], pidCogId
+  long pidStack[100], pidCogId
   long xKp, xKd, xKi 
   long yKp, yKd, yKi
   long zKp, zKd, zKi  
@@ -116,6 +116,7 @@ PUB newCommunication
   comm.setDistPtr(@dist_filtered)
   comm.setNavPidOnOffPtr(@navPidOnOff)
 
+
   startCommunication
 
 PRI stopCommunication
@@ -144,22 +145,22 @@ PID REGION                                                      |
 }}
 
 PRI navPidOnX
-  navPidOnOff[0] := 1
+  navPidOnOff[0] := true
   
 PRI navPidOffX
-  navPidOnOff[0] := 0
+  navPidOnOff[0] := false
 
 PRI navPidOnY
-  navPidOnOff[1] := 1
+  navPidOnOff[1] := true
   
 PRI navPidOffY
-  navPidOnOff[1] := 0
+  navPidOnOff[1] := false
 
 PRI navPidOnZ
-  navPidOnOff[2] := 1
+  navPidOnOff[2] := true
   
 PRI navPidOffZ
-  navPidOnOff[2] := 0  
+  navPidOnOff[2] := false  
 
 PRI navPidOn
   navPidOnX
@@ -192,6 +193,8 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
     if (navPidOnOff[0]) ' pitch x axis (distance Kinect - object)
       targetEAngle[0] := navCtrl.calculatePitchAngle(localCoord[0], 2000) ' 2 meters from kincet    
 
+      
+      
     'if (navPidOnOff[1]) ' pitch x axis (distance Kinect - object)
     '  targetEAngle[1] := navCtrl.calculateRollAngle(localCoord[1], 0)
 
@@ -274,22 +277,22 @@ PID REGION                                                      |
 }}
 
 PRI pidOnX
-  pidOnOff[0] := 1
+  pidOnOff[0] := true
   
 PRI pidOffX
-  pidOnOff[0] := 0
+  pidOnOff[0] := false
 
 PRI pidOnY
-  pidOnOff[1] := 1
+  pidOnOff[1] := true
   
 PRI pidOffY
-  pidOnOff[1] := 0
+  pidOnOff[1] := false
 
 PRI pidOnZ
-  pidOnOff[2] := 1
+  pidOnOff[2] := true
   
 PRI pidOffZ
-  pidOnOff[2] := 0  
+  pidOnOff[2] := false  
 
 PRI stopPID
   if pidCogId             
@@ -305,25 +308,25 @@ PRI setXConst  | x   'Roll
 
   x := throttle
 
-  xKp := 700        ' kp = 0.02
-  xKi := 30000      ' ki = 0.3
-  xKd := 1000       ' kd = 1
+  xKp := 600        ' kp = kp/10_000
+  xKi := 30000      ' ki = ki/100_000
+  xKd := 7000       ' kd = kd/10_000
 
 PRI setYConst  | x    ' pitch
 
   x := throttle
 
-  yKp := 700
+  yKp := 500
   yKi := 30000
-  yKd := 1000    
+  yKd := 5000    
 
 PRI setZConst  | x
 
   x := throttle
 
-  zKp := 500
+  zKp := 700
   zKi := 30000
-  zKd := 800
+  zKd := 3000
 
 PRI runPID  |i, prev, dt, delay
 
@@ -345,10 +348,13 @@ PRI runPID  |i, prev, dt, delay
   attCtrl.setXaxis(@xKp, @xKd, @xKi)
   attCtrl.setYaxis(@yKp, @yKd, @yKi)
   attCtrl.setZaxis(@zKp, @zKd, @zKi)  
+
+  
   
   attCtrl.setAttVal(@eAngle, @gyro)
   thrustBound_max := 1950
 
+  
   targetEAngle[2] := sensor.getFirstHeading
   
   repeat
@@ -375,17 +381,17 @@ PRI attitudePID
   yOutput:=0
   zOutput:=0
   
-  if pidOnOff[0] == 1
+  if pidOnOff[0] 
     rollPID
   else
     attCtrl.resetX
     
-  if pidOnOff[1] == 1
+  if pidOnOff[1] 
     pitchPID
   else
     attCtrl.resetY
 
-  if pidOnOff[2] == 1
+  if pidOnOff[2] 
     yawPID
   else
     attCtrl.resetZ
@@ -421,12 +427,7 @@ PRI pitchPID 'y = pitch axis
   yPro := attCtrl.getProY
   yDer := attCtrl.getDerY
   yInt := attCtrl.getIntY
-  {
-  pulse[0] := 1200 #> throttle + yOutput <# thrustBound_max'1950
-  pulse[1] := 1200 #> throttle + yOutput <# thrustBound_max'1950  
-  pulse[3] := 1200 #> throttle - yOutput <# thrustBound_max'1950
-  pulse[4] := 1200 #> throttle - yOutput <# thrustBound_max'1950
-  }
+  
 PRI yawPID
 
   'setZConst
@@ -436,15 +437,7 @@ PRI yawPID
   zPro := attCtrl.getProZ
   zDer := attCtrl.getDerZ
   zInt := attCtrl.getIntZ
-  {
-  pulse[0] := 1200 #> throttle - zOutput <# thrustBound_max'1950 
-  pulse[3] := 1200 #> throttle - zOutput <# thrustBound_max'1950  
 
-  pulse[1] := 1200 #> throttle + zOutput <# thrustBound_max'1950    
-  pulse[4] := 1200 #> throttle + zOutput <# thrustBound_max'1950 
-  }
-
-  
 
                  
 '===================================================================================================
