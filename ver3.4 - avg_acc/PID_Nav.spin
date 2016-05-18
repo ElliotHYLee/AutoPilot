@@ -25,62 +25,85 @@ var
 
   
 
-PUB calculatePitchAngle(distX, td) | maxOutput
+PUB calculatePitchAngle(distX, td) | maxError, maxOutput, integralBound
 
-  maxOutput:= 600
-
-  xKp := 2
-  xKd := 0
-  xKi := 0
+  maxError:= 1000      ' 1 meter max error
+  maxOutput:= 700      ' 7 deg max 
+  integralBound := 300 ' 3 deg
+ 
+  xKp := 110      'actual kp = kp/100
+  xKd := 150
+  xKi := 5
 
   prev_dist_x := curr_dist_x
   curr_dist_x := distX
 
   xError := td - curr_dist_x ' Err>0 when closer than target dist. fall back -> positive pitch
 
-  if (xError > 300) ' when err is larger than 30 cm
-    xError := 300
-  elseif (xError < -300)
-    xError := -300
+  if (xError > maxError) ' when err is larger than 30 cm
+    xError := maxError
+  elseif (xError < -maxError)
+    xError := -maxError
   
-  xPro := xError*xKp
+  xPro := xError*xKp/100
 
-  xDer := (curr_dist_x - prev_dist_x)*xkd
+  xDer := (curr_dist_x - prev_dist_x)*xkd     ' vel >0 getting further -> need to nose down
 
-  xInt := 0
+  xInt := xInt + xError*xKi/10
+
+  if (xInt > integralBound)
+    xInt := integralBound
+  elseif(xInt < -integralBound)
+    xInt := -integralBound
   
   xOutput := xPro - xDer + xInt
 
   
+  if (xOutput > maxOutput)
+    xOutput := maxOutput
+  elseif (xOutput < -maxOutput)
+    xOutput := -maxOutput
+  
   return xOutput
 
-PUB calculateRollAngle(distY, td) | maxOutput
+PUB calculateRollAngle(distY, td) | maxError, maxOutput, integralBound
 
-  maxOutput:= 600
-
-  yKp := 1
-  yKd := 64
-  yKi := 0
+  maxError := 1000
+  maxOutput:= 700       ' 7 deg max
+  integralBound := 300  ' 3 deg max bound
+  
+  yKp := 110
+  yKd := 125
+  yKi := 5
 
   prev_dist_y := curr_dist_y
   curr_dist_y := distY
 
   yError := td - curr_dist_y ' Err>0 when closer than target dist. fall back -> positive pitch
 
-  if (yError > 500) ' when err is larger than 30 cm
-    yError := 500
-  elseif (yError < -500)
-    yError := -500
+  if (yError > maxError) ' when err is larger than 30 cm
+    yError := maxError
+  elseif (yError < -maxError)
+    yError := -maxError
   
-  yPro := yError*yKp
+  yPro := yError*yKp/100
 
   yDer := (curr_dist_y - prev_dist_y)*xkd
 
-  yInt := 0
+  yInt := 0'yInt + yError*yKi
+
+  if (yInt > integralBound)
+    yInt := integralBound
+  elseif(xInt < -integralBound)
+    yInt := -integralBound
   
   yOutput := yPro - yDer + yInt
-   
-  
+
+  if (yOutput > maxOutput)
+    yOutput := maxOutput
+  elseif (yOutput < -maxOutput)
+    yOutput := -maxOutput
+    
   return yOutput
 
 

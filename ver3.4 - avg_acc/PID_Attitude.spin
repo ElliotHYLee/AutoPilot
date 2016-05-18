@@ -108,8 +108,8 @@ PUB calcPIDPitch(targetVal): output| alpha, angVel  ' controlling motor pulse 0 
 
 PUB calcPIDYaw(targetVal): output   | alpha, angVel, angLim, zIntLim
 
-  angLim := 1000    ' 10 deg
-  zIntLim := 20
+  angLim := 1500    ' 10 deg
+  zIntLim := 10
   zErr := (targetVal- long[eAngle][2])  'positive err = need to rotate cw -> up ccw motors
 
   if (zErr>18000)
@@ -120,22 +120,26 @@ PUB calcPIDYaw(targetVal): output   | alpha, angVel, angLim, zIntLim
   
   if (zErr > angLim) 'if Error is greater than 10 deg, need to rotate CW
     zErr := angLim
-    'long[zKdPtr] /=10
+    'long[zKdPtr] /=5
     'long[zKiPtr] :=0
   elseif (zErr < -angLim)
     zErr := -angLim
-    'long[zKdPtr] /=10 
+    'long[zKdPtr] /=5 
     'long[zKiPtr] :=0  
   
    
   zPro := (zErr * long[zKpPtr])/10000
     'zDer := (long[gyro][2]/131 * long[zKdPtr] )/100
      
-  angVel := long[gyro][2]/131  
+  angVel := long[gyro][2]/131
+  if (angVel>8)
+    angVel :=8
+  elseif (angVel < -8)
+    angVel:= -8  
   alpha := 1000'long[zKdPtr]
      
   oldDer_yaw := (angVel*alpha )/1000 + (oldDer_yaw*(1000 - alpha))/1000
-  zDer := oldDer_yaw *long[zKdPtr]/1000
+  zDer := oldDer_yaw *long[zKdPtr]/10000
      
   zIntInt := (zIntInt + (zErr*long[zKiPtr])/100_000)
 

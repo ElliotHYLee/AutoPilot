@@ -210,7 +210,7 @@ PRI readCharArray_usb
    }
                         
    if (type==1)
-     if 10000 < newValue AND newValue < 70000
+     if 10000 =< newValue AND newValue < 70000
        lcAxisNumber := newValue/10000
        coord := newValue//10000
        case lcAxisNumber
@@ -482,24 +482,24 @@ PRI pidOff
   pidOffZ
   
 PRI pidOnX
-  long[pidOnOffPtr][0] := true
+  long[pidOnOffPtr][0] := 1
   
 PRI pidOnY
-  long[pidOnOffPtr][1] := true
+  long[pidOnOffPtr][1] := 1
    ' serial.str(String("pidY is on"))
   'waitcnt(cnt + clkfreq)
   
 PRI pidOnZ
-  long[pidOnOffPtr][2] := true
+  long[pidOnOffPtr][2] := 1
   
 PRI pidOffX
-  long[pidOnOffPtr][0] := false
+  long[pidOnOffPtr][0] := 0
   
 PRI pidOffY
-  long[pidOnOffPtr][1] := false
+  long[pidOnOffPtr][1] := 0
 
 PRI pidOffZ
-  long[pidOnOffPtr][2] := false
+  long[pidOnOffPtr][2] := 0
 
 '===========
 PRI navPidOn
@@ -513,22 +513,22 @@ PRI navPidOff
   navPidOffZ
   
 PRI navPidOnX
-  long[navPidOnOffPtr][0] := true
+  long[navPidOnOffPtr][0] := -1
   
 PRI navPidOnY
-  long[navPidOnOffPtr][1] := true
+  long[navPidOnOffPtr][1] := -1
 
 PRI navPidOnZ
-  long[navPidOnOffPtr][2] := true
+  long[navPidOnOffPtr][2] := -1
   
 PRI navPidOffX
-  long[navPidOnOffPtr][0] := false
+  long[navPidOnOffPtr][0] := 0
   
 PRI navPidOffY
-  long[navPidOnOffPtr][1] := false
+  long[navPidOnOffPtr][1] := 0
 
 PRI navPidOffZ
-  long[navPidOnOffPtr][2] := false
+  long[navPidOnOffPtr][2] := 0
 
 
 
@@ -692,13 +692,13 @@ PRI sendPidOnOffStatus
 
 PRI sendNavPidOnOffStatus
 
-  com.str(xb, String("[o0"))
+  com.str(xb, String("[o3"))
   com.dec(xb, long[navPidOnOffPtr][0])
   com.str(xb, String("]"))  
-  com.str(xb, String("[o1"))
+  com.str(xb, String("[o4"))
   com.dec(xb, long[navPidOnOffPtr][1])
   com.str(xb, String("]"))
-  com.str(xb, String("[o2"))
+  com.str(xb, String("[o5"))
   com.dec(xb, long[navPidOnOffPtr][2])
   com.str(xb, String("]"))
 

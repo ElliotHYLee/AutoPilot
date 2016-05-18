@@ -24,10 +24,10 @@ VAR
 
   
   'motor variables
-  long throttle, pulse[6], motorPin[6], motorStack[128], motorCogId 
+  long throttle, pulse[6], motorPin[6], motorStack[16], motorCogId
 
  'attitude variables
-  long sensorCodId, sensorStack[128] 
+  long sensorCodId, sensorStack[256]
   long gyro[3], acc[3], eAngle[3],mag[3]
 
   'communcation variables
@@ -35,7 +35,7 @@ VAR
 
 
   'pid variables  - attitude control
-  long pidStack[100], pidCogId
+  long pidStack[128], pidCogId
   long xKp, xKd, xKi 
   long yKp, yKd, yKi
   long zKp, zKd, zKi  
@@ -48,14 +48,14 @@ VAR
 
 
   'navigation pid variables - position control
-  long pidStack_pos[128], pidCodId_pos, navPidOnOff[3]
+  long pidStack_pos[50], pidCodId_pos, navPidOnOff[3]
   long targetEAngle[3], pidUpdateIndex
   
   
   'distance sensor var
   long dist_raw, dist_filtered, target_dist
 
-    'local cooridinate
+  'local cooridinate
   long localCoord[3]
     
   
@@ -145,22 +145,22 @@ PID REGION                                                      |
 }}
 
 PRI navPidOnX
-  navPidOnOff[0] := true
+  navPidOnOff[0] := 1
   
 PRI navPidOffX
-  navPidOnOff[0] := false
+  navPidOnOff[0] := 0
 
 PRI navPidOnY
-  navPidOnOff[1] := true
+  navPidOnOff[1] := 1
   
 PRI navPidOffY
-  navPidOnOff[1] := false
+  navPidOnOff[1] := 0
 
 PRI navPidOnZ
-  navPidOnOff[2] := true
+  navPidOnOff[2] := 1
   
 PRI navPidOffZ
-  navPidOnOff[2] := false  
+  navPidOnOff[2] := 0  
 
 PRI navPidOn
   navPidOnX
@@ -187,16 +187,14 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
   totalInc := 0
   base := cnt
   repeat
-    dist_ground := getDistance_Ground 'ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
+    'dist_ground := getDistance_Ground 'ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
 
 
     if (navPidOnOff[0]) ' pitch x axis (distance Kinect - object)
-      targetEAngle[0] := navCtrl.calculatePitchAngle(localCoord[0], 2000) ' 2 meters from kincet    
-
+      targetEAngle[0] := navCtrl.calculatePitchAngle(localCoord[0], 1700) ' 2 meters from kincet    
       
-      
-    'if (navPidOnOff[1]) ' pitch x axis (distance Kinect - object)
-    '  targetEAngle[1] := navCtrl.calculateRollAngle(localCoord[1], 0)
+    if (navPidOnOff[1]) ' pitch x axis (distance Kinect - object)
+      targetEAngle[1] := navCtrl.calculateRollAngle(localCoord[1], 0)
 
     
     {
@@ -208,12 +206,10 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
     else
       heightCtrl.resetZ
     'Fix pos_pid by 50 hz at max. faster is no use due to DCM
-   }
-
-
+   }   
     
-    if ((cnt - base) < clkfreq/70) 
-      waitcnt(cnt + clkfreq/50- (cnt - base))
+    if ((cnt - base) < clkfreq/30) 
+      waitcnt(cnt + clkfreq/30- (cnt - base))
     'dist_ground := cnt -base
     base:=cnt
 
@@ -324,9 +320,9 @@ PRI setZConst  | x
 
   x := throttle
 
-  zKp := 700
-  zKi := 30000
-  zKd := 3000
+  zKp := 600
+  zKi := 0'30000
+  zKd := 200_000
 
 PRI runPID  |i, prev, dt, delay
 
