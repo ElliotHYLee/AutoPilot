@@ -28,12 +28,12 @@ var
 PUB calculatePitchAngle(distX, td) | maxError, maxOutput, integralBound
 
   maxError:= 1000      ' 1 meter max error
-  maxOutput:= 700      ' 7 deg max 
+  maxOutput:= 400      ' 4 deg max 
   integralBound := 300 ' 3 deg
  
   xKp := 110      'actual kp = kp/100
-  xKd := 150
-  xKi := 5
+  xKd := 200
+  xKi := 0'5
 
   prev_dist_x := curr_dist_x
   curr_dist_x := distX
@@ -69,12 +69,12 @@ PUB calculatePitchAngle(distX, td) | maxError, maxOutput, integralBound
 PUB calculateRollAngle(distY, td) | maxError, maxOutput, integralBound
 
   maxError := 1000
-  maxOutput:= 700       ' 7 deg max
+  maxOutput:= 400       ' 4 deg max
   integralBound := 300  ' 3 deg max bound
   
-  yKp := 110
+  yKp := 80
   yKd := 125
-  yKi := 5
+  yKi := 0'5
 
   prev_dist_y := curr_dist_y
   curr_dist_y := distY

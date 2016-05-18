@@ -189,14 +189,12 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
   repeat
     'dist_ground := getDistance_Ground 'ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
 
-
     if (navPidOnOff[0]) ' pitch x axis (distance Kinect - object)
       targetEAngle[0] := navCtrl.calculatePitchAngle(localCoord[0], 1700) ' 2 meters from kincet    
       
     if (navPidOnOff[1]) ' pitch x axis (distance Kinect - object)
       targetEAngle[1] := navCtrl.calculateRollAngle(localCoord[1], 0)
 
-    
     {
     if (navPidOnOff[2])     ' z axis ( altitude) 
        'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
@@ -208,8 +206,8 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
     'Fix pos_pid by 50 hz at max. faster is no use due to DCM
    }   
     
-    if ((cnt - base) < clkfreq/30) 
-      waitcnt(cnt + clkfreq/30- (cnt - base))
+    if ((cnt - base) < clkfreq/25) 
+      waitcnt(cnt + clkfreq/25- (cnt - base))
     'dist_ground := cnt -base
     base:=cnt
 
