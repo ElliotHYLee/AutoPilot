@@ -27,7 +27,7 @@ VAR
   long throttle, pulse[6], motorPin[6], motorStack[16], motorCogId
 
  'attitude variables
-  long sensorCodId, sensorStack[256]
+  long sensorCodId, sensorStack[128]
   long gyro[3], acc[3], eAngle[3],mag[3]
 
   'communcation variables
@@ -50,8 +50,9 @@ VAR
   'navigation pid variables - position control
   long pidStack_pos[50], pidCodId_pos, navPidOnOff[3]
   long targetEAngle[3], pidUpdateIndex
-  
-  
+  long xKpNav, xKdNav, xKiNav, yKpNav, yKdNav, yKiNav
+  long zKpNav_asc, zKpNav_desc, zKdNav_asc, zKdNav_desc, zKiNav 
+
   'distance sensor var
   long dist_raw, dist_filtered, target_dist
 
@@ -115,6 +116,7 @@ PUB newCommunication
   comm.setTargetAttitude(@targetEAngle)
   comm.setDistPtr(@dist_filtered)
   comm.setNavPidOnOffPtr(@navPidOnOff)
+  comm.setNavPIDConst(@xKpNav, @xKdNav, @xKiNav, @yKpNav, @yKdNav, @yKiNav, @zKpNav_asc, @zKpNav_desc, @zKdNav_asc, @zKdNav_desc, @zKiNav)
 
 
   startCommunication
@@ -184,7 +186,27 @@ PUB startPID_Pos
 
 PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
 
+  xKpNav := 110
+  xKdNav := 200
+  xKiNav := 0
+
+  yKpNav := 80
+  yKdNav := 125
+  yKiNav := 0
+
+  zKpNav_asc  := 20
+  zKpNav_desc := 0 ' 1/2
+  zKdNav_asc  := 90
+  zKdNav_desc := 90*4096
+  zKiNav := 0
+
+  navCtrl.setNavPIDConst(@xKpNav, @xKdNav, @xKiNav, @yKpNav, @yKdNav, @yKiNav, @zKpNav_asc, @zKpNav_desc, @zKdNav_asc, @zKdNav_desc, @zKiNav)
+
   totalInc := 0
+
+  
+
+  
   base := cnt
   repeat
     'dist_ground := getDistance_Ground 'ping.Millimeters(8)'pulse_in(ULTRASONIC_SENSOR_PIN)
@@ -195,6 +217,8 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
     if (navPidOnOff[1]) ' pitch x axis (distance Kinect - object)
       targetEAngle[1] := navCtrl.calculateRollAngle(localCoord[1], 0)
 
+    
+    
     {
     if (navPidOnOff[2])     ' z axis ( altitude) 
        'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
@@ -304,7 +328,7 @@ PRI setXConst  | x   'Roll
 
   xKp := 600        ' kp = kp/10_000
   xKi := 30000      ' ki = ki/100_000
-  xKd := 7000       ' kd = kd/10_000
+  xKd := 5000       ' kd = kd/10_000
 
 PRI setYConst  | x    ' pitch
 

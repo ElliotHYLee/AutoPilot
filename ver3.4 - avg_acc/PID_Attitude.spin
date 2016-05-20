@@ -108,7 +108,7 @@ PUB calcPIDPitch(targetVal): output| alpha, angVel  ' controlling motor pulse 0 
 
 PUB calcPIDYaw(targetVal): output   | alpha, angVel, angLim, zIntLim
 
-  angLim := 1500    ' 10 deg
+  angLim := 1000    ' 10 deg
   zIntLim := 10
   zErr := (targetVal- long[eAngle][2])  'positive err = need to rotate cw -> up ccw motors
 

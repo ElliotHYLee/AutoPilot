@@ -18,6 +18,10 @@ VAR
   long yKpPtr, yKiPtr, yKdPtr, yOutputPtr, yProPtr, yDerPtr, yIntPtr
   long zKpPtr, zKiPtr, zKdPtr, zOutputPtr, zProPtr, zDerPtr, zIntPtr
 
+  long xKpNavPtr, xKdNavPtr, xKiNavPtr
+  long yKpNavPtr, yKdNavPtr, yKiNavPtr
+  long zKpNav_ascPtr, zKpNav_descPtr, zKdNav_ascPtr,zKdNav_descPtr, zKiNavPtr
+  
   long lcPtr[3] 'local coordinate pointer
 
   long systemMode, respondType, respondContent              
@@ -28,7 +32,7 @@ VAR
   
 OBJ
   com :  "fullDuplexSerial4port_tier2"
-
+    {
 PUB main | isReceived, c, localCoordinate[3]
 
   lcPtr[0] := @localCoordinate[0] 
@@ -44,6 +48,24 @@ PUB main | isReceived, c, localCoordinate[3]
       c := com.charIn(xb)
       com.char(xb, c)
       com.newline(xb)
+       }
+
+PUB setNavPIDConst(xKpAdd, xKdAdd, xKiAdd, yKpAdd, yKdAdd, yKiAdd, zKp_ascAdd, zKp_descAdd, zKd_ascAdd, zKd_descAdd, zKiAdd)
+
+  xKpNavPtr := xKpAdd
+  xKdNavPtr := xKdAdd
+  xKiNavPtr := xKiAdd
+  
+  yKpNavPtr := yKpAdd
+  yKdNavPtr := yKdAdd
+  yKiNavPtr := yKiAdd
+  
+  zKpNav_ascPtr := zKp_ascAdd
+  zKpNav_descPtr := zKp_descAdd
+  zKdNav_ascPtr := zKd_ascAdd
+  zKdNav_descPtr := zKd_descAdd
+  zKiNavPtr := zKiAdd
+
 
 PUB initialize
 
@@ -159,17 +181,19 @@ PUB communicate | base , counter, isUsbTurn
           counter := 0
       
         'if (cnt > base + clkfreq/10)
-          sendPidConst
-          sendPidCalc
+         ' sendPidConst
+         ' sendPidCalc
           'sendMagMsg
+          'sendPidNavMsg
           sendAttMsg
-          sendMotorMsg
+          'sendMotorMsg
           sendThrottleMsg
           'sendDistGrdMsg
-          sendLocalCoordinate(xb)
+          'sendLocalCoordinate(xb)
           sendCtrlRef
            
-          base := cnt 
+
+    base := cnt 
 
       counter++
 
@@ -315,15 +339,15 @@ PRI readCharArray_xb  | newPWM, newPidProperty, newRequest, newMode
        pidUpdateIndex := newValue/10_000_000
        newPidProperty := newValue//10_000_000
        case pidUpdateIndex
-         1: long[xKpPtr] := newPidProperty
-         2: long[xKiPtr] := newPidProperty
-         3: long[xKdPtr] := newPidProperty
-         4: long[yKpPtr] := newPidProperty
-         5: long[yKiPtr] := newPidProperty
-         6: long[yKdPtr] := newPidProperty
-         7: long[zKpPtr] := newPidProperty
-         8: long[zKiPtr] := newPidProperty
-         9: long[zKdPtr] := newPidProperty                  
+         1: long[xKpNavPtr] := newPidProperty
+         2: long[xKdNavPtr] := newPidProperty
+         3: long[xKiNavPtr] := newPidProperty
+         4: long[yKpNavPtr] := newPidProperty
+         5: long[yKdNavPtr] := newPidProperty
+         6: long[yKiNavPtr] := newPidProperty
+         7: long[zKpNav_ascPtr] := newPidProperty
+         8: long[zKpNav_descPtr] := newPidProperty
+         9: long[zKdNav_ascPtr] := newPidProperty                  
        type := 0
        newValue := 0
        respondContent := 1   ' respond content 1 = pid constants
@@ -486,8 +510,8 @@ PRI pidOnX
   
 PRI pidOnY
   long[pidOnOffPtr][1] := 1
-   ' serial.str(String("pidY is on"))
-  'waitcnt(cnt + clkfreq)
+  ' serial.str(String("pidY is on"))
+  ' waitcnt(cnt + clkfreq)
   
 PRI pidOnZ
   long[pidOnOffPtr][2] := 1
@@ -533,6 +557,44 @@ PRI navPidOffZ
 
 
 '=====
+PRI sendPidNavMsg
+
+  com.str(xb, String("[n10"))
+  com.dec(xb, long[xKpNavPtr])
+  com.str(xb, String("]"))
+  com.str(xb, String("[n11"))
+  com.dec(xb, long[xKdNavPtr])
+  com.str(xb, String("]"))
+  com.str(xb, String("[n12"))
+  com.dec(xb, long[xKiNavPtr])
+  com.str(xb, String("]"))
+
+  com.str(xb, String("[n13"))
+  com.dec(xb, long[yKpNavPtr])
+  com.str(xb, String("]"))
+  com.str(xb, String("[n14"))
+  com.dec(xb, long[yKdNavPtr])
+  com.str(xb, String("]"))
+  com.str(xb, String("[n15"))
+  com.dec(xb, long[yKiNavPtr])
+  com.str(xb, String("]"))  
+
+  com.str(xb, String("[n16"))
+  com.dec(xb, long[zKpNav_ascPtr])
+  com.str(xb, String("]"))
+  com.str(xb, String("[n17"))
+  com.dec(xb, long[zKpNav_descPtr])
+  com.str(xb, String("]"))
+  com.str(xb, String("[n18"))
+  com.dec(xb, long[zKdNav_ascPtr])
+  com.str(xb, String("]"))
+  com.str(xb, String("[n19"))
+  com.dec(xb, long[zKdNav_descPtr])
+  com.str(xb, String("]"))
+  com.str(xb, String("[n20"))
+  com.dec(xb, long[zKiNavPtr])
+  com.str(xb, String("]"))
+
 
 PRI sendPidConst
 
@@ -570,6 +632,8 @@ PRI sendPidConst
   com.str(xb, String("[p8"))
   com.dec(xb, long[zKdPtr])
   com.str(xb, String("]"))
+
+  
 
 PRI sendPidCalc
 
@@ -691,7 +755,7 @@ PRI sendPidOnOffStatus
         
 
 PRI sendNavPidOnOffStatus
-
+       {
   com.str(xb, String("[o3"))
   com.dec(xb, long[navPidOnOffPtr][0])
   com.str(xb, String("]"))  
@@ -701,7 +765,7 @@ PRI sendNavPidOnOffStatus
   com.str(xb, String("[o5"))
   com.dec(xb, long[navPidOnOffPtr][2])
   com.str(xb, String("]"))
-
+        }
 
 
 

@@ -9,31 +9,45 @@ var
 
   'longitudinal nav (x axis)
   long prev_dist_x, curr_dist_x, target_dist_x, velX
-  long xkp, xkd, xki
+  long xKpNavPtr, xKdNavPtr, xKiNavPtr
   long xerror, xpro, xder, xint, xintBound, xOutput
 
   'translational nav (y axis)
   long prev_dist_y, curr_dist_y, target_dist_y, velY
-  long ykp, ykd, yki
+  long yKpNavPtr, yKdNavPtr, yKiNavPtr
   long yerror, ypro, yder, yint, yintBound, yOutput
   
   
   
   'altitude nav
-  long zkp, zkd_up, zkd_down, zki
+  long zKpNav_ascPtr, zKpNav_descPtr, zKdNav_ascPtr,zKdNav_descPtr, zKiNavPtr
   long zerror, zpro, zder, zint, zintBound, pwm
 
+PUB setNavPIDConst(xKpAdd, xKdAdd, xKiAdd, yKpAdd, yKdAdd, yKiAdd, zKp_ascAdd, zKp_descAdd, zKd_ascAdd, zKd_descAdd, zKiAdd)
+
+  xKpNavPtr := xKpAdd
+  xKdNavPtr := xKdAdd
+  xKiNavPtr := xKiAdd
   
+  yKpNavPtr := yKpAdd
+  yKdNavPtr := yKdAdd
+  yKiNavPtr := yKiAdd
+  
+  zKpNav_ascPtr := zKp_ascAdd
+  zKpNav_descPtr := zKp_descAdd
+  zKdNav_ascPtr := zKd_ascAdd
+  zKdNav_descPtr := zKd_descAdd
+  zKiNavPtr := zKiAdd
 
 PUB calculatePitchAngle(distX, td) | maxError, maxOutput, integralBound
 
   maxError:= 1000      ' 1 meter max error
-  maxOutput:= 400      ' 4 deg max 
-  integralBound := 300 ' 3 deg
+  maxOutput:= 300      ' 1.5 deg max 
+  integralBound := 100 ' 3 deg
  
-  xKp := 110      'actual kp = kp/100
-  xKd := 200
-  xKi := 0'5
+  'xKp := 110      'actual kp = kp/100
+  'xKd := 200
+  'xKi := 0'5
 
   prev_dist_x := curr_dist_x
   curr_dist_x := distX
@@ -45,11 +59,11 @@ PUB calculatePitchAngle(distX, td) | maxError, maxOutput, integralBound
   elseif (xError < -maxError)
     xError := -maxError
   
-  xPro := xError*xKp/100
+  xPro := xError*long[xKpNavPtr]/100
 
-  xDer := (curr_dist_x - prev_dist_x)*xkd     ' vel >0 getting further -> need to nose down
+  xDer := (curr_dist_x - prev_dist_x)*long[xKdNavPtr]     ' vel >0 getting further -> need to nose down
 
-  xInt := xInt + xError*xKi/10
+  xInt := xInt + xError*long[xKiNavPtr]/10
 
   if (xInt > integralBound)
     xInt := integralBound
@@ -69,28 +83,28 @@ PUB calculatePitchAngle(distX, td) | maxError, maxOutput, integralBound
 PUB calculateRollAngle(distY, td) | maxError, maxOutput, integralBound
 
   maxError := 1000
-  maxOutput:= 400       ' 4 deg max
-  integralBound := 300  ' 3 deg max bound
+  maxOutput:= 300       ' 1.5 deg max
+  integralBound := 100  ' 3 deg max bound
   
-  yKp := 80
-  yKd := 125
-  yKi := 0'5
+  'yKp := 80
+  'yKd := 125
+  'yKi := 0'5
 
   prev_dist_y := curr_dist_y
   curr_dist_y := distY
 
-  yError := td - curr_dist_y ' Err>0 when closer than target dist. fall back -> positive pitch
+  yError := td - curr_dist_y ' Err < 0 right to the target. Left down( negtative roll reference) 
 
   if (yError > maxError) ' when err is larger than 30 cm
     yError := maxError
   elseif (yError < -maxError)
     yError := -maxError
   
-  yPro := yError*yKp/100
+  yPro := yError*long[yKpNavPtr]/100
 
-  yDer := (curr_dist_y - prev_dist_y)*xkd
+  yDer := (curr_dist_y - prev_dist_y)*long[yKdNavPtr]
 
-  yInt := 0'yInt + yError*yKi
+  yInt := 0'yInt + yError*long[yKiNavPtr]
 
   if (yInt > integralBound)
     yInt := integralBound
@@ -110,11 +124,11 @@ PUB calculateRollAngle(distY, td) | maxError, maxOutput, integralBound
 
 PUB calculateThrottle(dist, td, dt)| zkd
 
-
-  zkd := 90
-  zkd_down :=  zkd * 4096
-  zkd_up := zkd
-  zki := 15
+  {
+  'zkd := 90
+  'zkd_down :=  zkd * 4096
+  'zkd_up := zkd
+  'zki := 15
 
   curr_dist_ground := dist                                                                   
   target_dist := td
@@ -158,7 +172,7 @@ PUB calculateThrottle(dist, td, dt)| zkd
 
 
   return pwm
-
+   }
 
 pub reSetZ
   zpro :=0
