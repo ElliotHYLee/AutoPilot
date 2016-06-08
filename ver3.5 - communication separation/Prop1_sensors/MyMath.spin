@@ -6,12 +6,12 @@
 
 CON
   _clkmode = xtal1 + pll16x                                                    
-  _xinfreq = 5_000_000
+  _xinfreq = 6_250_000
   
 CMNSACLE = 10_000
 ObJ
 
-  fds : "FullDuplexSerial"
+ ' fds : "FullDuplexSerial"
   tr     : "TRIG.spin"
 
 
@@ -19,7 +19,7 @@ VAR
 
   long R[9], testAcc[3], temp3x3[9]
 
-
+{
 PUB main
 
   fds.quickStart
@@ -33,7 +33,7 @@ PUB main
     fds.clear
    ' fds.decLn(getFirstDCM(@R, @testAcc))
     waitcnt(cnt + clkfreq/10)
-
+}
 PUB sqrt(value)| x, i
 
   x := value
