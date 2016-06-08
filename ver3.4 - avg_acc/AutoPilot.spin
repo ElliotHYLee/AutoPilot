@@ -1,6 +1,6 @@
 CON
   _clkmode = xtal1 + pll16x
-  _xinfreq = 5_000_000
+  _xinfreq = 6_250_000
                    
 ULTRASONIC_SENSOR_PIN = 8
 
@@ -203,9 +203,6 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
   navCtrl.setNavPIDConst(@xKpNav, @xKdNav, @xKiNav, @yKpNav, @yKdNav, @yKiNav, @zKpNav_asc, @zKpNav_desc, @zKdNav_asc, @zKdNav_desc, @zKiNav)
 
   totalInc := 0
-
-  
-
   
   base := cnt
   repeat
@@ -217,8 +214,6 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
     if (navPidOnOff[1]) ' pitch x axis (distance Kinect - object)
       targetEAngle[1] := navCtrl.calculateRollAngle(localCoord[1], 0)
 
-    
-    
     {
     if (navPidOnOff[2])     ' z axis ( altitude) 
        'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
@@ -422,10 +417,7 @@ PRI attitudePID
     pulse[4] := 1200 #> throttle - xOutput*86/100 - yOutput + zOutput <# thrustBound_max'1950 
     pulse[5] := 1200 #> throttle - xOutput*86/100                     <# thrustBound_max'1950 
     
-     
-  
-                                                                                 
-       
+
 PRI rollPID 
 
   'setXConst

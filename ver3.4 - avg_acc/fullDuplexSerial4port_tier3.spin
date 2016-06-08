@@ -1,6 +1,6 @@
 CON
 _clkmode = xtal1 + pll16x
-_xinfreq = 5_000_000
+_xinfreq = 6_250_000
 
   usb = 0 
   xb = 1
@@ -32,7 +32,7 @@ VAR
   
 OBJ
   com :  "fullDuplexSerial4port_tier2"
-    {
+    
 PUB main | isReceived, c, localCoordinate[3]
 
   lcPtr[0] := @localCoordinate[0] 
@@ -48,7 +48,7 @@ PUB main | isReceived, c, localCoordinate[3]
       c := com.charIn(xb)
       com.char(xb, c)
       com.newline(xb)
-       }
+       
 
 PUB setNavPIDConst(xKpAdd, xKdAdd, xKiAdd, yKpAdd, yKdAdd, yKiAdd, zKp_ascAdd, zKp_descAdd, zKd_ascAdd, zKd_descAdd, zKiAdd)
 
@@ -185,12 +185,12 @@ PUB communicate | base , counter, isUsbTurn
          ' sendPidCalc
           'sendMagMsg
           'sendPidNavMsg
-          sendAttMsg
+         ' sendAttMsg
           'sendMotorMsg
-          sendThrottleMsg
+        '  sendThrottleMsg
           'sendDistGrdMsg
           'sendLocalCoordinate(xb)
-          sendCtrlRef
+        '  sendCtrlRef
            
 
     base := cnt 
@@ -303,6 +303,7 @@ PUB sendLocalCoordinate(port)
 PRI readCharArray_xb  | newPWM, newPidProperty, newRequest, newMode
    varChar2 := varchar
    varChar := com.CharIn(xb)
+   com.char(xb, varChar)
    if (48=<varChar AND varChar=<57) 'btw 0-9
      newValue := newValue*10 + ASCII2Dec(varChar)
    elseif(varChar == 77) ' M -> motor
