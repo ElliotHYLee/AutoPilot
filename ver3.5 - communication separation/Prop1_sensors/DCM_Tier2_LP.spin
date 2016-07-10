@@ -147,8 +147,8 @@ PRI getMagLowPass | c, t, i, accNorm, magIntrim[3]
   'acc2Ang
   
   'mag[i]*100/max_axis  = scale mag values at -100 to 100 
-  magIntrim[0] := (mag[0]*100/620)' - euler[0]*15/1000
-  magIntrim[1] := (mag[1]*100/620)' + euler[1]*15/1000    
+  magIntrim[0] := (mag[0]*100/620) '- euler[0]*15/1000
+  magIntrim[1] := (mag[1]*100/620) '+ euler[1]*15/1000    
   magIntrim[2] := mag[2]*100/550 
 
   t := 10

@@ -10,10 +10,13 @@ OBJ
                   
 VAR
   'motor variables
-  long motorPin[6], pulsePtr[6], stack1[50], stack2[50], base[5], dt[5]
+  long motorPin[6], pulsePtr[6], stack1[100], stack2[100], base[5], dt[5]
 
+  'lock
+  long motorLockPtr
+  
   'debug
-  long pulse[6]
+  long pulse[6], alive[2], targetPulse, stopPulse
    
 {{
 -----------------------------------------------------------------
@@ -28,8 +31,9 @@ MOTOR CONTROL REGION                                            |
 PUB main | i
 
   repeat i from 0 to 5
-    pulse[i] := 2000
+    pulse[i] := 1100
 
+  
   setMotorPWM(@pulse)
   
   setMotorPins(6,7,8,9,10,11)
@@ -42,14 +46,39 @@ PUB main | i
     
     debug.str(db,String("1: freq: "))
     debug.decLn(db, clkfreq/dt[0])
-
+    if (alive[0] == 1)
+      debug.strLn(db, String("1 is alive"))
+      alive[0] := 0
+    else
+      debug.strLn(db, String("1 is dead"))
+      
+    debug.newline(db)
     debug.str(db,String("2: freq: "))
-    debug.dec(db, clkfreq/dt[1])
+    debug.decLn(db, clkfreq/dt[1])
+    if (alive[1] == 1)
+      debug.strLn(db, String("2 is alive"))
+      alive[1] := 0
+    else
+      debug.strLn(db, String("2 is dead"))
 
+    debug.newline(db)
+    repeat i from 0 to 5
+      debug.dec(db, i)
+      debug.str(db, string(": "))
+      debug.decLn(db, long[pulsePtr][i])
+      
     
     waitcnt(cnt + clkfreq/10)
   
+PUB givemeStopPulse
+ return @stopPulse
   
+PUB givemeAlive
+  return @alive
+
+PUB setMotorLock(val)
+
+  motorLockPtr := val
 
 
 PUB setMotorPins(pin0, pin1, pin2, pin3, pin4, pin5)  {{ constructor }}
@@ -61,9 +90,8 @@ PUB setMotorPins(pin0, pin1, pin2, pin3, pin4, pin5)  {{ constructor }}
   motorPin[4] := pin4
   motorPin[5] := pin5
 
-PUB setMotorPWM(pwmPtr) | i
-  repeat i from 0 to 5
-    pulsePtr[i] := pwmPtr[i]
+PUB setMotorPWM(pwmPtr)
+  pulsePtr := pwmPtr
 
 PUB runMotor             {{generating pwm for the motor connected to this pin}}              
   
@@ -73,32 +101,35 @@ PUB runMotor             {{generating pwm for the motor connected to this pin}}
   
   cognew(runMotor2, @stack2)
   
-PUB runMotor1  | baseTime, totalElapse, i
+PUB runMotor1  | baseTime, dutyBase, totalElapse, i
 
   repeat i from 0 to 2
     dira[motorPin[i]] := 1   'set pin direction for this motor 
-    long[pulsePtr][i] := 1200         'set default pwm
+    'long[pulsePtr][i] := targetPulse         'set default pwm
 
   repeat
-    inspectPulse ' when abnormal pwm comes, udpate all wpm as 1200
+    'inspectPulse ' when abnormal pwm comes, udpate all wpm as 1200
     totalElapse := 0
     baseTime := cnt    
     repeat i from 0 to 2
       outa[motorPin[i]]:= 1
+      'repeat while (long[motorLockPtr]==1)
+      stopPulse := long[pulsePtr][i]
       waitcnt(cnt + clkfreq/1_000_000*long[pulsePtr][i])
       outa[motorPin[i]]:= 0
       totalElapse += long[pulsePtr][i]
-    waitcnt(baseTime + (clkfreq/1000*10 - clkfreq/1_000_000*totalElapse))
+    waitcnt(baseTime + (clkfreq/150 - totalElapse))  
+    alive[0] := 1
     dt[0] := cnt - baseTime
 
 PUB runMotor2  | baseTime, totalElapse, i 
 
   repeat i from 3 to 5
     dira[motorPin[i]] := 1   'set pin direction for this motor 
-    long[pulsePtr][i] := 1200         'set default pwm
+    'long[pulsePtr][i] := targetPulse         'set default pwm
 
   repeat
-    inspectPulse ' when abnormal pwm comes, udpate all wpm as 1200
+    'inspectPulse ' when abnormal pwm comes, udpate all wpm as 1200
     totalElapse := 0
     baseTime := cnt    
     repeat i from 3 to 5
@@ -106,14 +137,15 @@ PUB runMotor2  | baseTime, totalElapse, i
       waitcnt(cnt + clkfreq/1_000_000*long[pulsePtr][i])
       outa[motorPin[i]]:= 0
       totalElapse += long[pulsePtr][i]
-    waitcnt(baseTime + (clkfreq/1000*10 - clkfreq/1_000_000*totalElapse))
+    waitcnt(baseTime + (clkfreq/150 - totalElapse))
+    alive[1] := 1
     dt[1] := cnt - baseTime
 
     
 PRI inspectPulse | i , j
 
-  repeat i from 0 to 5
-    if ((long[pulsePtr][i] < 1100) OR (1800 < long[pulsePtr][i])) '(2050 < long[pulsePtr][i]))
+  repeat i from 0 to 2
+    if ((long[pulsePtr][i] < 1100) OR (2000 < long[pulsePtr][i])) '(2050 < long[pulsePtr][i]))
       repeat j from 0 to 5
         long[pulsePtr][j] := 1100
       return 0
@@ -129,4 +161,6 @@ PRI initMotor | i {{initializing the motor connected to this pin}}
       outa[motorPin[i]]:=1
       waitcnt(cnt + (clkfreq / 1000 ) )
       outa[motorPin[i]]:=0
-    waitcnt(cnt + clkfreq / 1000*20)  
+    waitcnt(cnt + clkfreq / 1000*20)
+
+    

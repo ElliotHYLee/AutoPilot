@@ -14,9 +14,9 @@ CON
 
 
   xb = 1
-  xbBaud = 57600
-  xbRx = 0
-  xbTx = 1
+  xbBaud = 57600'115200'57600
+  xbRx = 0'31'0
+  xbTx = 1'30'1
   
 OBJ
   com :  "fullDuplexSerial4port_tier1.spin"

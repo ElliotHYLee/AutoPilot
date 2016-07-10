@@ -189,16 +189,16 @@ PUB calcHeading(pitch, roll, magBodyX, magBodyY)| temp
   magBodyX := magBodyX - pitch*15/1000
   magBodyY := magBodyY + roll*15/1000
   if (magBodyX =>0 AND magBodyY =>0)         '(+,+) btw +90 to +180 degree
-    temp :=  180 - magBodyY*90/35
+    temp :=  180 - magBodyY*90/50
 
   elseif (magBodyX => 0 AND magBodyY < 0)    '(+,-) btw -90 to -180 degree 
-    temp :=  -180 - magBodyY*90/35 
+    temp :=  -180 - magBodyY*90/50 
                                                           
   elseif (magBodyX < 0 AND magBodyY => 0)    '(-,+) btw  +0 to +90 degree
-    temp :=  magBodyY*90/35  
+    temp :=  magBodyY*90/50  
 
   elseif (magBodyX < 0 AND magBodyY < 0)     '(-,-) btw  -0 to -90 degree
-    temp :=  magBodyY*90/35
+    temp :=  magBodyY*90/50
 
   return temp*100
 

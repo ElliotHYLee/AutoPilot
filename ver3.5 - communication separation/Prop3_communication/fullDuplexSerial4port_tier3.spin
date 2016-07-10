@@ -122,13 +122,13 @@ PUB communicate | base , c, turnCase, msgElementCnt
   turnCase := 0
   msgElementCnt := 0
   repeat
-    if com.rxIsIn(xb) AND msgElementCnt < 10
+    if com.rxIsIn(xb) AND (msgElementCnt =< 10 )
       readCharArray_xb
       msgElementCnt++
       
     else
-      msgElementCnt := 0  
-      if (cnt > base + clkfreq/100)
+      msgElementCnt := 0
+      base := cnt 
         case turnCase
           0 : sendEulerMsg
           1 : sendGyroMsg
@@ -181,9 +181,10 @@ PUB communicate | base , c, turnCase, msgElementCnt
             sendAttPidConst
           cmdGCS := 0
 
-       
+      'if ( ||(cnt - base) >  clkfreq/100)
+           
                            
-        base := cnt    
+            
 
 PUB readCharArray_xb        
 
@@ -275,9 +276,15 @@ PRI getThrottle | theLetter
     long[throttle_inputPtr][1] := getDec
     long[throttle_inputPtr][0] := 1
   
-PRI getMotors | theLetter
+PRI getMotors | theLetter, i, temp
   theLetter := consume
-  long[motor_inputPtr][theLetter - "a" + 1] := getDec
+  temp := getDec 
+  if (theLetter == "g")
+    repeat i from 0 to 5
+      long[motor_inputPtr][i+1] := 1000 #> long[pulsePtr][i] + temp <#2100
+  else
+    long[motor_inputPtr][theLetter - "a" + 1] := 1000 #> long[pulsePtr][theLetter - "a" ] + temp  <#2100 
+    
   long[motor_inputPtr][0] := 1
   
 PRI getDec | value, sign, answer

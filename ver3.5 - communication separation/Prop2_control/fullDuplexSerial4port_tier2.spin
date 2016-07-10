@@ -10,6 +10,11 @@ CON
   debugRx = 31
   debugTx = 30
   debugBaud = 115200
+
+  kinect =  1
+  kinectRx = 31
+  kinectTx = 30
+  kinectBaud = 115200
   
 OBJ
   com :  "fullDuplexSerial4port_tier1.spin"
@@ -19,6 +24,12 @@ PUB quickStartDebug
    com.AddPort(debug, debugRx, debugTx,-1,-1,0,0, debugBaud)   
 
    result := com.start
+
+PUB quickStartKinect
+
+   com.AddPort(kinect, kinectRx, kinectTx,-1,-1,0,0, kinectBaud)   
+
+   result := com.start 
 
 PUB clear(port)
 

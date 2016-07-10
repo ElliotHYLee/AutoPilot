@@ -1,6 +1,6 @@
 CON
   _clkmode = xtal1 + pll16x
-  _xinfreq = 5_000_000
+  _xinfreq = 6_250_000
 
 OBJ
 

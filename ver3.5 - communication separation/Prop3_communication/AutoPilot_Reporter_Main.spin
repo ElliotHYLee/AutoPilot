@@ -18,7 +18,7 @@ VAR
   long memRx2_init, euler[3], gyro[3], acc[3], mag[3], distGround, empty2  
    
   'to GCS
-  long commStack[100]
+  long commStack[200]
 
   'debug
   long debuggerStack[100]
@@ -37,9 +37,9 @@ PUB Main | i
     memTx2_init[i+1] := i*10
 
   cognew(runDebug, @debuggerStack)
-  comm2Receiver    ' 1 cog
-  comm3Receiver    ' 1 cog
-  newCommunication ' 2 cogs
+  comm2Receiver     ' 1 cog
+  comm3Receiver     ' 1 cog
+  newCommunication  ' 2 cogs
 
   cognew(comm3Manager, @comm3ManagerStack[100])
   

@@ -191,7 +191,7 @@ PUB runPID_pos | base, val, diff, totalInc, timeElapse, dist_ground
        'throttle := heightCtrl.calculateThrottle(dist_ground, 500, cnt - base)
       val := heightCtrl.calculateThrottle(dist_ground, 1000, cnt - base)
       diff := val - throttle ' positive difference when need to go up, negetive when need to go down
-      throttle :=val
+      throttle := val
     else
       heightCtrl.reset
     'Fix pos_pid by 50 hz at max. faster is no use due to DCM
